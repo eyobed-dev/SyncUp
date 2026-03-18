@@ -261,45 +261,64 @@ class _HomeScreenState extends State<HomeScreen>
             builder: (context, _, __) {
               final current = _currentMeeting;
               final dismissed = _dismissedCurrentMeeting;
-              if (current != null) {
-                return Flexible(
-                  child: SingleChildScrollView(
-                    child: CurrentMeetingCard(
-                      meeting: current,
-                      accentColor: SyncUpTheme.primary,
-                      onMissed: () {
-                        // Record missed – card stays visible
-                      },
-                      onOntime: () {
-                        // Record ontime – card stays visible
-                      },
-                      onLate: () {
-                        // Record late – card stays visible
-                      },
-                      onDismiss: () {
-                        setState(() {
-                          _dismissedMeetingIds.add(current.id);
-                        });
-                      },
+              // Do not use [Flexible] here: it would split space 50/50 with [TabBarView]
+              // and shrink the calendar. Shrink-wrapped list keeps banner height intrinsic.
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 420),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                // Default uses StackFit.passthrough + center alignment, which can let
+                // the banner subtree expand to the full column height above the tab body.
+                layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                  return Stack(
+                    alignment: Alignment.topCenter,
+                    fit: StackFit.loose,
+                    clipBehavior: Clip.none,
+                    children: <Widget>[
+                      ...previousChildren,
+                      if (currentChild != null) currentChild,
+                    ],
+                  );
+                },
+                transitionBuilder: (child, animation) {
+                  final curved = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                    reverseCurve: Curves.easeInCubic,
+                  );
+                  return FadeTransition(
+                    opacity: curved,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.08),
+                        end: Offset.zero,
+                      ).animate(curved),
+                      child: ScaleTransition(
+                        scale: Tween<double>(begin: 0.97, end: 1).animate(curved),
+                        alignment: Alignment.topCenter,
+                        child: child,
+                      ),
                     ),
+                  );
+                },
+                child: _MeetingBannerSlot(
+                  key: ValueKey<String>(
+                    current != null
+                        ? 'current-${current.id}'
+                        : dismissed != null
+                            ? 'dismissed-${dismissed.id}'
+                            : 'empty',
                   ),
-                );
-              }
-              if (dismissed != null) {
-                return Flexible(
-                  child: SingleChildScrollView(
-                    child: DismissedMeetingButton(
-                      meeting: dismissed,
-                      onTap: () {
-                        setState(() {
-                          _dismissedMeetingIds.remove(dismissed.id);
-                        });
-                      },
-                    ),
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
+                  current: current,
+                  dismissed: dismissed,
+                  onDismissMeeting: (id) {
+                    setState(() => _dismissedMeetingIds.add(id));
+                  },
+                  onRestoreMeeting: (id) {
+                    setState(() => _dismissedMeetingIds.remove(id));
+                  },
+                ),
+              );
             },
           ),
           Expanded(
@@ -346,5 +365,61 @@ class _HomeScreenState extends State<HomeScreen>
         ],
       ),
     );
+  }
+}
+
+/// Banner under the tab bar: shrink-wrapped so [Expanded] below keeps full height.
+/// Keys drive [AnimatedSwitcher] when in-progress / dismissed / hidden changes.
+class _MeetingBannerSlot extends StatelessWidget {
+  final Meeting? current;
+  final Meeting? dismissed;
+  final ValueChanged<String> onDismissMeeting;
+  final ValueChanged<String> onRestoreMeeting;
+
+  const _MeetingBannerSlot({
+    super.key,
+    required this.current,
+    required this.dismissed,
+    required this.onDismissMeeting,
+    required this.onRestoreMeeting,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    // Cap banner height so TabBarView always gets the rest of the screen; scroll inside if needed.
+    final maxBannerH = (h * 0.34).clamp(120.0, 320.0);
+
+    if (current != null) {
+      final m = current!;
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxBannerH),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: CurrentMeetingCard(
+            meeting: m,
+            accentColor: SyncUpTheme.primary,
+            onMissed: () {
+              // Record missed – card stays visible
+            },
+            onOntime: () {
+              // Record ontime – card stays visible
+            },
+            onLate: () {
+              // Record late – card stays visible
+            },
+            onDismiss: () => onDismissMeeting(m.id),
+          ),
+        ),
+      );
+    }
+    if (dismissed != null) {
+      final m = dismissed!;
+      return DismissedMeetingButton(
+        meeting: m,
+        onTap: () => onRestoreMeeting(m.id),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

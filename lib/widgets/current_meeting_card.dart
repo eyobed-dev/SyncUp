@@ -119,29 +119,30 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
   Widget build(BuildContext context) {
     final meeting = widget.meeting;
     final now = DateTime.now();
-    final isOngoing = !now.isBefore(meeting.startTime) && now.isBefore(meeting.endTime);
-    final justEnded = now.isAfter(meeting.endTime) &&
+    final isOngoing =
+        !now.isBefore(meeting.startTime) && now.isBefore(meeting.endTime);
+    final justEnded =
+        now.isAfter(meeting.endTime) &&
         now.difference(meeting.endTime).inMinutes <= 1;
 
-    final borderColor = _aboutToEnd
-        ? const Color(0xFFDC2626)
-        : widget.accentColor;
+    final borderColor =
+        _aboutToEnd ? const Color(0xFFDC2626) : widget.accentColor;
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
         color: SyncUpTheme.surface,
         borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
         border: Border.all(
-          color: borderColor.withValues(
-            alpha: isOngoing ? 0.6 : 0.3,
-          ),
+          color: borderColor.withValues(alpha: isOngoing ? 0.6 : 0.3),
           width: isOngoing ? 1.5 : 1,
         ),
         boxShadow: [
           ...SyncUpTheme.cardShadow,
           if (isOngoing)
             BoxShadow(
-              color: (_aboutToEnd ? const Color(0xFFDC2626) : widget.accentColor)
+              color: (_aboutToEnd
+                      ? const Color(0xFFDC2626)
+                      : widget.accentColor)
                   .withValues(alpha: 0.12),
               blurRadius: 12,
               spreadRadius: 0,
@@ -168,310 +169,397 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                 ),
               ),
             Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              AnimatedBuilder(
-                animation: _pulseAnimation,
-                builder: (context, child) {
-                  final barColor = _aboutToEnd ? const Color(0xFFDC2626) : widget.accentColor;
-                  return Container(
-                    width: 4,
-                    decoration: BoxDecoration(
-                      color: barColor.withValues(
-                        alpha: isOngoing ? _pulseAnimation.value : 0.6,
-                      ),
-                      borderRadius: const BorderRadius.horizontal(
-                        left: Radius.circular(SyncUpTheme.radiusMd),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                if (isOngoing) ...[
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: widget.accentColor.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        AnimatedBuilder(
-                                          animation: _pulseAnimation,
-                                          builder: (context, _) {
-                                            return Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: widget.accentColor.withValues(
-                                                  alpha: _pulseAnimation.value,
-                                                ),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: widget.accentColor.withValues(alpha: 0.5),
-                                                    blurRadius: 4,
-                                                    spreadRadius: 0,
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'In progress',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: widget.accentColor,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 11,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ] else if (justEnded) ...[
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: SyncUpTheme.textSecondary.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'Just ended',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: SyncUpTheme.textSecondary,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 10,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                Text(
-                                  '${_formatTime(meeting.startTime)} – ${_formatTime(meeting.endTime)}',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: SyncUpTheme.textSecondary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                ),
-                              ],
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        final barColor =
+                            _aboutToEnd
+                                ? const Color(0xFFDC2626)
+                                : widget.accentColor;
+                        return Container(
+                          width: 4,
+                          decoration: BoxDecoration(
+                            color: barColor.withValues(
+                              alpha: isOngoing ? _pulseAnimation.value : 0.6,
+                            ),
+                            borderRadius: const BorderRadius.horizontal(
+                              left: Radius.circular(SyncUpTheme.radiusMd),
                             ),
                           ),
-                          if (widget.onDismiss != null)
-                            IconButton(
-                              onPressed: widget.onDismiss,
-                              icon: Icon(
-                                Icons.close,
-                                size: 20,
-                                color: SyncUpTheme.textSecondary,
-                              ),
-                              style: IconButton.styleFrom(
-                                padding: const EdgeInsets.all(4),
-                                minimumSize: const Size(32, 32),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              tooltip: 'Dismiss',
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        meeting.displayLabel,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: SyncUpTheme.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (meeting.location != null) ...[
-                        const SizedBox(height: 4),
-                        Row(
+                        );
+                      },
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.location_on_outlined,
-                              size: 14,
-                              color: SyncUpTheme.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                meeting.location!,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      if (isOngoing) ...[
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: widget.accentColor
+                                                .withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              AnimatedBuilder(
+                                                animation: _pulseAnimation,
+                                                builder: (context, _) {
+                                                  return Container(
+                                                    width: 8,
+                                                    height: 8,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: widget.accentColor
+                                                          .withValues(
+                                                            alpha:
+                                                                _pulseAnimation
+                                                                    .value,
+                                                          ),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: widget
+                                                              .accentColor
+                                                              .withValues(
+                                                                alpha: 0.5,
+                                                              ),
+                                                          blurRadius: 4,
+                                                          spreadRadius: 0,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                'In progress',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelSmall
+                                                    ?.copyWith(
+                                                      color: widget.accentColor,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 11,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ] else if (justEnded) ...[
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: SyncUpTheme.textSecondary
+                                                .withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Just ended',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.labelSmall?.copyWith(
+                                              color: SyncUpTheme.textSecondary,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Text(
+                                        '${_formatTime(meeting.startTime)} – ${_formatTime(meeting.endTime)}',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.copyWith(
+                                          color: SyncUpTheme.textSecondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (widget.onDismiss != null)
+                                  IconButton(
+                                    onPressed: widget.onDismiss,
+                                    icon: Icon(
+                                      Icons.close,
+                                      size: 20,
                                       color: SyncUpTheme.textSecondary,
                                     ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                                    style: IconButton.styleFrom(
+                                      padding: const EdgeInsets.all(4),
+                                      minimumSize: const Size(32, 32),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    tooltip: 'Dismiss',
+                                  ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ],
-                      if (isOngoing) ...[
-                        const SizedBox(height: 10),
-                        ValueListenableBuilder<int>(
-                          valueListenable: _tickNotifier,
-                          builder: (context, _, __) {
-                            final progress = _progress;
-                            final aboutToEnd = _aboutToEnd;
-                            final countdown = _remainingCountdown;
-                            return RepaintBoundary(
-                              child: Row(
+                            const SizedBox(height: 6),
+                            Text(
+                              meeting.displayLabel,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleSmall?.copyWith(
+                                color: SyncUpTheme.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (meeting.location != null) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on_outlined,
+                                    size: 14,
+                                    color: SyncUpTheme.textSecondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      meeting.location!,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall?.copyWith(
+                                        color: SyncUpTheme.textSecondary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            if (isOngoing) ...[
+                              const SizedBox(height: 10),
+                              ValueListenableBuilder<int>(
+                                valueListenable: _tickNotifier,
+                                builder: (context, _, __) {
+                                  final progress = _progress;
+                                  final aboutToEnd = _aboutToEnd;
+                                  final countdown = _remainingCountdown;
+                                  final pct = (progress * 100).clamp(0, 100).round();
+                                  final pctStyle = Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: aboutToEnd
+                                            ? const Color(0xFFDC2626)
+                                            : SyncUpTheme.textSecondary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      );
+                                  return RepaintBoundary(
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
+                                            child: LinearProgressIndicator(
+                                              value: progress,
+                                              backgroundColor:
+                                                  SyncUpTheme.divider,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    aboutToEnd
+                                                        ? const Color(
+                                                          0xFFDC2626,
+                                                        )
+                                                        : widget.accentColor,
+                                                  ),
+                                              minHeight: 3,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        SizedBox(
+                                          width: 40,
+                                          child: Text(
+                                            '$pct%',
+                                            textAlign: TextAlign.right,
+                                            style: pctStyle,
+                                          ),
+                                        ),
+                                        if (aboutToEnd) ...[
+                                          const SizedBox(width: 8),
+                                          AnimatedBuilder(
+                                            animation: _bellAnimation,
+                                            builder: (context, _) {
+                                              final t = _bellAnimation.value;
+                                              final bounce =
+                                                  2.0 * (1 - (2 * t - 1).abs());
+                                              return Transform.translate(
+                                                offset: Offset(0, -bounce * 2),
+                                                child: Icon(
+                                                  Icons.notifications_active,
+                                                  size: 16,
+                                                  color: const Color(
+                                                    0xFFDC2626,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          const SizedBox(width: 6),
+                                          SizedBox(
+                                            width: 32,
+                                            child: Text(
+                                              countdown,
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.labelSmall?.copyWith(
+                                                color: const Color(0xFFDC2626),
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 12,
+                                                fontFeatures: const [
+                                                  FontFeature.tabularFigures(),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ] else if (justEnded) ...[
+                              const SizedBox(height: 10),
+                              Row(
                                 children: [
                                   Expanded(
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(2),
                                       child: LinearProgressIndicator(
-                                        value: progress,
+                                        value: 1,
                                         backgroundColor: SyncUpTheme.divider,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          aboutToEnd ? const Color(0xFFDC2626) : widget.accentColor,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          SyncUpTheme.textSecondary,
                                         ),
                                         minHeight: 3,
                                       ),
                                     ),
                                   ),
-                                  if (aboutToEnd) ...[
-                                    const SizedBox(width: 8),
-                                    AnimatedBuilder(
-                                      animation: _bellAnimation,
-                                      builder: (context, _) {
-                                        final t = _bellAnimation.value;
-                                        final bounce = 2.0 * (1 - (2 * t - 1).abs());
-                                        return Transform.translate(
-                                          offset: Offset(0, -bounce * 2),
-                                          child: Icon(
-                                            Icons.notifications_active,
-                                            size: 16,
-                                            color: const Color(0xFFDC2626),
+                                  const SizedBox(width: 8),
+                                  SizedBox(
+                                    width: 40,
+                                    child: Text(
+                                      '100%',
+                                      textAlign: TextAlign.right,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: SyncUpTheme.textSecondary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                            fontFeatures: const [
+                                              FontFeature.tabularFigures(),
+                                            ],
                                           ),
-                                        );
-                                      },
                                     ),
-                                    const SizedBox(width: 6),
-                                    SizedBox(
-                                      width: 32,
-                                      child: Text(
-                                        countdown,
-                                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                              color: const Color(0xFFDC2626),
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 12,
-                                              fontFeatures: const [FontFeature.tabularFigures()],
-                                            ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ],
                               ),
-                            );
-                          },
+                            ],
+                          ],
                         ),
-                      ] else if (justEnded) ...[
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: LinearProgressIndicator(
-                            value: 1,
-                            backgroundColor: SyncUpTheme.divider,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              SyncUpTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 12, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: widget.onMissed,
+                          icon: const Icon(Icons.close, size: 16),
+                          label: const Text('Missed'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFDC2626),
+                            side: const BorderSide(color: Color(0xFFDC2626)),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            minHeight: 3,
                           ),
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: widget.onLate,
+                          icon: const Icon(Icons.schedule, size: 16),
+                          label: const Text('Late'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFF59E0B),
+                            side: const BorderSide(color: Color(0xFFF59E0B)),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: widget.onOntime,
+                          icon: const Icon(Icons.check, size: 16),
+                          label: const Text('Ontime'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: SyncUpTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 12, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: widget.onMissed,
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Missed'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFDC2626),
-                      side: const BorderSide(color: Color(0xFFDC2626)),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: widget.onLate,
-                    icon: const Icon(Icons.schedule, size: 16),
-                    label: const Text('Late'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFF59E0B),
-                      side: const BorderSide(color: Color(0xFFF59E0B)),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: widget.onOntime,
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Ontime'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: SyncUpTheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
           ],
         ),
       ),
@@ -488,16 +576,17 @@ class _ShimmerPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment(-1 + progress * 2, 0),
-        end: Alignment(-0.5 + progress * 2, 0),
-        colors: [
-          color.withValues(alpha: 0),
-          color.withValues(alpha: 0.04),
-          color.withValues(alpha: 0),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    final paint =
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment(-1 + progress * 2, 0),
+            end: Alignment(-0.5 + progress * 2, 0),
+            colors: [
+              color.withValues(alpha: 0),
+              color.withValues(alpha: 0.04),
+              color.withValues(alpha: 0),
+            ],
+          ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
   }
 
