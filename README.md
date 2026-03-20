@@ -1,6 +1,6 @@
 # SyncUp
 
-A Flutter app for connecting teachers and students, professionals, experts, and colleagues across academic and professional fields. Schedule and view meetings in a tetris-style slots view or per-day calendar.
+A Flutter app for connecting teachers and students, professionals, experts, and colleagues across academic and professional fields. Schedule and view meetings in slots view or per-day calendar.
 
 ## Structure
 
