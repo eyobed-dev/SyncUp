@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/meeting.dart';
 import '../data/sample_data.dart';
@@ -20,10 +21,14 @@ class CalendarView extends StatelessWidget {
   final DateTime weekStart;
   final ValueNotifier<int> selectedDayIndex;
 
+  /// When non-null (e.g. List tab active), list highlights update from this notifier.
+  final ValueListenable<DateTime>? liveClock;
+
   const CalendarView({
     super.key,
     required this.weekStart,
     required this.selectedDayIndex,
+    this.liveClock,
   });
 
   @override
@@ -51,11 +56,19 @@ class CalendarView extends StatelessWidget {
                   .toList()
                 ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
-              final currentMeeting = getCurrentMeeting(monday);
-              return _DayMeetingsList(
-                day: day,
-                meetings: meetings,
-                currentMeeting: currentMeeting,
+              Widget list(Meeting? current) => _DayMeetingsList(
+                    day: day,
+                    meetings: meetings,
+                    currentMeeting: current,
+                  );
+
+              final live = liveClock;
+              if (live == null) {
+                return list(getCurrentMeeting(monday));
+              }
+              return ValueListenableBuilder<DateTime>(
+                valueListenable: live,
+                builder: (context, _, __) => list(getCurrentMeeting(monday)),
               );
             },
           ),
@@ -95,18 +108,18 @@ class _WeekDaySelector extends StatelessWidget {
 
     return SizedBox(
       height: selectorHeight,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(
-          horizontal: Responsive.value(context, mobile: 6.0, tablet: 10.0, desktop: 12.0),
-          vertical: 6,
-        ),
-        itemCount: 7,
-        itemBuilder: (context, i) {
-          final day = monday.add(Duration(days: i));
-          return ValueListenableBuilder<int>(
-            valueListenable: selectedIndex,
-            builder: (context, idx, _) {
+      child: ValueListenableBuilder<int>(
+        valueListenable: selectedIndex,
+        builder: (context, idx, _) {
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(
+              horizontal: Responsive.value(context, mobile: 6.0, tablet: 10.0, desktop: 12.0),
+              vertical: 6,
+            ),
+            itemCount: 7,
+            itemBuilder: (context, i) {
+              final day = monday.add(Duration(days: i));
               final selected = idx == i;
               return GestureDetector(
                 onTap: () => selectedIndex.value = i,
@@ -283,172 +296,155 @@ class _DayMeetingsList extends StatelessWidget {
             !now.isBefore(m.startTime) &&
             now.isBefore(m.endTime);
 
-        return Container(
-          margin: EdgeInsets.only(bottom: itemGap),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(2),
-            border: isCurrent
-                ? Border.all(
-                    color: SyncUpTheme.primary.withValues(alpha: 0.4),
-                    width: 1.5,
-                  )
-                : null,
-            boxShadow: [
-              BoxShadow(
-                color: isCurrent
-                    ? SyncUpTheme.primary.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.08),
-                blurRadius: isCurrent ? 8 : 4,
-                offset: const Offset(0, 1),
+        final highlight = SyncUpTheme.primary.withValues(alpha: 0.4);
+
+        return RepaintBoundary(
+          child: Container(
+            margin: EdgeInsets.only(bottom: itemGap),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(2),
+              border: Border(
+                left: BorderSide(color: accentColor, width: 4),
+                top: isCurrent ? BorderSide(color: highlight, width: 1.5) : BorderSide.none,
+                right: isCurrent ? BorderSide(color: highlight, width: 1.5) : BorderSide.none,
+                bottom: isCurrent ? BorderSide(color: highlight, width: 1.5) : BorderSide.none,
               ),
-            ],
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: 4,
-                  decoration: BoxDecoration(
-                    color: accentColor,
-                    borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(2),
+              boxShadow: [
+                BoxShadow(
+                  color: isCurrent
+                      ? SyncUpTheme.primary.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.08),
+                  blurRadius: isCurrent ? 8 : 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: accentColor,
+                    child: Text(
+                      m.participantName.isNotEmpty
+                          ? m.participantName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                              radius: 14,
-                        backgroundColor: accentColor,
-                        child: Text(
-                          m.participantName.isNotEmpty
-                              ? m.participantName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                      if (isCurrent)
-                        Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 5,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isCurrent)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isOngoing
+                                        ? SyncUpTheme.primary
+                                        : SyncUpTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isOngoing ? 'In progress' : 'Just ended',
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                         color: isOngoing
                                             ? SyncUpTheme.primary
                                             : SyncUpTheme.textSecondary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 10,
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      isOngoing ? 'In progress' : 'Just ended',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: isOngoing
-                                                ? SyncUpTheme.primary
-                                                : SyncUpTheme.textSecondary,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 10,
-                                          ),
-                                    ),
-                                  ],
                                 ),
-                              ),
-                            Text(
-                              m.displayLabel,
-                              style: const TextStyle(
-                                color: Color(0xFF0F172A),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                              ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              [
-                                '${_formatTime(m.startTime)} – ${_formatTime(m.endTime)}',
-                                if (m.location != null) m.location!,
-                              ].join(' • '),
-                              style: const TextStyle(
-                                color: Color(0xFF475569),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (_canCancel(m)) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  OutlinedButton(
-                              onPressed: () => _showCancelConfirmation(context, m),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFFDC2626),
-                                side: const BorderSide(color: Color(0xFFDC2626)),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                minimumSize: const Size(0, 28),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                                    child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+                          ),
+                        Text(
+                          m.displayLabel,
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          [
+                            '${_formatTime(m.startTime)} – ${_formatTime(m.endTime)}',
+                            if (m.location != null) m.location!,
+                          ].join(' • '),
+                          style: const TextStyle(
+                            color: Color(0xFF475569),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (_canCancel(m)) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              OutlinedButton(
+                                onPressed: () => _showCancelConfirmation(context, m),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFFDC2626),
+                                  side: const BorderSide(color: Color(0xFFDC2626)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
                                   ),
-                                  const SizedBox(width: 6),
-                                  OutlinedButton(
-                              onPressed: () => _showPostponeConfirmation(context, m),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: SyncUpTheme.primary,
-                                side: const BorderSide(color: SyncUpTheme.primary),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                minimumSize: const Size(0, 28),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                                    child: const Text('Postpone', style: TextStyle(fontSize: 12)),
+                                  minimumSize: const Size(0, 28),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                ],
+                                ),
+                                child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+                              ),
+                              const SizedBox(width: 6),
+                              OutlinedButton(
+                                onPressed: () => _showPostponeConfirmation(context, m),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: SyncUpTheme.primary,
+                                  side: const BorderSide(color: SyncUpTheme.primary),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: const Size(0, 28),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                child: const Text('Postpone', style: TextStyle(fontSize: 12)),
                               ),
                             ],
-                    ],
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-                    ],
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
         );
       },
     );

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/meeting.dart';
 import '../data/sample_data.dart';
@@ -37,24 +38,26 @@ final List<Color> _blockColors = [
 
 class SlotsView extends StatefulWidget {
   final DateTime weekStart;
-  final int slotDurationMinutes;
+  /// Grid row height in minutes; pinch updates this notifier — only [SlotsView] rebuilds.
+  final ValueNotifier<int> slotDuration;
   /// When non-null, only this day is shown full-screen. Call [onDayTap] to set.
   final int? expandedDayIndex;
   /// Called when a day header/column is tapped to expand it.
   final ValueChanged<int>? onDayTap;
   /// Called when back is pressed in expanded day view.
   final VoidCallback? onBack;
-  /// Called when slot duration changes. Pass new duration in minutes.
-  final ValueChanged<int>? onSlotDurationChanged;
+
+  /// When non-null, the "now" line updates from this notifier instead of rebuilding the whole grid.
+  final ValueListenable<DateTime>? tickClock;
 
   const SlotsView({
     super.key,
     required this.weekStart,
-    this.slotDurationMinutes = 15,
+    required this.slotDuration,
     this.expandedDayIndex,
     this.onDayTap,
     this.onBack,
-    this.onSlotDurationChanged,
+    this.tickClock,
   });
 
   @override
@@ -84,12 +87,11 @@ class _SlotsViewState extends State<SlotsView> {
   }
 
   void _onScaleUpdate(ScaleUpdateDetails d) {
-    if (widget.onSlotDurationChanged == null) return;
     final now = DateTime.now().millisecondsSinceEpoch;
     if (now - _lastStepTime < 280) return; // Cooldown – short for responsiveness
     final s = d.scale;
     const thresh = 0.09; // Lower = easier to trigger, smoother feel
-    int idx = _pinchDurations.indexOf(widget.slotDurationMinutes);
+    int idx = _pinchDurations.indexOf(widget.slotDuration.value);
     if (idx < 0) idx = 0;
     int? nextDuration;
     if (s > _lastScale + thresh && idx > 0) {
@@ -108,10 +110,40 @@ class _SlotsViewState extends State<SlotsView> {
         final duration = _pendingDuration;
         _pendingDuration = null;
         if (mounted && duration != null) {
-          widget.onSlotDurationChanged!(duration);
+          widget.slotDuration.value = duration;
         }
       });
     }
+  }
+
+  Widget _timeLineOrTick({
+    required double timeColumnWidth,
+    required double dayColumnWidth,
+    required double rowHeight,
+    required int dayCount,
+    required int endHour,
+    required int totalRows,
+    required int slotDurationMinutes,
+    int? expandedDayIndex,
+  }) {
+    final tick = widget.tickClock;
+    Widget line() => _buildCurrentTimeLine(
+          timeColumnWidth: timeColumnWidth,
+          dayColumnWidth: dayColumnWidth,
+          rowHeight: rowHeight,
+          dayCount: dayCount,
+          endHour: endHour,
+          totalRows: totalRows,
+          slotDurationMinutes: slotDurationMinutes,
+          expandedDayIndex: expandedDayIndex,
+        );
+    if (tick != null) {
+      return ListenableBuilder(
+        listenable: tick,
+        builder: (_, __) => line(),
+      );
+    }
+    return line();
   }
 
   int _getEndHour(List<Meeting> meetings) {
@@ -124,22 +156,25 @@ class _SlotsViewState extends State<SlotsView> {
     return ((latest + 59) ~/ 60).clamp(_startHour + 1, 24);
   }
 
-  int _totalRows(int endHour) {
-    final rows = ((endHour - _startHour) * 60) ~/ widget.slotDurationMinutes;
+  int _totalRows(int endHour, int slotDurationMinutes) {
+    final rows = ((endHour - _startHour) * 60) ~/ slotDurationMinutes;
     return rows < 1 ? 1 : rows;
   }
 
   @override
   Widget build(BuildContext context) {
-    final monday = DateTime(widget.weekStart.year, widget.weekStart.month, widget.weekStart.day)
-        .subtract(Duration(days: widget.weekStart.weekday - 1));
-    final meetings = getSampleMeetings(monday);
-    final endHour = _getEndHour(meetings);
-    final totalRows = _totalRows(endHour);
-    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final isExpanded = widget.expandedDayIndex != null;
+    return ValueListenableBuilder<int>(
+      valueListenable: widget.slotDuration,
+      builder: (context, slotDurationMinutes, _) {
+        final monday = DateTime(widget.weekStart.year, widget.weekStart.month, widget.weekStart.day)
+            .subtract(Duration(days: widget.weekStart.weekday - 1));
+        final meetings = getSampleMeetings(monday);
+        final endHour = _getEndHour(meetings);
+        final totalRows = _totalRows(endHour, slotDurationMinutes);
+        final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        final isExpanded = widget.expandedDayIndex != null;
 
-    return Column(
+        return Column(
       children: [
         // Back bar when day is expanded
         if (isExpanded) ...[
@@ -283,6 +318,7 @@ class _SlotsViewState extends State<SlotsView> {
                                         dayCount: dayCount,
                                         totalRows: totalRows,
                                         endHour: endHour,
+                                        slotDurationMinutes: slotDurationMinutes,
                                         expandedDayIndex: widget.expandedDayIndex,
                                         onDayTap: widget.onDayTap,
                                       ),
@@ -294,15 +330,17 @@ class _SlotsViewState extends State<SlotsView> {
                                         rowHeight: _defaultRowHeight,
                                         dayCount: dayCount,
                                         endHour: endHour,
+                                        slotDurationMinutes: slotDurationMinutes,
                                         expandedDayIndex: widget.expandedDayIndex,
                                       ),
-                                      _buildCurrentTimeLine(
+                                      _timeLineOrTick(
                                         timeColumnWidth: timeColumnWidth,
                                         dayColumnWidth: dayColumnWidth,
                                         rowHeight: _defaultRowHeight,
                                         dayCount: dayCount,
                                         endHour: endHour,
                                         totalRows: totalRows,
+                                        slotDurationMinutes: slotDurationMinutes,
                                         expandedDayIndex: widget.expandedDayIndex,
                                       ),
                                     ],
@@ -327,6 +365,7 @@ class _SlotsViewState extends State<SlotsView> {
                                     dayCount: dayCount,
                                     totalRows: totalRows,
                                     endHour: endHour,
+                                    slotDurationMinutes: slotDurationMinutes,
                                     expandedDayIndex: widget.expandedDayIndex,
                                     onDayTap: widget.onDayTap,
                                   ),
@@ -338,15 +377,17 @@ class _SlotsViewState extends State<SlotsView> {
                                     rowHeight: _defaultRowHeight,
                                     dayCount: dayCount,
                                     endHour: endHour,
+                                    slotDurationMinutes: slotDurationMinutes,
                                     expandedDayIndex: widget.expandedDayIndex,
                                   ),
-                                  _buildCurrentTimeLine(
+                                  _timeLineOrTick(
                                     timeColumnWidth: timeColumnWidth,
                                     dayColumnWidth: dayColumnWidth,
                                     rowHeight: _defaultRowHeight,
                                     dayCount: dayCount,
                                     endHour: endHour,
                                     totalRows: totalRows,
+                                    slotDurationMinutes: slotDurationMinutes,
                                     expandedDayIndex: widget.expandedDayIndex,
                                   ),
                                 ],
@@ -360,6 +401,8 @@ class _SlotsViewState extends State<SlotsView> {
           ),
         ),
       ],
+    );
+      },
     );
   }
 
@@ -387,6 +430,7 @@ class _SlotsViewState extends State<SlotsView> {
     required int dayCount,
     required int totalRows,
     required int endHour,
+    required int slotDurationMinutes,
     int? expandedDayIndex,
     ValueChanged<int>? onDayTap,
   }) {
@@ -394,7 +438,7 @@ class _SlotsViewState extends State<SlotsView> {
     final indices = expandedDayIndex != null ? [expandedDayIndex] : List.generate(7, (i) => i);
     return Column(
       children: List.generate(totalRows, (rowIndex) {
-        final minutesFromStart = rowIndex * widget.slotDurationMinutes;
+        final minutesFromStart = rowIndex * slotDurationMinutes;
         final hour = _startHour + (minutesFromStart ~/ 60);
         final min = minutesFromStart % 60;
         final timeStr =
@@ -462,6 +506,7 @@ class _SlotsViewState extends State<SlotsView> {
     required double rowHeight,
     required int dayCount,
     required int endHour,
+    required int slotDurationMinutes,
     int? expandedDayIndex,
   }) {
     final mondayDate = DateTime(monday.year, monday.month, monday.day);
@@ -479,8 +524,8 @@ class _SlotsViewState extends State<SlotsView> {
       final offsetMinutes = minutesFromMidnight - gridStartMinutes;
       if (offsetMinutes < 0) return const SizedBox.shrink();
 
-      final top = (offsetMinutes / widget.slotDurationMinutes) * rowHeight;
-      final slotCount = (m.durationMinutes / widget.slotDurationMinutes).ceil();
+      final top = (offsetMinutes / slotDurationMinutes) * rowHeight;
+      final slotCount = (m.durationMinutes / slotDurationMinutes).ceil();
       final height = slotCount * rowHeight;
 
       final left = timeColumnWidth + dayIndex * dayColumnWidth;
@@ -508,6 +553,7 @@ class _SlotsViewState extends State<SlotsView> {
     required int dayCount,
     required int endHour,
     required int totalRows,
+    required int slotDurationMinutes,
     int? expandedDayIndex,
   }) {
     final now = DateTime.now();
@@ -535,7 +581,7 @@ class _SlotsViewState extends State<SlotsView> {
       return const SizedBox.shrink();
     }
 
-    final top = (offsetMinutes / widget.slotDurationMinutes) * rowHeight;
+    final top = (offsetMinutes / slotDurationMinutes) * rowHeight;
     final isExpanded = expandedDayIndex != null;
     final lineLeft = isExpanded ? 0.0 : timeColumnWidth + currentDayIndex * dayColumnWidth;
     final lineWidth = isExpanded ? (timeColumnWidth + dayColumnWidth) : dayColumnWidth;

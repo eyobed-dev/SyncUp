@@ -24,7 +24,10 @@ class _HomeScreenState extends State<HomeScreen>
   late TabController _tabController;
   late DateTime _weekStart;
   late ValueNotifier<int> _selectedDayIndex;
-  int _slotDurationMinutes = 15;
+  /// Drives live UI (current meeting, time line) without rebuilding the whole screen.
+  late final ValueNotifier<DateTime> _clock;
+  /// Grid slot size — updated by pinch or settings without rebuilding [HomeScreen].
+  late final ValueNotifier<int> _slotDurationMinutes;
   int? _expandedDayIndex;
   Set<String> _dismissedMeetingIds = {};
   Timer? _currentMeetingTimer;
@@ -32,15 +35,25 @@ class _HomeScreenState extends State<HomeScreen>
   DateTime get _monday =>
       _weekStart.subtract(Duration(days: _weekStart.weekday - 1));
 
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    setState(() {}); // Only to pass tickClock / liveClock to the active tab.
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _weekStart = DateTime.now();
     _selectedDayIndex = ValueNotifier(DateTime.now().weekday - 1);
+    _clock = ValueNotifier(DateTime.now());
+    _slotDurationMinutes = ValueNotifier(15);
     _currentMeetingTimer = Timer.periodic(
       const Duration(seconds: 1),
-      (_) => mounted ? setState(() {}) : null,
+      (_) {
+        if (mounted) _clock.value = DateTime.now();
+      },
     );
   }
 
@@ -49,21 +62,24 @@ class _HomeScreenState extends State<HomeScreen>
       context,
       MaterialPageRoute(
         builder: (context) => SettingsScreen(
-          slotDurationMinutes: _slotDurationMinutes,
-          onSlotDurationChanged: (v) => setState(() => _slotDurationMinutes = v),
+          slotDurationMinutes: _slotDurationMinutes.value,
+          onSlotDurationChanged: (v) => _slotDurationMinutes.value = v,
         ),
       ),
     );
     if (result != null) {
-      setState(() => _slotDurationMinutes = result);
+      _slotDurationMinutes.value = result;
     }
   }
 
   @override
   void dispose() {
     _currentMeetingTimer?.cancel();
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _selectedDayIndex.dispose();
+    _clock.dispose();
+    _slotDurationMinutes.dispose();
     super.dispose();
   }
 
@@ -240,42 +256,52 @@ class _HomeScreenState extends State<HomeScreen>
               Tab(text: 'List'),
             ],
           ),
-          if (_currentMeeting != null)
-            Flexible(
-              child: SingleChildScrollView(
-                child: CurrentMeetingCard(
-                  meeting: _currentMeeting!,
-                  accentColor: SyncUpTheme.primary,
-                  onMissed: () {
-                    // Record missed – card stays visible
-                  },
-                  onOntime: () {
-                    // Record ontime – card stays visible
-                  },
-                  onLate: () {
-                    // Record late – card stays visible
-                  },
-                  onDismiss: () {
-                    setState(() {
-                      _dismissedMeetingIds.add(_currentMeeting!.id);
-                    });
-                  },
-                ),
-              ),
-            )
-          else if (_dismissedCurrentMeeting != null)
-            Flexible(
-              child: SingleChildScrollView(
-                child: DismissedMeetingButton(
-                  meeting: _dismissedCurrentMeeting!,
-                  onTap: () {
-                    setState(() {
-                      _dismissedMeetingIds.remove(_dismissedCurrentMeeting!.id);
-                    });
-                  },
-                ),
-              ),
-            ),
+          ValueListenableBuilder<DateTime>(
+            valueListenable: _clock,
+            builder: (context, _, __) {
+              final current = _currentMeeting;
+              final dismissed = _dismissedCurrentMeeting;
+              if (current != null) {
+                return Flexible(
+                  child: SingleChildScrollView(
+                    child: CurrentMeetingCard(
+                      meeting: current,
+                      accentColor: SyncUpTheme.primary,
+                      onMissed: () {
+                        // Record missed – card stays visible
+                      },
+                      onOntime: () {
+                        // Record ontime – card stays visible
+                      },
+                      onLate: () {
+                        // Record late – card stays visible
+                      },
+                      onDismiss: () {
+                        setState(() {
+                          _dismissedMeetingIds.add(current.id);
+                        });
+                      },
+                    ),
+                  ),
+                );
+              }
+              if (dismissed != null) {
+                return Flexible(
+                  child: SingleChildScrollView(
+                    child: DismissedMeetingButton(
+                      meeting: dismissed,
+                      onTap: () {
+                        setState(() {
+                          _dismissedMeetingIds.remove(dismissed.id);
+                        });
+                      },
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -302,16 +328,17 @@ class _HomeScreenState extends State<HomeScreen>
             child: SlotsView(
               key: ValueKey(_expandedDayIndex ?? -1),
               weekStart: _weekStart,
-              slotDurationMinutes: _slotDurationMinutes,
+              slotDuration: _slotDurationMinutes,
               expandedDayIndex: _expandedDayIndex,
               onDayTap: (i) => setState(() => _expandedDayIndex = i),
               onBack: () => setState(() => _expandedDayIndex = null),
-              onSlotDurationChanged: (mins) => setState(() => _slotDurationMinutes = mins),
+              tickClock: _tabController.index == 0 ? _clock : null,
             ),
           ),
           CalendarView(
             weekStart: _weekStart,
             selectedDayIndex: _selectedDayIndex,
+            liveClock: _tabController.index == 1 ? _clock : null,
           ),
         ],
       ),
