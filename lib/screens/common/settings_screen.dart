@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/sync_up_theme.dart';
-import '../utils/responsive.dart';
-import '../widgets/syncup_logo.dart';
-import '../widgets/slots_view.dart';
+import '../../theme/sync_up_theme.dart';
+import '../../utils/responsive.dart';
+import '../../widgets/syncup_logo.dart';
+import '../../widgets/slots_view.dart';
 
 /// Settings page with slot duration and other preferences.
 class SettingsScreen extends StatelessWidget {

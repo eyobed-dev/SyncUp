@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sync_up/theme/sync_up_theme.dart';
-import 'screens/main_screen.dart';
+import 'theme/sync_up_theme.dart';
+import 'screens/auth/login_screen.dart';
 
 void main() {
   runApp(const SyncUpApp());
@@ -15,7 +15,7 @@ class SyncUpApp extends StatelessWidget {
       title: 'SyncUp',
       debugShowCheckedModeBanner: false,
       theme: SyncUpTheme.theme,
-      home: const MainScreen(),
+      home: const LoginScreen(),
     );
   }
 }

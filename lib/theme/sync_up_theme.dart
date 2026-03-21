@@ -187,7 +187,7 @@ class SyncUpTheme {
         ),
       ),
 
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
         shadowColor: primary.withValues(alpha: 0.04),
@@ -260,7 +260,7 @@ class SyncUpTheme {
         hintStyle: GoogleFonts.plusJakartaSans(color: textSecondary.withValues(alpha: 0.7), fontSize: 13),
       ),
 
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         labelColor: primary,
         unselectedLabelColor: textSecondary,
         indicatorColor: primary,
@@ -295,7 +295,7 @@ class SyncUpTheme {
         space: 1,
       ),
 
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusSm),
         ),

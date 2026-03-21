@@ -1,25 +1,26 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../theme/sync_up_theme.dart';
-import '../utils/responsive.dart';
-import '../models/meeting.dart';
-import '../data/sample_data.dart';
-import '../widgets/slots_view.dart';
-import '../widgets/calendar_view.dart';
-import '../widgets/current_meeting_card.dart';
-import '../widgets/dismissed_meeting_button.dart';
-import '../widgets/syncup_logo.dart';
-import '../widgets/user_profile_drawer.dart';
-import 'settings_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+import '../../theme/sync_up_theme.dart';
+import '../../utils/responsive.dart';
+import '../../models/meeting.dart';
+import '../../data/sample_data.dart';
+import '../../widgets/slots_view.dart';
+import '../../widgets/calendar_view.dart';
+import '../../widgets/current_meeting_card.dart';
+import '../../widgets/dismissed_meeting_button.dart';
+import '../../widgets/syncup_logo.dart';
+import '../../widgets/user_profile_drawer.dart';
+import '../common/settings_screen.dart';
+
+class TeacherHomeScreen extends StatefulWidget {
+  const TeacherHomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
+class _TeacherHomeScreenState extends State<TeacherHomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late DateTime _weekStart;

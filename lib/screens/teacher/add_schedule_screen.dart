@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../models/availability_slot.dart';
-import '../theme/sync_up_theme.dart';
-import '../utils/responsive.dart';
-import '../widgets/syncup_logo.dart';
-import '../widgets/user_profile_drawer.dart';
-import '../widgets/add_schedule_slots_list.dart';
-import '../widgets/find_schedule_slots_view.dart';
-import 'settings_screen.dart';
+import '../../models/availability_slot.dart';
+import '../../theme/sync_up_theme.dart';
+import '../../utils/responsive.dart';
+import '../../widgets/syncup_logo.dart';
+import '../../widgets/user_profile_drawer.dart';
+import '../../widgets/add_schedule_slots_list.dart';
+import '../../widgets/find_schedule_slots_view.dart';
+import '../common/settings_screen.dart';
 
 class AddScheduleScreen extends StatefulWidget {
   const AddScheduleScreen({super.key});
