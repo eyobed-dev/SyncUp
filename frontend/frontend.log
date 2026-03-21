@@ -1,0 +1,33 @@
+
+> frontend@0.0.1 dev
+> vite dev
+
+
+  VITE v7.3.1  ready in 3081 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+7:27:01 PM [vite] (client) hmr update /src/routes/student/+page.svelte
+7:27:01 PM [vite] (ssr) page reload src/routes/student/+page.svelte
+7:27:16 PM [vite] (client) page reload .svelte-kit/generated/client/nodes/0.js
+7:27:16 PM [vite] (client) page reload .svelte-kit/generated/client/nodes/1.js
+7:27:16 PM [vite] (client) page reload .svelte-kit/generated/client/nodes/2.js
+7:27:16 PM [vite] (client) page reload .svelte-kit/generated/client/nodes/4.js
+7:27:16 PM [vite] (client) page reload .svelte-kit/generated/client/nodes/5.js
+7:27:16 PM [vite] (client) page reload .svelte-kit/generated/client/nodes/6.js
+7:27:16 PM [vite] (client) page reload .svelte-kit/generated/client/app.js
+7:27:17 PM [vite] (client) page reload .svelte-kit/generated/client/matchers.js
+7:27:17 PM [vite] (ssr) page reload .svelte-kit/generated/server/internal.js
+7:27:17 PM [vite] (client) page reload .svelte-kit/generated/root.js
+7:27:17 PM [vite] (ssr) page reload .svelte-kit/generated/root.js
+7:27:17 PM [vite] (ssr) page reload .svelte-kit/generated/root.svelte
+7:30:49 PM [vite] (client) hmr update /src/lib/components/CalendarGrid.svelte
+7:30:49 PM [vite] (ssr) page reload src/lib/components/CalendarGrid.svelte
+7:30:56 PM [vite] (client) hmr update /src/lib/components/CalendarGrid.svelte
+7:30:56 PM [vite] (ssr) page reload src/lib/components/CalendarGrid.svelte
+7:31:06 PM [vite] (client) hmr update /src/lib/components/SlotTile.svelte
+7:31:06 PM [vite] (ssr) page reload src/lib/components/SlotTile.svelte
+
+Google Chrome is requesting /.well-known/appspecific/com.chrome.devtools.json to automatically configure devtools project settings. To learn why, and how to prevent this message, see https://svelte.dev/docs/cli/devtools-json
+
