@@ -178,7 +178,7 @@ class AgendrixTheme {
       ),
 
       // Cards – soft shadow, rounded, subtle border
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
         shadowColor: zenGreen.withValues(alpha: 0.06),
@@ -251,7 +251,7 @@ class AgendrixTheme {
       ),
 
       // Tab bar
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         labelColor: zenGreen,
         unselectedLabelColor: textPrimary.withValues(alpha: 0.6),
         indicatorColor: zenGreen,
