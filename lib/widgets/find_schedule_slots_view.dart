@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
+import '../utils/week_calendar.dart';
 import '../models/availability_slot.dart';
 
 /// Grid showing available slots for booking. Same layout as SlotsView.
 /// Only displays the owner's availability blocks (e.g. Mentoring, Consultation Academic).
-const double _minTimeColumnWidth = 44.0;
 const double _defaultRowHeight = 36.0;
 const int _startHour = 8;
 const int _endHour = 22;
@@ -95,9 +95,10 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
 
   @override
   Widget build(BuildContext context) {
-    final monday = DateTime(widget.weekStart.year, widget.weekStart.month, widget.weekStart.day)
-        .subtract(Duration(days: widget.weekStart.weekday - 1));
-    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final weekSunday = startOfWeekSunday(
+      DateTime(widget.weekStart.year, widget.weekStart.month, widget.weekStart.day),
+    );
+    final dayNames = dayShortNamesSunFirst;
     final isExpanded = widget.expandedDayIndex != null;
 
     return Column(
@@ -118,7 +119,7 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
                     ),
                     Expanded(
                       child: Text(
-                        _formatExpandedDayTitle(monday, widget.expandedDayIndex!),
+                        _formatExpandedDayTitle(weekSunday, widget.expandedDayIndex!),
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: SyncUpTheme.textPrimary,
@@ -135,13 +136,17 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
         if (!isExpanded)
           LayoutBuilder(
             builder: (context, constraints) {
-              final timeW = _minTimeColumnWidth;
-              final dayW = (constraints.maxWidth - timeW) / 7;
+              final timeW = Responsive.value(
+                context,
+                mobile: 44.0,
+                tablet: 48.0,
+                desktop: 52.0,
+              );
               final todayDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-              final mondayDate = DateTime(monday.year, monday.month, monday.day);
+              final weekSundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
               int? currentDayIndex;
               for (var i = 0; i < 7; i++) {
-                if (mondayDate.add(Duration(days: i)) == todayDate) {
+                if (weekSundayDate.add(Duration(days: i)) == todayDate) {
                   currentDayIndex = i;
                   break;
                 }
@@ -150,10 +155,9 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
                 height: 32,
                 child: Row(
                   children: [
-                    SizedBox(width: timeW),
                     ...List.generate(7, (i) {
                       final cell = Container(
-                        width: dayW,
+                        width: double.infinity,
                         color: currentDayIndex == i
                             ? SyncUpTheme.primary.withValues(alpha: 0.06)
                             : null,
@@ -166,15 +170,19 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
                                   fontSize: 12,
                                 ),
                             overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       );
-                      return GestureDetector(
-                        onTap: widget.onDayTap != null ? () => widget.onDayTap!(i) : null,
-                        behavior: HitTestBehavior.opaque,
-                        child: cell,
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: widget.onDayTap != null ? () => widget.onDayTap!(i) : null,
+                          behavior: HitTestBehavior.opaque,
+                          child: cell,
+                        ),
                       );
                     }),
+                    SizedBox(width: timeW),
                   ],
                 ),
               );
@@ -214,14 +222,14 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
                       children: [
                         _buildGrid(
                           context,
-                          monday,
+                          weekSunday,
                           timeColumnWidth: timeColumnWidth,
                           dayColumnWidth: dayColumnWidth,
                           rowHeight: _defaultRowHeight,
                           dayCount: dayCount,
                         ),
                         ..._buildAvailabilityBlocks(
-                          monday,
+                          weekSunday,
                           timeColumnWidth: timeColumnWidth,
                           dayColumnWidth: dayColumnWidth,
                           rowHeight: _defaultRowHeight,
@@ -240,30 +248,29 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
     );
   }
 
-  String _formatExpandedDayTitle(DateTime monday, int dayIndex) {
-    final day = monday.add(Duration(days: dayIndex));
-    const names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return '${names[dayIndex]} ${day.day}/${day.month}';
+  String _formatExpandedDayTitle(DateTime weekSunday, int dayIndex) {
+    final day = weekSunday.add(Duration(days: dayIndex));
+    return '${dayLongNamesSunFirst[dayIndex]} ${day.day}/${day.month}';
   }
 
-  int? _getCurrentDayIndex(DateTime monday) {
+  int? _getCurrentDayIndex(DateTime weekSunday) {
     final todayDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final mondayDate = DateTime(monday.year, monday.month, monday.day);
+    final weekSundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
     for (var i = 0; i < 7; i++) {
-      if (mondayDate.add(Duration(days: i)) == todayDate) return i;
+      if (weekSundayDate.add(Duration(days: i)) == todayDate) return i;
     }
     return null;
   }
 
   Widget _buildGrid(
     BuildContext context,
-    DateTime monday, {
+    DateTime weekSunday, {
     required double timeColumnWidth,
     required double dayColumnWidth,
     required double rowHeight,
     required int dayCount,
   }) {
-    final currentDayIndex = _getCurrentDayIndex(monday);
+    final currentDayIndex = _getCurrentDayIndex(weekSunday);
     final indices = widget.expandedDayIndex != null
         ? [widget.expandedDayIndex!]
         : List.generate(7, (i) => i);
@@ -281,15 +288,36 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              ...indices.map((i) {
+                final cell = Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: currentDayIndex == i ? _currentDayHue : null,
+                    border: Border(
+                      right: BorderSide(color: SyncUpTheme.border),
+                      bottom: BorderSide(color: SyncUpTheme.border),
+                    ),
+                  ),
+                );
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: widget.onDayTap != null && widget.expandedDayIndex == null
+                        ? () => widget.onDayTap!(i)
+                        : null,
+                    behavior: HitTestBehavior.opaque,
+                    child: cell,
+                  ),
+                );
+              }),
               SizedBox(
                 width: timeColumnWidth,
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 4),
+                  padding: const EdgeInsets.only(left: 4),
                   child: Align(
-                    alignment: Alignment.centerRight,
+                    alignment: Alignment.centerLeft,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
+                      alignment: Alignment.centerLeft,
                       child: Text(
                         timeStr,
                         maxLines: 1,
@@ -303,25 +331,6 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
                   ),
                 ),
               ),
-              ...indices.map((i) {
-                final cell = Container(
-                  width: dayColumnWidth,
-                  decoration: BoxDecoration(
-                    color: currentDayIndex == i ? _currentDayHue : null,
-                    border: Border(
-                      right: BorderSide(color: SyncUpTheme.border),
-                      bottom: BorderSide(color: SyncUpTheme.border),
-                    ),
-                  ),
-                );
-                return GestureDetector(
-                  onTap: widget.onDayTap != null && widget.expandedDayIndex == null
-                      ? () => widget.onDayTap!(i)
-                      : null,
-                  behavior: HitTestBehavior.opaque,
-                  child: cell,
-                );
-              }),
             ],
           ),
         );
@@ -330,17 +339,17 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
   }
 
   List<Widget> _buildAvailabilityBlocks(
-    DateTime monday, {
+    DateTime weekSunday, {
     required double timeColumnWidth,
     required double dayColumnWidth,
     required double rowHeight,
     required int dayCount,
   }) {
-    final mondayDate = DateTime(monday.year, monday.month, monday.day);
+    final weekSundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
 
     return widget.availabilitySlots.map((slot) {
       final slotDate = DateTime(slot.startTime.year, slot.startTime.month, slot.startTime.day);
-      var dayIndex = slotDate.difference(mondayDate).inDays;
+      var dayIndex = slotDate.difference(weekSundayDate).inDays;
       if (dayIndex < 0 || dayIndex > 6) return const SizedBox.shrink();
       if (widget.expandedDayIndex != null) {
         if (dayIndex != widget.expandedDayIndex) return const SizedBox.shrink();
@@ -356,7 +365,7 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
       final slotCount = (slot.durationMinutes / widget.slotDurationMinutes).ceil();
       final height = slotCount * rowHeight;
 
-      final left = timeColumnWidth + dayIndex * dayColumnWidth;
+      final left = dayIndex * dayColumnWidth;
 
       return Positioned(
         left: left + 2,

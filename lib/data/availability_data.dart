@@ -1,11 +1,14 @@
 import '../models/availability_slot.dart';
+import '../utils/week_calendar.dart';
 
 /// Returns available slots for a schedule owner in the given week.
 /// BUT University (IT): Mentoring, Consultation for Compiler Construction, Formal Languages, etc.
 /// Brno Dance School: Training Session.
 List<AvailabilitySlot> getAvailabilityForOwner(String ownerId, DateTime weekStart) {
-  final monday = DateTime(weekStart.year, weekStart.month, weekStart.day)
-      .subtract(Duration(days: weekStart.weekday - 1));
+  final weekSunday = startOfWeekSunday(
+    DateTime(weekStart.year, weekStart.month, weekStart.day),
+  );
+  final monday = weekSunday.add(const Duration(days: 1));
 
   if (ownerId == 'p1') {
     // Prof. Alexander Meduna – Compiler Construction, Formal Languages

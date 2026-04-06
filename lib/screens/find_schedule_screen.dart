@@ -9,6 +9,7 @@ import '../models/availability_slot.dart';
 import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import '../widgets/find_schedule_slots_view.dart';
+import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
 
 class FindScheduleScreen extends StatefulWidget {
@@ -31,8 +32,9 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
   bool _keepDropdownVisible = false;
   Timer? _dropdownHideTimer;
 
-  DateTime get _monday =>
-      _weekStart.subtract(Duration(days: _weekStart.weekday - 1));
+  DateTime get _weekSunday => startOfWeekSunday(
+        DateTime(_weekStart.year, _weekStart.month, _weekStart.day),
+      );
 
   @override
   void initState() {
@@ -135,21 +137,20 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
   String get _weekLabel {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final sun = _monday.add(const Duration(days: 6));
-    return '${months[_monday.month - 1]} ${_monday.day}–${sun.day} ${_monday.year}';
+    final sat = _weekSunday.add(const Duration(days: 6));
+    return '${months[_weekSunday.month - 1]} ${_weekSunday.day}–${sat.day} ${_weekSunday.year}';
   }
 
   String get _weekBadgeLabel {
     final now = DateTime.now();
-    final thisWeekMonday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
-    final displayedMonday = DateTime(_monday.year, _monday.month, _monday.day);
-    if (displayedMonday == thisWeekMonday) return 'This week';
-    if (displayedMonday.isAfter(thisWeekMonday)) {
-      final weeksAhead = displayedMonday.difference(thisWeekMonday).inDays ~/ 7;
+    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
+    final displayedSunday = DateTime(_weekSunday.year, _weekSunday.month, _weekSunday.day);
+    if (displayedSunday == thisWeekSunday) return 'This week';
+    if (displayedSunday.isAfter(thisWeekSunday)) {
+      final weeksAhead = displayedSunday.difference(thisWeekSunday).inDays ~/ 7;
       return 'Next ${weeksAhead} week${weeksAhead == 1 ? '' : 's'}';
     }
-    final weeksAgo = thisWeekMonday.difference(displayedMonday).inDays ~/ 7;
+    final weeksAgo = thisWeekSunday.difference(displayedSunday).inDays ~/ 7;
     return 'Past ${weeksAgo} week${weeksAgo == 1 ? '' : 's'}';
   }
 
@@ -369,11 +370,10 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
 
   Color get _weekBadgeColor {
     final now = DateTime.now();
-    final thisWeekMonday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
-    final displayedMonday = DateTime(_monday.year, _monday.month, _monday.day);
-    if (displayedMonday == thisWeekMonday) return SyncUpTheme.primary;
-    if (displayedMonday.isAfter(thisWeekMonday)) return Colors.blue.shade700;
+    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
+    final displayedSunday = DateTime(_weekSunday.year, _weekSunday.month, _weekSunday.day);
+    if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
+    if (displayedSunday.isAfter(thisWeekSunday)) return Colors.blue.shade700;
     return SyncUpTheme.textSecondary;
   }
 

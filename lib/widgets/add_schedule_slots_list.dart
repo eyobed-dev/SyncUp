@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/availability_slot.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
+import '../utils/week_calendar.dart';
+import 'week_day_selector.dart';
 
 /// Calendar-style list of added availability slots (like main screen Calendar tab).
 const List<Color> _cardAccentColors = [
@@ -33,39 +35,38 @@ class AddScheduleSlotsList extends StatelessWidget {
     this.showWeekNavigation = true,
   });
 
-  String _weekBadgeLabel(DateTime monday) {
+  String _weekBadgeLabel(DateTime weekSunday) {
     final now = DateTime.now();
-    final thisWeekMonday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
-    final displayedMonday = DateTime(monday.year, monday.month, monday.day);
-    if (displayedMonday == thisWeekMonday) return 'This week';
-    if (displayedMonday.isAfter(thisWeekMonday)) {
-      final weeksAhead = displayedMonday.difference(thisWeekMonday).inDays ~/ 7;
+    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
+    final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
+    if (displayedSunday == thisWeekSunday) return 'This week';
+    if (displayedSunday.isAfter(thisWeekSunday)) {
+      final weeksAhead = displayedSunday.difference(thisWeekSunday).inDays ~/ 7;
       return 'Next ${weeksAhead} week${weeksAhead == 1 ? '' : 's'}';
     }
-    final weeksAgo = thisWeekMonday.difference(displayedMonday).inDays ~/ 7;
+    final weeksAgo = thisWeekSunday.difference(displayedSunday).inDays ~/ 7;
     return 'Past ${weeksAgo} week${weeksAgo == 1 ? '' : 's'}';
   }
 
-  Color _weekBadgeColor(DateTime monday) {
+  Color _weekBadgeColor(DateTime weekSunday) {
     final now = DateTime.now();
-    final thisWeekMonday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
-    final displayedMonday = DateTime(monday.year, monday.month, monday.day);
-    if (displayedMonday == thisWeekMonday) return SyncUpTheme.primary;
-    if (displayedMonday.isAfter(thisWeekMonday)) return Colors.blue.shade700;
+    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
+    final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
+    if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
+    if (displayedSunday.isAfter(thisWeekSunday)) return Colors.blue.shade700;
     return SyncUpTheme.textSecondary;
   }
 
   @override
   Widget build(BuildContext context) {
-    final monday = DateTime(weekStart.year, weekStart.month, weekStart.day)
-        .subtract(Duration(days: weekStart.weekday - 1));
-    final sun = monday.add(const Duration(days: 6));
+    final weekSunday = startOfWeekSunday(
+      DateTime(weekStart.year, weekStart.month, weekStart.day),
+    );
+    final sat = weekSunday.add(const Duration(days: 6));
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final weekLabel = '${months[monday.month - 1]} ${monday.day}–${sun.day} ${monday.year}';
-    final badgeColor = _weekBadgeColor(monday);
+    final weekLabel = '${months[weekSunday.month - 1]} ${weekSunday.day}–${sat.day} ${weekSunday.year}';
+    final badgeColor = _weekBadgeColor(weekSunday);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -111,7 +112,7 @@ class AddScheduleSlotsList extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            _weekBadgeLabel(monday),
+                            _weekBadgeLabel(weekSunday),
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                   color: badgeColor,
                                   fontWeight: FontWeight.w600,
@@ -131,7 +132,7 @@ class AddScheduleSlotsList extends StatelessWidget {
               ],
             ),
           ),
-        _WeekDaySelector(
+        WeekDaySelector(
           weekStart: weekStart,
           selectedIndex: selectedDayIndex,
         ),
@@ -140,9 +141,10 @@ class AddScheduleSlotsList extends StatelessWidget {
           child: ValueListenableBuilder<int>(
             valueListenable: selectedDayIndex,
             builder: (context, dayIndex, _) {
-              final monday = DateTime(weekStart.year, weekStart.month, weekStart.day)
-                  .subtract(Duration(days: weekStart.weekday - 1));
-              final day = monday.add(Duration(days: dayIndex));
+              final ws = startOfWeekSunday(
+                DateTime(weekStart.year, weekStart.month, weekStart.day),
+              );
+              final day = ws.add(Duration(days: dayIndex));
               final daySlots = slots.where((s) {
                 final sd = DateTime(s.startTime.year, s.startTime.month, s.startTime.day);
                 final dd = DateTime(day.year, day.month, day.day);
@@ -159,92 +161,6 @@ class AddScheduleSlotsList extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _WeekDaySelector extends StatelessWidget {
-  final DateTime weekStart;
-  final ValueNotifier<int> selectedIndex;
-
-  const _WeekDaySelector({
-    required this.weekStart,
-    required this.selectedIndex,
-  });
-
-  static const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  @override
-  Widget build(BuildContext context) {
-    final monday = DateTime(weekStart.year, weekStart.month, weekStart.day)
-        .subtract(Duration(days: weekStart.weekday - 1));
-    final dayWidth = Responsive.value(
-      context,
-      mobile: 44.0,
-      tablet: 52.0,
-      desktop: 64.0,
-    );
-    final selectorHeight = Responsive.value(
-      context,
-      mobile: 60.0,
-      tablet: 64.0,
-      desktop: 72.0,
-    );
-
-    return SizedBox(
-      height: selectorHeight,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(
-          horizontal: Responsive.value(context, mobile: 6.0, tablet: 10.0, desktop: 12.0),
-          vertical: 6,
-        ),
-        itemCount: 7,
-        itemBuilder: (context, i) {
-          final day = monday.add(Duration(days: i));
-          return ValueListenableBuilder<int>(
-            valueListenable: selectedIndex,
-            builder: (context, idx, _) {
-              final selected = idx == i;
-              return GestureDetector(
-                onTap: () => selectedIndex.value = i,
-                child: Container(
-                  width: dayWidth,
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  decoration: BoxDecoration(
-                    color: selected ? SyncUpTheme.primaryLight : Colors.transparent,
-                    borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                    border: Border.all(
-                      color: selected ? SyncUpTheme.primary : SyncUpTheme.border,
-                    ),
-                    boxShadow: selected ? SyncUpTheme.cardShadow : null,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _dayNames[i],
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                              color: selected ? SyncUpTheme.textPrimary : SyncUpTheme.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${day.day}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: selected ? SyncUpTheme.textPrimary : SyncUpTheme.textSecondary,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
     );
   }
 }

@@ -6,6 +6,7 @@ import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import '../widgets/add_schedule_slots_list.dart';
 import '../widgets/find_schedule_slots_view.dart';
+import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
 
 class AddScheduleScreen extends StatefulWidget {
@@ -31,8 +32,8 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
   String _repeatOption = 'none'; // none, daily, weekly, monthly
 
   final List<AvailabilitySlot> _addedSlots = [];
-  DateTime _slotsWeekStart = DateTime.now();
-  final ValueNotifier<int> _selectedDayIndex = ValueNotifier(0);
+  DateTime _slotsWeekStart = startOfWeekSunday(DateTime.now());
+  final ValueNotifier<int> _selectedDayIndex = ValueNotifier(dayIndexSunWeek(DateTime.now()));
   late TabController _tabController;
   late TabController _addedSlotsTabController;
   int? _addedSlotsExpandedDayIndex;
@@ -103,8 +104,8 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
       }
     }
     final d = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-    _slotsWeekStart = d.subtract(Duration(days: d.weekday - 1));
-    _selectedDayIndex.value = _selectedDate.weekday - 1;
+    _slotsWeekStart = startOfWeekSunday(d);
+    _selectedDayIndex.value = dayIndexSunWeek(d);
   }
 
   List<DateTime> _generatedSlotsForDate(DateTime date) {
@@ -1104,39 +1105,38 @@ class _AddedSlotsWeekRow extends StatelessWidget {
     required this.onNext,
   });
 
-  String _weekBadgeLabel(DateTime monday) {
+  String _weekBadgeLabel(DateTime weekSunday) {
     final now = DateTime.now();
-    final thisWeekMonday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
-    final displayedMonday = DateTime(monday.year, monday.month, monday.day);
-    if (displayedMonday == thisWeekMonday) return 'This week';
-    if (displayedMonday.isAfter(thisWeekMonday)) {
-      final weeksAhead = displayedMonday.difference(thisWeekMonday).inDays ~/ 7;
+    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
+    final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
+    if (displayedSunday == thisWeekSunday) return 'This week';
+    if (displayedSunday.isAfter(thisWeekSunday)) {
+      final weeksAhead = displayedSunday.difference(thisWeekSunday).inDays ~/ 7;
       return 'Next ${weeksAhead} week${weeksAhead == 1 ? '' : 's'}';
     }
-    final weeksAgo = thisWeekMonday.difference(displayedMonday).inDays ~/ 7;
+    final weeksAgo = thisWeekSunday.difference(displayedSunday).inDays ~/ 7;
     return 'Past ${weeksAgo} week${weeksAgo == 1 ? '' : 's'}';
   }
 
-  Color _weekBadgeColor(DateTime monday) {
+  Color _weekBadgeColor(DateTime weekSunday) {
     final now = DateTime.now();
-    final thisWeekMonday = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
-    final displayedMonday = DateTime(monday.year, monday.month, monday.day);
-    if (displayedMonday == thisWeekMonday) return SyncUpTheme.primary;
-    if (displayedMonday.isAfter(thisWeekMonday)) return Colors.blue.shade700;
+    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
+    final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
+    if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
+    if (displayedSunday.isAfter(thisWeekSunday)) return Colors.blue.shade700;
     return SyncUpTheme.textSecondary;
   }
 
   @override
   Widget build(BuildContext context) {
-    final monday = DateTime(weekStart.year, weekStart.month, weekStart.day)
-        .subtract(Duration(days: weekStart.weekday - 1));
+    final weekSunday = startOfWeekSunday(
+      DateTime(weekStart.year, weekStart.month, weekStart.day),
+    );
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final sun = monday.add(const Duration(days: 6));
-    final weekLabel = '${months[monday.month - 1]} ${monday.day}–${sun.day} ${monday.year}';
-    final badgeColor = _weekBadgeColor(monday);
+    final sat = weekSunday.add(const Duration(days: 6));
+    final weekLabel = '${months[weekSunday.month - 1]} ${weekSunday.day}–${sat.day} ${weekSunday.year}';
+    final badgeColor = _weekBadgeColor(weekSunday);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1178,7 +1178,7 @@ class _AddedSlotsWeekRow extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      _weekBadgeLabel(monday),
+                      _weekBadgeLabel(weekSunday),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: badgeColor,
                             fontWeight: FontWeight.w600,

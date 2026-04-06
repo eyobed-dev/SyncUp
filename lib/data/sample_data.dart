@@ -1,9 +1,9 @@
 import '../models/meeting.dart';
+import '../utils/week_calendar.dart';
 
 /// Returns the meeting that is currently ongoing or recently ended (within 1 min), if any.
 /// When "Just ended" expires, returns null so the card disappears and the next meeting is shown.
-Meeting? getCurrentMeeting(DateTime weekStart) {
-  final meetings = getSampleMeetings(weekStart);
+Meeting? getCurrentMeetingFromList(List<Meeting> meetings) {
   final now = DateTime.now();
   for (final m in meetings) {
     if (!now.isBefore(m.startTime) && now.isBefore(m.endTime)) {
@@ -17,15 +17,20 @@ Meeting? getCurrentMeeting(DateTime weekStart) {
   return null;
 }
 
+/// Returns the current meeting using the default sample list for [weekStart].
+Meeting? getCurrentMeeting(DateTime weekStart) {
+  return getCurrentMeetingFromList(getSampleMeetings(weekStart));
+}
+
 /// Sample meetings for demonstration – BUT University and Brno Dance School.
 /// Students: MIT-EN (Masters), BSc (Bachelors). IT subjects: Compiler Construction, Formal Languages, etc.
 /// Dance: Training Session. Locations: various rooms at FIT/BUT and Brno Dance School.
 List<Meeting> getSampleMeetings(DateTime weekStart) {
-  final monday = DateTime(
-    weekStart.year,
-    weekStart.month,
-    weekStart.day,
-  ).subtract(Duration(days: weekStart.weekday - 1));
+  final weekSunday = startOfWeekSunday(
+    DateTime(weekStart.year, weekStart.month, weekStart.day),
+  );
+  /// Monday is still the anchor for legacy offsets (Mon = +1 day from week Sunday).
+  final monday = weekSunday.add(const Duration(days: 1));
 
   return [
     // Monday – BUT University IT
@@ -148,6 +153,15 @@ List<Meeting> getSampleMeetings(DateTime weekStart) {
       topic: 'Mentoring',
       location: 'Office 204',
     ),
+    Meeting(
+      id: 'w9',
+      participantName: 'Štěpán Dvořák',
+      startTime: monday.add(const Duration(days: 2, hours: 12)),
+      durationMinutes: 30,
+      discipline: 'MIT-EN',
+      topic: 'Consultation – Software Engineering',
+      location: 'Room B109',
+    ),
     // Wednesday 15:30–17:30 – IT students
     Meeting(
       id: 'w1',
@@ -268,7 +282,7 @@ List<Meeting> getSampleMeetings(DateTime weekStart) {
       topic: 'Consultation – Compiler Construction',
       location: 'Lab B322',
     ),
-    // Thursday 15:30–17:30
+    // Thursday 15:30–16:15 (3 slots; 8 students total this day)
     Meeting(
       id: 't1',
       participantName: 'Simona Tichá',
@@ -296,51 +310,6 @@ List<Meeting> getSampleMeetings(DateTime weekStart) {
       topic: 'Consultation – Compiler Construction',
       location: 'Room B109',
     ),
-    Meeting(
-      id: 't4',
-      participantName: 'Marek Beneš',
-      startTime: monday.add(const Duration(days: 3, hours: 16, minutes: 15)),
-      durationMinutes: 15,
-      discipline: 'MIT-EN',
-      topic: 'Mentoring',
-      location: 'Office 312',
-    ),
-    Meeting(
-      id: 't5',
-      participantName: 'Lenka Krejčí',
-      startTime: monday.add(const Duration(days: 3, hours: 16, minutes: 30)),
-      durationMinutes: 15,
-      discipline: 'BSc',
-      topic: 'Consultation – Software Engineering',
-      location: 'Room C101',
-    ),
-    Meeting(
-      id: 't6',
-      participantName: 'Pavel Zeman',
-      startTime: monday.add(const Duration(days: 3, hours: 16, minutes: 45)),
-      durationMinutes: 15,
-      discipline: 'MIT-EN',
-      topic: 'Consultation – Formal Languages',
-      location: 'Lab B322',
-    ),
-    Meeting(
-      id: 't7',
-      participantName: 'Hana Kučerová',
-      startTime: monday.add(const Duration(days: 3, hours: 17)),
-      durationMinutes: 15,
-      discipline: 'BSc',
-      topic: 'Mentoring',
-      location: 'Office 204',
-    ),
-    Meeting(
-      id: 't8',
-      participantName: 'Martin Jelínek',
-      startTime: monday.add(const Duration(days: 3, hours: 17, minutes: 15)),
-      durationMinutes: 15,
-      discipline: 'MIT-EN',
-      topic: 'Consultation – Compiler Construction',
-      location: 'Room B109',
-    ),
     // Friday
     Meeting(
       id: '10',
@@ -361,11 +330,11 @@ List<Meeting> getSampleMeetings(DateTime weekStart) {
       topic: 'Training Session',
       location: 'Studio A, Brno Dance School',
     ),
-    // Sunday
+    // Saturday (afternoon; week grid is Sun–Sat so former Sunday slot sits on Sat)
     Meeting(
       id: '12',
       participantName: 'Ondřej Kříž',
-      startTime: monday.add(const Duration(days: 6, hours: 14)),
+      startTime: monday.add(const Duration(days: 5, hours: 14)),
       durationMinutes: 45,
       discipline: 'MIT-EN',
       topic: 'Consultation – Compiler Construction',

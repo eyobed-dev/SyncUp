@@ -3,14 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/meeting.dart';
-import '../data/sample_data.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
+import '../utils/week_calendar.dart';
 
 /// Tetris-style view: Y-axis = configurable slots (8:00–22:00), X-axis = days.
 /// Meeting blocks stack vertically by time; height = duration.
 /// Responsive for mobile, tablet, and desktop.
-const double _minTimeColumnWidth = 44.0;
 const double _defaultRowHeight = 36.0;
 const int _startHour = 8;
 const int _endHour = 22;
@@ -50,10 +49,14 @@ class SlotsView extends StatefulWidget {
   /// When non-null, the "now" line updates from this notifier instead of rebuilding the whole grid.
   final ValueListenable<DateTime>? tickClock;
 
+  /// Meetings for this week (sample + user slots, excluding hidden).
+  final List<Meeting> meetings;
+
   const SlotsView({
     super.key,
     required this.weekStart,
     required this.slotDuration,
+    required this.meetings,
     this.expandedDayIndex,
     this.onDayTap,
     this.onBack,
@@ -166,12 +169,13 @@ class _SlotsViewState extends State<SlotsView> {
     return ValueListenableBuilder<int>(
       valueListenable: widget.slotDuration,
       builder: (context, slotDurationMinutes, _) {
-        final monday = DateTime(widget.weekStart.year, widget.weekStart.month, widget.weekStart.day)
-            .subtract(Duration(days: widget.weekStart.weekday - 1));
-        final meetings = getSampleMeetings(monday);
+        final weekSunday = startOfWeekSunday(
+          DateTime(widget.weekStart.year, widget.weekStart.month, widget.weekStart.day),
+        );
+        final meetings = widget.meetings;
         final endHour = _getEndHour(meetings);
         final totalRows = _totalRows(endHour, slotDurationMinutes);
-        final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        final dayNames = dayShortNamesSunFirst;
         final isExpanded = widget.expandedDayIndex != null;
 
         return Column(
@@ -193,7 +197,7 @@ class _SlotsViewState extends State<SlotsView> {
                     ),
                     Expanded(
                       child: Text(
-                        _formatExpandedDayTitle(monday, widget.expandedDayIndex!),
+                        _formatExpandedDayTitle(weekSunday, widget.expandedDayIndex!),
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -206,17 +210,21 @@ class _SlotsViewState extends State<SlotsView> {
           ),
           const Divider(height: 1),
         ],
-        // Header row: empty | Mon | Tue | ... (hidden when expanded - back bar shows day)
+        // Header row: Sun–Sat + time column (hidden when expanded)
         if (!isExpanded)
           LayoutBuilder(
             builder: (context, constraints) {
-              final timeW = _minTimeColumnWidth;
-              final dayW = (constraints.maxWidth - timeW) / 7;
+              final timeW = Responsive.value(
+                context,
+                mobile: 44.0,
+                tablet: 48.0,
+                desktop: 52.0,
+              );
               final todayDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-              final mondayDate = DateTime(monday.year, monday.month, monday.day);
+              final weekSundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
               int? currentDayIndex;
               for (var i = 0; i < 7; i++) {
-                if (mondayDate.add(Duration(days: i)) == todayDate) {
+                if (weekSundayDate.add(Duration(days: i)) == todayDate) {
                   currentDayIndex = i;
                   break;
                 }
@@ -225,10 +233,9 @@ class _SlotsViewState extends State<SlotsView> {
                 height: 32,
                 child: Row(
                   children: [
-                    SizedBox(width: timeW),
                     ...List.generate(7, (i) {
                       final cell = Container(
-                        width: dayW,
+                        width: double.infinity,
                         color: currentDayIndex == i ? _currentDayHue : null,
                         child: Center(
                           child: Text(
@@ -239,18 +246,21 @@ class _SlotsViewState extends State<SlotsView> {
                                   fontSize: 12,
                                 ),
                             overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       );
-                      if (widget.onDayTap != null) {
-                        return GestureDetector(
-                          onTap: () => widget.onDayTap!(i),
-                          behavior: HitTestBehavior.opaque,
-                          child: cell,
-                        );
-                      }
-                      return cell;
+                      return Expanded(
+                        child: widget.onDayTap != null
+                            ? GestureDetector(
+                                onTap: () => widget.onDayTap!(i),
+                                behavior: HitTestBehavior.opaque,
+                                child: cell,
+                              )
+                            : cell,
+                      );
                     }),
+                    SizedBox(width: timeW),
                   ],
                 ),
               );
@@ -311,7 +321,7 @@ class _SlotsViewState extends State<SlotsView> {
                                     children: [
                                       _buildGrid(
                                         context,
-                                        monday,
+                                        weekSunday,
                                         timeColumnWidth: timeColumnWidth,
                                         dayColumnWidth: dayColumnWidth,
                                         rowHeight: _defaultRowHeight,
@@ -324,7 +334,7 @@ class _SlotsViewState extends State<SlotsView> {
                                       ),
                                       ..._buildMeetingBlocks(
                                         meetings,
-                                        monday,
+                                        weekSunday,
                                         timeColumnWidth: timeColumnWidth,
                                         dayColumnWidth: dayColumnWidth,
                                         rowHeight: _defaultRowHeight,
@@ -358,7 +368,7 @@ class _SlotsViewState extends State<SlotsView> {
                                 children: [
                                   _buildGrid(
                                     context,
-                                    monday,
+                                    weekSunday,
                                     timeColumnWidth: timeColumnWidth,
                                     dayColumnWidth: dayColumnWidth,
                                     rowHeight: _defaultRowHeight,
@@ -371,7 +381,7 @@ class _SlotsViewState extends State<SlotsView> {
                                   ),
                                   ..._buildMeetingBlocks(
                                     meetings,
-                                    monday,
+                                    weekSunday,
                                     timeColumnWidth: timeColumnWidth,
                                     dayColumnWidth: dayColumnWidth,
                                     rowHeight: _defaultRowHeight,
@@ -406,24 +416,23 @@ class _SlotsViewState extends State<SlotsView> {
     );
   }
 
-  String _formatExpandedDayTitle(DateTime monday, int dayIndex) {
-    final day = monday.add(Duration(days: dayIndex));
-    const names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return '${names[dayIndex]} ${day.day}/${day.month}';
+  String _formatExpandedDayTitle(DateTime weekSunday, int dayIndex) {
+    final day = weekSunday.add(Duration(days: dayIndex));
+    return '${dayLongNamesSunFirst[dayIndex]} ${day.day}/${day.month}';
   }
 
-  int? _getCurrentDayIndex(DateTime monday) {
+  int? _getCurrentDayIndex(DateTime weekSunday) {
     final todayDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final mondayDate = DateTime(monday.year, monday.month, monday.day);
+    final weekSundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
     for (var i = 0; i < 7; i++) {
-      if (mondayDate.add(Duration(days: i)) == todayDate) return i;
+      if (weekSundayDate.add(Duration(days: i)) == todayDate) return i;
     }
     return null;
   }
 
   Widget _buildGrid(
     BuildContext context,
-    DateTime monday, {
+    DateTime weekSunday, {
     required double timeColumnWidth,
     required double dayColumnWidth,
     required double rowHeight,
@@ -434,7 +443,7 @@ class _SlotsViewState extends State<SlotsView> {
     int? expandedDayIndex,
     ValueChanged<int>? onDayTap,
   }) {
-    final currentDayIndex = _getCurrentDayIndex(monday);
+    final currentDayIndex = _getCurrentDayIndex(weekSunday);
     final indices = expandedDayIndex != null ? [expandedDayIndex] : List.generate(7, (i) => i);
     return Column(
       children: List.generate(totalRows, (rowIndex) {
@@ -449,15 +458,37 @@ class _SlotsViewState extends State<SlotsView> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              ...indices.map((i) {
+                final cell = Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: currentDayIndex == i ? _currentDayHue : null,
+                    border: Border(
+                      right: BorderSide(color: SyncUpTheme.border),
+                      bottom: BorderSide(color: SyncUpTheme.border),
+                    ),
+                  ),
+                );
+                if (onDayTap != null && expandedDayIndex == null) {
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => onDayTap(i),
+                      behavior: HitTestBehavior.opaque,
+                      child: cell,
+                    ),
+                  );
+                }
+                return Expanded(child: cell);
+              }),
               SizedBox(
                 width: timeColumnWidth,
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 4),
+                  padding: const EdgeInsets.only(left: 4),
                   child: Align(
-                    alignment: Alignment.centerRight,
+                    alignment: Alignment.centerLeft,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
+                      alignment: Alignment.centerLeft,
                       child: Text(
                         timeStr,
                         maxLines: 1,
@@ -471,26 +502,6 @@ class _SlotsViewState extends State<SlotsView> {
                   ),
                 ),
               ),
-              ...indices.map((i) {
-                final cell = Container(
-                  width: dayColumnWidth,
-                  decoration: BoxDecoration(
-                    color: currentDayIndex == i ? _currentDayHue : null,
-                    border: Border(
-                      right: BorderSide(color: SyncUpTheme.border),
-                      bottom: BorderSide(color: SyncUpTheme.border),
-                    ),
-                  ),
-                );
-                if (onDayTap != null && expandedDayIndex == null) {
-                  return GestureDetector(
-                    onTap: () => onDayTap(i),
-                    behavior: HitTestBehavior.opaque,
-                    child: cell,
-                  );
-                }
-                return cell;
-              }),
             ],
           ),
         );
@@ -500,7 +511,7 @@ class _SlotsViewState extends State<SlotsView> {
 
   List<Widget> _buildMeetingBlocks(
     List<Meeting> meetings,
-    DateTime monday, {
+    DateTime weekSunday, {
     required double timeColumnWidth,
     required double dayColumnWidth,
     required double rowHeight,
@@ -509,10 +520,10 @@ class _SlotsViewState extends State<SlotsView> {
     required int slotDurationMinutes,
     int? expandedDayIndex,
   }) {
-    final mondayDate = DateTime(monday.year, monday.month, monday.day);
+    final weekSundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
     return meetings.map((m) {
       final meetingDate = DateTime(m.startTime.year, m.startTime.month, m.startTime.day);
-      var dayIndex = meetingDate.difference(mondayDate).inDays;
+      var dayIndex = meetingDate.difference(weekSundayDate).inDays;
       if (dayIndex < 0 || dayIndex > 6) return const SizedBox.shrink();
       if (expandedDayIndex != null) {
         if (dayIndex != expandedDayIndex) return const SizedBox.shrink();
@@ -528,7 +539,7 @@ class _SlotsViewState extends State<SlotsView> {
       final slotCount = (m.durationMinutes / slotDurationMinutes).ceil();
       final height = slotCount * rowHeight;
 
-      final left = timeColumnWidth + dayIndex * dayColumnWidth;
+      final left = dayIndex * dayColumnWidth;
 
       final colorIndex = m.id.hashCode.abs() % _blockColors.length;
       return Positioned(
@@ -565,13 +576,14 @@ class _SlotsViewState extends State<SlotsView> {
       return const SizedBox.shrink();
     }
 
-    final monday = DateTime(widget.weekStart.year, widget.weekStart.month, widget.weekStart.day)
-        .subtract(Duration(days: widget.weekStart.weekday - 1));
+    final weekSunday = startOfWeekSunday(
+      DateTime(widget.weekStart.year, widget.weekStart.month, widget.weekStart.day),
+    );
     final todayDate = DateTime(now.year, now.month, now.day);
-    final mondayDate = DateTime(monday.year, monday.month, monday.day);
+    final weekSundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
     int? currentDayIndex;
     for (var i = 0; i < 7; i++) {
-      if (mondayDate.add(Duration(days: i)) == todayDate) {
+      if (weekSundayDate.add(Duration(days: i)) == todayDate) {
         currentDayIndex = i;
         break;
       }
@@ -583,8 +595,9 @@ class _SlotsViewState extends State<SlotsView> {
 
     final top = (offsetMinutes / slotDurationMinutes) * rowHeight;
     final isExpanded = expandedDayIndex != null;
-    final lineLeft = isExpanded ? 0.0 : timeColumnWidth + currentDayIndex * dayColumnWidth;
-    final lineWidth = isExpanded ? (timeColumnWidth + dayColumnWidth) : dayColumnWidth;
+    // Days fill first; time column is on the right (same order as [_buildGrid]).
+    final lineLeft = isExpanded ? 0.0 : currentDayIndex * dayColumnWidth;
+    final lineWidth = isExpanded ? (dayColumnWidth + timeColumnWidth) : dayColumnWidth;
 
     return Positioned(
       left: lineLeft,
