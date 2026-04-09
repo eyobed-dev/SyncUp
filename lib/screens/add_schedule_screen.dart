@@ -4,7 +4,6 @@ import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
-import '../widgets/add_schedule_slots_list.dart';
 import '../widgets/find_schedule_slots_view.dart';
 import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
@@ -43,7 +42,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
   void initState() {
     super.initState();
     _tabController = TabController(vsync: this, length: 2);
-    _addedSlotsTabController = TabController(vsync: this, length: 2);
+    _addedSlotsTabController = TabController(vsync: this, length: 1);
     _titleController.addListener(_onFormChanged);
     _locationController.addListener(_onFormChanged);
   }
@@ -564,7 +563,6 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                         controller: _addedSlotsTabController,
                         tabs: const [
                           Tab(text: 'Calendar'),
-                          Tab(text: 'List'),
                         ],
                         labelColor: SyncUpTheme.primary,
                         unselectedLabelColor: SyncUpTheme.textSecondary,
@@ -582,23 +580,6 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                               onDayTap: (i) => setState(() => _addedSlotsExpandedDayIndex = i),
                               onBack: () => setState(() => _addedSlotsExpandedDayIndex = null),
                               onSlotSelected: (slot) => _confirmRemoveSlot(slot),
-                            ),
-                            AddScheduleSlotsList(
-                              slots: _addedSlots,
-                              weekStart: _slotsWeekStart,
-                              selectedDayIndex: _selectedDayIndex,
-                              onRemoveSlot: (slot) => _confirmRemoveSlot(slot),
-                              onPrevWeek: () {
-                                setState(() {
-                                  _slotsWeekStart = _slotsWeekStart.subtract(const Duration(days: 7));
-                                });
-                              },
-                              onNextWeek: () {
-                                setState(() {
-                                  _slotsWeekStart = _slotsWeekStart.add(const Duration(days: 7));
-                                });
-                              },
-                              showWeekNavigation: false,
                             ),
                           ],
                         ),

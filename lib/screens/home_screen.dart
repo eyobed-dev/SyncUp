@@ -5,7 +5,6 @@ import '../utils/responsive.dart';
 import '../models/meeting.dart';
 import '../data/sample_data.dart';
 import '../widgets/slots_view.dart';
-import '../widgets/calendar_view.dart';
 import '../widgets/all_meetings_tab.dart';
 import '../widgets/current_meeting_card.dart';
 import '../widgets/dismissed_meeting_button.dart';
@@ -50,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_onTabChanged);
     _weekStart = DateTime.now();
     _selectedDayIndex = ValueNotifier(DateTime.now().weekday % 7);
@@ -337,6 +336,7 @@ class _HomeScreenState extends State<HomeScreen>
             participantName: 'Open slot',
             startTime: start,
             durationMinutes: duration,
+            location: 'Room LL4',
           ),
         );
       });
@@ -505,7 +505,6 @@ class _HomeScreenState extends State<HomeScreen>
             tabs: const [
               Tab(text: 'Meetings'),
               Tab(text: 'Calendar'),
-              Tab(text: 'List'),
             ],
           ),
           ValueListenableBuilder<DateTime>(
@@ -615,12 +614,6 @@ class _HomeScreenState extends State<HomeScreen>
                     onBack: () => setState(() => _expandedDayIndex = null),
                     tickClock: _tabController.index == 1 ? _clock : null,
                   ),
-                ),
-                CalendarView(
-                  weekStart: _weekStart,
-                  selectedDayIndex: _selectedDayIndex,
-                  meetings: _mergedMeetingsForWeek(),
-                  liveClock: _tabController.index == 2 ? _clock : null,
                 ),
               ],
             ),

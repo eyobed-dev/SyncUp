@@ -24,6 +24,11 @@ class Meeting {
     this.location,
   });
 
+  /// App-wide room used for meetings.
+  String get room => 'LL4';
+
+  String get roomLabel => 'Room $room';
+
   /// Legacy alias for topic
   String? get subject => topic;
 
