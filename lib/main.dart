@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:sync_up/data/backend_seed.dart';
+import 'package:sync_up/data/past_session_note_templates.dart';
 import 'package:sync_up/theme/sync_up_theme.dart';
 import 'screens/main_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Future.wait([
+    PastSessionNoteTemplates.load(),
+    BackendSeed.load(),
+  ]);
   runApp(const SyncUpApp());
 }
 

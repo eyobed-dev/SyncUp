@@ -355,7 +355,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                             controller: _titleController,
                             decoration: InputDecoration(
                               labelText: 'Title',
-                              hintText: 'Mentoring, Office Hours',
+                              hintText: 'e.g. Consultation, Mentoring, Office hours',
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,

@@ -9,10 +9,10 @@ import '../utils/week_calendar.dart';
 import 'meeting_list_card.dart';
 import 'week_day_selector.dart';
 
-/// Main Meetings tab: day strip + list rows, plus selection and bulk actions.
+/// Meetings tab: day summary + list rows, plus selection and bulk actions.
 class AllMeetingsTab extends StatefulWidget {
   final DateTime weekStart;
-  /// Full week schedule (sample + extras − hidden); filtered by [selectedDayIndex] like the List tab.
+  /// Full week schedule (seed meetings + extras − hidden); filtered by [selectedDayIndex] like the List tab.
   final List<Meeting> meetings;
   final ValueNotifier<int> selectedDayIndex;
   final ValueListenable<DateTime>? liveClock;
@@ -40,6 +40,17 @@ class AllMeetingsTab extends StatefulWidget {
 class _AllMeetingsTabState extends State<AllMeetingsTab> {
   final Set<String> _selectedIds = {};
 
+  Future<bool?> _showBulkEmailDialog(
+    BuildContext context, {
+    required List<Meeting> selected,
+    required String names,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => _BulkEmailDialog(selected: selected, names: names),
+    );
+  }
+
   String _mergePostponeTemplate(String template, Meeting m) {
     final safeName = m.participantName.trim().isEmpty ? 'Student' : m.participantName.trim();
     final date =
@@ -54,18 +65,10 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
         .replaceAll('{room}', 'LL4');
   }
 
-  String _weekRangeLabel(DateTime weekStart) {
-    final weekSunday = startOfWeekSunday(DateTime(weekStart.year, weekStart.month, weekStart.day));
-    final sat = weekSunday.add(const Duration(days: 6));
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final month = months[weekSunday.month - 1];
-    return '$month ${weekSunday.day}–${sat.day}, ${weekSunday.year}';
-  }
-
   String _selectedDayLabel(DateTime weekStart, int dayIndex) {
     final weekSunday = startOfWeekSunday(DateTime(weekStart.year, weekStart.month, weekStart.day));
     final day = weekSunday.add(Duration(days: dayIndex));
-    return '${dayShortNamesSunFirst[dayIndex]} ${day.day}';
+    return '${dayLongNamesSunFirst[dayIndex]} ${day.day}';
   }
 
   Future<void> _pickDay(BuildContext context) async {
@@ -138,15 +141,21 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
     super.dispose();
   }
 
-  Set<String> get _selectedExtraIds =>
-      _selectedIds.where((id) => id.startsWith('extra-')).toSet();
+  bool _isEmptySlot(Meeting m) =>
+      m.participantName.trim().toLowerCase() == 'open slot';
+
+  Set<String> get _selectedEmptySlotIds => widget.meetings
+      .where((m) => _selectedIds.contains(m.id))
+      .where(_isEmptySlot)
+      .map((m) => m.id)
+      .toSet();
 
   Future<void> _confirmRemoveSelected(BuildContext context) async {
-    final ids = _selectedExtraIds;
+    final ids = _selectedEmptySlotIds;
     if (ids.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Select at least one new slot to remove'),
+          content: Text('Select at least one empty slot to remove'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -270,133 +279,8 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
     if (_selectedIds.isEmpty) return;
     final selected = widget.meetings.where((m) => _selectedIds.contains(m.id)).toList();
     final names = selected.map((m) => m.participantName).join(', ');
-    final subjectController = TextEditingController(text: 'Meeting update');
-    final bodyController = TextEditingController(
-      text: 'Hello,\n\nI am writing regarding our upcoming meetings.\n\nParticipants: $names\n\n',
-    );
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        final size = MediaQuery.sizeOf(ctx);
-        final maxW = (size.width * 0.92).clamp(320.0, 640.0);
-        final maxH = size.height * 0.88;
-        return StatefulBuilder(
-          builder: (ctx, setLocalState) {
-            var isSending = false;
-
-            Future<void> send() async {
-              if (isSending) return;
-              setLocalState(() => isSending = true);
-              await Future<void>.delayed(const Duration(milliseconds: 900));
-              if (ctx.mounted) Navigator.of(ctx).pop(true);
-            }
-
-            return Dialog(
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Email selected',
-                        style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: SyncUpTheme.textPrimary,
-                            ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${selected.length} meeting(s) will be emailed.',
-                        style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                              color: SyncUpTheme.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (isSending) ...[
-                        const LinearProgressIndicator(minHeight: 3),
-                        const SizedBox(height: 12),
-                      ],
-                      Flexible(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _dialogStudentNamesBlock(ctx, selected),
-                              const SizedBox(height: 20),
-                              TextField(
-                                controller: subjectController,
-                                enabled: !isSending,
-                                decoration: const InputDecoration(
-                                  labelText: 'Subject',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: bodyController,
-                                enabled: !isSending,
-                                decoration: const InputDecoration(
-                                  labelText: 'Message',
-                                  border: OutlineInputBorder(),
-                                  alignLabelWithHint: true,
-                                ),
-                                minLines: 6,
-                                maxLines: 12,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed:
-                                isSending ? null : () => Navigator.of(ctx).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            onPressed: isSending ? null : send,
-                            child: Text(isSending ? 'Sending…' : 'Send email'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (ok != true) {
-      subjectController.dispose();
-      bodyController.dispose();
-      return;
-    }
-
-    final subject = subjectController.text;
-    final body = bodyController.text;
-    subjectController.dispose();
-    bodyController.dispose();
-
-    if (!context.mounted) return;
-
-    // Demo behavior: "send" and confirm via snackbar.
-    // Keep the composed subject/body available for later wiring.
-    if (kDebugMode) {
-      debugPrint('Bulk email subject: $subject');
-      debugPrint('Bulk email body: $body');
-    }
+    final ok = await _showBulkEmailDialog(context, selected: selected, names: names);
+    if (ok != true || !context.mounted) return;
 
     setState(() => _selectedIds.clear());
     if (context.mounted) {
@@ -409,13 +293,147 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
     }
   }
 
+class _BulkEmailDialog extends StatefulWidget {
+  const _BulkEmailDialog({required this.selected, required this.names});
+
+  final List<Meeting> selected;
+  final String names;
+
+  @override
+  State<_BulkEmailDialog> createState() => _BulkEmailDialogState();
+}
+
+class _BulkEmailDialogState extends State<_BulkEmailDialog> {
+  late final TextEditingController _subjectController;
+  late final TextEditingController _bodyController;
+  var _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _subjectController = TextEditingController(text: 'Schedule update');
+    _bodyController = TextEditingController(
+      text:
+          'Hello,\n\nI am writing regarding upcoming sessions.\n\nParticipants: ${widget.names}\n\n',
+    );
+  }
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _bodyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+    // Demo: treat as sent.
+    if (kDebugMode) {
+      debugPrint('Bulk email subject: ${_subjectController.text}');
+      debugPrint('Bulk email body: ${_bodyController.text}');
+    }
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final maxW = (size.width * 0.92).clamp(320.0, 640.0);
+    final maxH = size.height * 0.88;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Email selected',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: SyncUpTheme.textPrimary,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${widget.selected.length} student(s) will be emailed.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: SyncUpTheme.textSecondary,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              if (_isSending) ...[
+                const LinearProgressIndicator(minHeight: 3),
+                const SizedBox(height: 12),
+              ],
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _dialogStudentNamesBlock(context, widget.selected),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: _subjectController,
+                        enabled: !_isSending,
+                        decoration: const InputDecoration(
+                          labelText: 'Subject',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _bodyController,
+                        enabled: !_isSending,
+                        decoration: const InputDecoration(
+                          labelText: 'Message',
+                          border: OutlineInputBorder(),
+                          alignLabelWithHint: true,
+                        ),
+                        minLines: 6,
+                        maxLines: 12,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _isSending ? null : () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _isSending ? null : _send,
+                    child: Text(_isSending ? 'Sending…' : 'Send email'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
   Future<void> _openBulkPostpone(BuildContext context) async {
     if (_selectedIds.isEmpty) return;
     final selected = widget.meetings.where((m) => _selectedIds.contains(m.id)).toList();
     final n = selected.length;
     final controller = TextEditingController(
       text:
-          "Hi {student},\n\nI'm sorry—we need to reschedule our meeting on {date} at {time} (Room {room}).\n\nI'll follow up shortly with a new time that works better.\n\nThank you,\n",
+          "Hi {student},\n\nI'm sorry—we need to reschedule your session on {date} at {time} (Room {room}).\n\nI'll follow up shortly with a new time that works better.\n\nThank you,\n",
     );
 
     final ok = await showDialog<bool>(
@@ -446,7 +464,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Postpone $n meeting${n == 1 ? '' : 's'}?',
+                        'Postpone $n session${n == 1 ? '' : 's'}?',
                         style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: SyncUpTheme.textPrimary,
@@ -557,6 +575,9 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
         label: const Text('Add meeting'),
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+          ),
         ),
       ),
     );
@@ -618,48 +639,17 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                         Icon(Icons.calendar_today_outlined, size: 18, color: SyncUpTheme.textSecondary),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _weekRangeLabel(widget.weekStart),
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: SyncUpTheme.textPrimary,
-                                    ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Showing: ${_selectedDayLabel(widget.weekStart, dayIndex)}',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: SyncUpTheme.textSecondary,
-                                    ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: SyncUpTheme.zenGreenLight,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: SyncUpTheme.border),
-                          ),
                           child: Text(
-                            dayShortNamesSunFirst[dayIndex],
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
+                            _selectedDayLabel(widget.weekStart, dayIndex),
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                   color: SyncUpTheme.textPrimary,
                                 ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Icon(Icons.expand_more, color: SyncUpTheme.textSecondary),
                       ],
                     ),
@@ -677,70 +667,102 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
               color: SyncUpTheme.zenGreenLight,
               borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(minWidth: 32),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: SyncUpTheme.border),
-                            ),
-                            child: Center(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  '${_selectedIds.length}',
-                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 13,
-                                        color: SyncUpTheme.textPrimary,
-                                      ),
-                                ),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 36, maxWidth: 56),
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: SyncUpTheme.border),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${_selectedIds.length}',
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                height: 1,
+                                color: SyncUpTheme.textPrimary,
                               ),
-                            ),
-                          ),
                         ),
                       ),
                     ),
-                    TextButton(
-                      onPressed: dayMeetingIds.isEmpty
-                          ? null
-                          : () {
-                              setState(() {
-                                if (allSelectedForDay) {
-                                  _selectedIds.removeWhere(dayMeetingIds.contains);
-                                } else {
-                                  _selectedIds.addAll(dayMeetingIds);
-                                }
-                              });
-                            },
-                      child: Text(allSelectedForDay ? 'Deselect all' : 'Select all'),
-                    ),
-                    TextButton(
-                      onPressed: () => _openBulkEmail(context),
-                      child: const Text('Email'),
-                    ),
-                    TextButton(
-                      onPressed: () => _openBulkPostpone(context),
-                      child: const Text('Postpone'),
-                    ),
-                    TextButton(
-                      onPressed: _selectedExtraIds.isEmpty
-                          ? null
-                          : () => _confirmRemoveSelected(context),
-                      child: const Text('Remove'),
-                    ),
-                    IconButton(
-                      tooltip: 'Clear selection',
-                      onPressed: () => setState(() => _selectedIds.clear()),
-                      icon: const Icon(Icons.close, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const ClampingScrollPhysics(),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: dayMeetingIds.isEmpty
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        if (allSelectedForDay) {
+                                          _selectedIds.removeWhere(dayMeetingIds.contains);
+                                        } else {
+                                          _selectedIds.addAll(dayMeetingIds);
+                                        }
+                                      });
+                                    },
+                              child: Text(allSelectedForDay ? 'Deselect all' : 'Select all'),
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () => _openBulkEmail(context),
+                              child: const Text('Email'),
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () => _openBulkPostpone(context),
+                              child: const Text('Postpone'),
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                      onPressed: _selectedEmptySlotIds.isEmpty
+                                  ? null
+                                  : () => _confirmRemoveSelected(context),
+                              child: const Text('Remove'),
+                            ),
+                            IconButton(
+                              tooltip: 'Clear selection',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => setState(() => _selectedIds.clear()),
+                              icon: const Icon(Icons.close, size: 20),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -766,7 +788,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'No meetings this day',
+                          'No sessions this day',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 color: SyncUpTheme.zenGreen.withValues(alpha: 0.8),
                               ),
@@ -781,13 +803,16 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                   );
                 }
 
+                final omitTopicInList =
+                    Meeting.uniformNonEmptyTopicIfAllSame(dayMeetings) != null;
+
                 return ListView.builder(
                   padding: EdgeInsets.fromLTRB(listPadding, listPadding, listPadding, 12),
                   itemCount: dayMeetings.length,
                   itemBuilder: (context, i) {
                     final m = dayMeetings[i];
                     final selected = _selectedIds.contains(m.id);
-                    final isExtra = m.id.startsWith('extra-');
+                    final isEmptySlot = _isEmptySlot(m);
                     return RepaintBoundary(
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 4),
@@ -804,6 +829,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                           meeting: m,
                           colorIndex: i,
                           currentMeeting: current,
+                          omitTopicInListTitle: omitTopicInList,
                           leading: Checkbox(
                             value: selected,
                             onChanged: (_) {
@@ -818,7 +844,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             visualDensity: VisualDensity.compact,
                           ),
-                          trailing: isExtra
+                          trailing: isEmptySlot
                               ? IconButton(
                                   tooltip: 'Remove slot',
                                   onPressed: () => _confirmRemoveOne(context, m),

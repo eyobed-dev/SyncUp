@@ -7,7 +7,7 @@ import '../utils/week_calendar.dart';
 import '../models/availability_slot.dart';
 
 /// Grid showing available slots for booking. Same layout as SlotsView.
-/// Only displays the owner's availability blocks (e.g. Mentoring, Consultation Academic).
+/// Only displays the owner's availability blocks (e.g. Consultation, Mentoring, training).
 const double _defaultRowHeight = 36.0;
 const int _startHour = 8;
 const int _endHour = 22;

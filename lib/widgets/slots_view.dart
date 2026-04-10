@@ -49,7 +49,7 @@ class SlotsView extends StatefulWidget {
   /// When non-null, the "now" line updates from this notifier instead of rebuilding the whole grid.
   final ValueListenable<DateTime>? tickClock;
 
-  /// Meetings for this week (sample + user slots, excluding hidden).
+  /// Meetings for this week (seed weekly rows + user slots, excluding hidden).
   final List<Meeting> meetings;
 
   const SlotsView({
@@ -521,6 +521,7 @@ class _SlotsViewState extends State<SlotsView> {
     int? expandedDayIndex,
   }) {
     final weekSundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
+    final omitUniformTopic = Meeting.uniformNonEmptyTopicIfAllSame(meetings) != null;
     return meetings.map((m) {
       final meetingDate = DateTime(m.startTime.year, m.startTime.month, m.startTime.day);
       var dayIndex = meetingDate.difference(weekSundayDate).inDays;
@@ -552,6 +553,7 @@ class _SlotsViewState extends State<SlotsView> {
           blockWidth: dayColumnWidth - 4,
           blockHeight: height - 4,
           blockColor: _blockColors[colorIndex],
+          omitUniformTopic: omitUniformTopic,
         ),
       );
     }).toList();
@@ -629,12 +631,14 @@ class _MeetingBlock extends StatefulWidget {
   final double blockWidth;
   final double blockHeight;
   final Color blockColor;
+  final bool omitUniformTopic;
 
   const _MeetingBlock({
     required this.meeting,
     required this.blockWidth,
     required this.blockHeight,
     required this.blockColor,
+    this.omitUniformTopic = false,
   });
 
   @override
@@ -643,6 +647,12 @@ class _MeetingBlock extends StatefulWidget {
 
 class _MeetingBlockState extends State<_MeetingBlock> {
   OverlayEntry? _overlayEntry;
+
+  String _blockFormatTime(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
 
   @override
   void dispose() {
@@ -679,6 +689,7 @@ class _MeetingBlockState extends State<_MeetingBlock> {
   Widget build(BuildContext context) {
     final meeting = widget.meeting;
     final accentColor = widget.blockColor;
+    final isOpenSlot = meeting.participantName.trim().toLowerCase() == 'open slot';
     final h = widget.blockHeight;
     final w = widget.blockWidth;
     const barWidth = 4.0;
@@ -687,13 +698,18 @@ class _MeetingBlockState extends State<_MeetingBlock> {
     final contentW = w - barWidth - padding * 2;
 
     // Height-based content: show more when space allows
-    final hasDetails = meeting.discipline != null || meeting.topic != null;
+    final showTopicInBlock =
+        !widget.omitUniformTopic && meeting.topic != null && meeting.topic!.trim().isNotEmpty;
+    final hasDetails =
+        (meeting.discipline != null && meeting.discipline!.trim().isNotEmpty) || showTopicInBlock;
     final hasLocation = meeting.location != null;
     final showDetails = contentH >= 28 && hasDetails;
     final showDetails2Lines = contentH >= 48 && hasDetails;
     final showLocation = contentH >= 62 && hasLocation;
+    final showTimeInBlock = contentH >= 22;
 
     // Font sizes: scale with available height
+    final timeFontSize = contentH < 30 ? 9.5 : 11.0;
     final nameFontSize = contentH < 24 ? 9.0 : (contentH < 36 ? 10.0 : 11.0);
     final detailFontSize = contentH < 40 ? 9.0 : 10.0;
 
@@ -707,13 +723,13 @@ class _MeetingBlockState extends State<_MeetingBlock> {
             _showOverlay(context);
           }
         },
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(1),
         child: Container(
           width: w,
           height: h,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
@@ -728,9 +744,9 @@ class _MeetingBlockState extends State<_MeetingBlock> {
               Container(
                 width: barWidth,
                 decoration: BoxDecoration(
-                  color: accentColor,
+                  color: isOpenSlot ? Colors.transparent : accentColor,
                   borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(2),
+                    left: Radius.circular(1),
                   ),
                 ),
               ),
@@ -747,6 +763,21 @@ class _MeetingBlockState extends State<_MeetingBlock> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (showTimeInBlock) ...[
+                            Text(
+                              '${_blockFormatTime(meeting.startTime)}–${_blockFormatTime(meeting.endTime)}',
+                              style: TextStyle(
+                                color: const Color(0xFF0F172A),
+                                fontSize: timeFontSize,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.2,
+                                height: 1.05,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: contentH < 30 ? 0 : 2),
+                          ],
                           Text(
                             meeting.participantName,
                             style: TextStyle(
@@ -761,9 +792,10 @@ class _MeetingBlockState extends State<_MeetingBlock> {
                             SizedBox(height: contentH < 36 ? 0 : 1),
                             Text(
                               [
-                                if (meeting.discipline != null) meeting.discipline,
-                                if (meeting.topic != null) meeting.topic,
-                              ].join(' – '),
+                                if (meeting.discipline != null && meeting.discipline!.trim().isNotEmpty)
+                                  meeting.discipline,
+                                if (showTopicInBlock) meeting.topic,
+                              ].whereType<String>().join(' – '),
                               style: TextStyle(
                                 color: const Color(0xFF334155),
                                 fontSize: detailFontSize,

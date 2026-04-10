@@ -3,6 +3,8 @@
 class Meeting {
   final String id;
   final String participantName;
+  /// Roster id when known (links recurring bookings to [BackendSeed] `sessions`).
+  final String? studentId;
   final String? photoUrl; // Placeholder - null uses default avatar
   final DateTime startTime;
   final int durationMinutes;
@@ -12,16 +14,23 @@ class Meeting {
   final String? topic;
   /// Location (e.g. Room 101, Zoom, Building A)
   final String? location;
+  /// Recorded minutes (e.g. from seed past [sessions]).
+  final String? minutes;
+  /// Decisions / deliberations text for past sessions when present.
+  final String? deliberations;
 
   const Meeting({
     required this.id,
     required this.participantName,
+    this.studentId,
     this.photoUrl,
     required this.startTime,
     required this.durationMinutes,
     this.discipline,
     this.topic,
     this.location,
+    this.minutes,
+    this.deliberations,
   });
 
   /// App-wide room used for meetings.
@@ -41,5 +50,29 @@ class Meeting {
     if (discipline != null && discipline!.isNotEmpty) parts.add(discipline!);
     if (topic != null && topic!.isNotEmpty) parts.add(topic!);
     return parts.join(' – ');
+  }
+
+  /// List/grid title line; set [includeTopic] false when the list shares one topic via
+  /// [uniformNonEmptyTopicIfAllSame].
+  String listTitleLabel({bool includeTopic = true}) {
+    final parts = <String>[participantName];
+    if (discipline != null && discipline!.isNotEmpty) parts.add(discipline!);
+    if (includeTopic && topic != null && topic!.isNotEmpty) parts.add(topic!);
+    return parts.join(' – ');
+  }
+
+  /// Returns the shared topic when **every** meeting has the same non-empty [topic]; otherwise `null`.
+  static String? uniformNonEmptyTopicIfAllSame(Iterable<Meeting> meetings) {
+    String? first;
+    for (final m in meetings) {
+      final t = m.topic?.trim();
+      if (t == null || t.isEmpty) return null;
+      if (first == null) {
+        first = t;
+      } else if (first != t) {
+        return null;
+      }
+    }
+    return first;
   }
 }

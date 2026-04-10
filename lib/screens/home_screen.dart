@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../models/meeting.dart';
+import '../data/backend_seed.dart';
 import '../data/sample_data.dart';
 import '../widgets/slots_view.dart';
 import '../widgets/all_meetings_tab.dart';
@@ -25,21 +26,25 @@ class _HomeScreenState extends State<HomeScreen>
   late TabController _tabController;
   late DateTime _weekStart;
   late ValueNotifier<int> _selectedDayIndex;
+
   /// Drives live UI (current meeting, time line) without rebuilding the whole screen.
   late final ValueNotifier<DateTime> _clock;
+
   /// Grid slot size — updated by pinch or settings without rebuilding [HomeScreen].
   late final ValueNotifier<int> _slotDurationMinutes;
   int? _expandedDayIndex;
   Set<String> _dismissedMeetingIds = {};
   Timer? _currentMeetingTimer;
+
   /// User-created slots for any week (filtered by visible week when merging).
   final List<Meeting> _extraMeetings = [];
-  /// Hidden occurrences (postponed). Sample ids repeat each week, so key encodes date + id.
+
+  /// Hidden occurrences (postponed). Recurring meeting ids repeat each week, so key encodes date + id.
   final Set<String> _hiddenOccurrenceKeys = {};
 
   DateTime get _weekSunday => startOfWeekSunday(
-        DateTime(_weekStart.year, _weekStart.month, _weekStart.day),
-      );
+    DateTime(_weekStart.year, _weekStart.month, _weekStart.day),
+  );
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
@@ -55,22 +60,20 @@ class _HomeScreenState extends State<HomeScreen>
     _selectedDayIndex = ValueNotifier(DateTime.now().weekday % 7);
     _clock = ValueNotifier(DateTime.now());
     _slotDurationMinutes = ValueNotifier(15);
-    _currentMeetingTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) {
-        if (mounted) _clock.value = DateTime.now();
-      },
-    );
+    _currentMeetingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) _clock.value = DateTime.now();
+    });
   }
 
   void _openSettings() async {
     final result = await Navigator.push<int>(
       context,
       MaterialPageRoute(
-        builder: (context) => SettingsScreen(
-          slotDurationMinutes: _slotDurationMinutes.value,
-          onSlotDurationChanged: (v) => _slotDurationMinutes.value = v,
-        ),
+        builder:
+            (context) => SettingsScreen(
+              slotDurationMinutes: _slotDurationMinutes.value,
+              onSlotDurationChanged: (v) => _slotDurationMinutes.value = v,
+            ),
       ),
     );
     if (result != null) {
@@ -91,8 +94,29 @@ class _HomeScreenState extends State<HomeScreen>
 
   String _occurrenceKey(Meeting m) {
     if (m.id.startsWith('extra-')) return m.id;
+    if (m.id.startsWith('open-')) return m.id;
     final d = DateTime(m.startTime.year, m.startTime.month, m.startTime.day);
     return '${d.year}-${d.month}-${d.day}:${m.id}';
+  }
+
+  /// Demo current user (schedule owner) id.
+  static const String _currentOwnerId = 'p1';
+
+  Meeting _openSlotFromAvailability({
+    required String slotId,
+    required DateTime startTime,
+    required int durationMinutes,
+    String? location,
+  }) {
+    final dateKey =
+        '${startTime.year}${startTime.month.toString().padLeft(2, '0')}${startTime.day.toString().padLeft(2, '0')}';
+    return Meeting(
+      id: 'open-$slotId-$dateKey',
+      participantName: 'Open slot',
+      startTime: startTime,
+      durationMinutes: durationMinutes,
+      location: (location ?? '').trim().isEmpty ? 'Room LL4' : location!.trim(),
+    );
   }
 
   List<Meeting> _mergedMeetingsForWeek() {
@@ -103,12 +127,41 @@ class _HomeScreenState extends State<HomeScreen>
       final d = DateTime(m.startTime.year, m.startTime.month, m.startTime.day);
       return !d.isBefore(weekStartDate) && !d.isAfter(weekEndDate);
     }
-    final sample = getSampleMeetings(_weekStart)
-        .where((m) => !_hiddenOccurrenceKeys.contains(_occurrenceKey(m)));
+
+    final weekly = getMeetingsForWeek(
+      _weekStart,
+    ).where((m) => !_hiddenOccurrenceKeys.contains(_occurrenceKey(m)));
     final extra = _extraMeetings
         .where((m) => !_hiddenOccurrenceKeys.contains(_occurrenceKey(m)))
         .where(inWeek);
-    final all = [...sample, ...extra]
+
+    final taken = <String>{};
+    for (final m in [...weekly, ...extra]) {
+      final key = '${m.startTime.toIso8601String()}|${m.durationMinutes}';
+      taken.add(key);
+    }
+
+    final availability = BackendSeed.instance
+        .availabilityForOwner(_currentOwnerId, _weekStart)
+        .where((s) {
+          final d = DateTime(s.startTime.year, s.startTime.month, s.startTime.day);
+          return !d.isBefore(weekStartDate) && !d.isAfter(weekEndDate);
+        })
+        .where((s) {
+          final key = '${s.startTime.toIso8601String()}|${s.durationMinutes}';
+          return !taken.contains(key);
+        })
+        .map(
+          (s) => _openSlotFromAvailability(
+            slotId: s.id,
+            startTime: s.startTime,
+            durationMinutes: s.durationMinutes,
+            location: s.location,
+          ),
+        )
+        .where((m) => !_hiddenOccurrenceKeys.contains(_occurrenceKey(m)));
+
+    final all = [...weekly, ...extra, ...availability]
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
     return all;
   }
@@ -153,13 +206,15 @@ class _HomeScreenState extends State<HomeScreen>
   List<Meeting> _meetingsForDayIndex(int dayIndex) {
     final weekSunday = _weekSunday;
     final day = weekSunday.add(Duration(days: dayIndex));
-    return _mergedMeetingsForWeek()
-        .where((m) {
-          final md = DateTime(m.startTime.year, m.startTime.month, m.startTime.day);
-          final dd = DateTime(day.year, day.month, day.day);
-          return md == dd;
-        })
-        .toList()
+    return _mergedMeetingsForWeek().where((m) {
+        final md = DateTime(
+          m.startTime.year,
+          m.startTime.month,
+          m.startTime.day,
+        );
+        final dd = DateTime(day.year, day.month, day.day);
+        return md == dd;
+      }).toList()
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
@@ -180,7 +235,9 @@ class _HomeScreenState extends State<HomeScreen>
     if (addFromBottom) {
       return TimeOfDay.fromDateTime(last.endTime);
     }
-    final proposedStart = last.startTime.subtract(Duration(minutes: durationMinutes));
+    final proposedStart = last.startTime.subtract(
+      Duration(minutes: durationMinutes),
+    );
     final dayStart = DateTime(
       last.startTime.year,
       last.startTime.month,
@@ -208,8 +265,63 @@ class _HomeScreenState extends State<HomeScreen>
     );
 
     final weekSunday = _weekSunday;
+    final availability = BackendSeed.instance.availabilityForOwner(
+      _currentOwnerId,
+      _weekStart,
+    );
+    final sundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
+    bool sameDay(DateTime a, DateTime b) =>
+        a.year == b.year && a.month == b.month && a.day == b.day;
 
-    final accepted = await showDialog<bool>(
+    bool overlaps(DateTime aStart, int aMinutes, DateTime bStart, int bMinutes) {
+      final aEnd = aStart.add(Duration(minutes: aMinutes));
+      final bEnd = bStart.add(Duration(minutes: bMinutes));
+      return aStart.isBefore(bEnd) && bStart.isBefore(aEnd);
+    }
+
+    List<Meeting> overlapsWithExisting(DateTime start, int durationMinutes) {
+      final list = _mergedMeetingsForWeek();
+      return list
+          .where((m) => sameDay(m.startTime, start))
+          .where((m) => overlaps(start, durationMinutes, m.startTime, m.durationMinutes))
+          .toList()
+        ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    }
+
+    Meeting meetingFromAvailability({
+      required String slotId,
+      required DateTime startTime,
+      required int durationMinutes,
+      String? location,
+    }) {
+      final dateKey =
+          '${startTime.year}${startTime.month.toString().padLeft(2, '0')}${startTime.day.toString().padLeft(2, '0')}';
+      return Meeting(
+        id: 'open-$slotId-$dateKey',
+        participantName: 'Open slot',
+        startTime: startTime,
+        durationMinutes: durationMinutes,
+        location: (location ?? '').trim().isEmpty ? 'Room LL4' : location!.trim(),
+      );
+    }
+
+    Meeting meetingFromCustom({
+      required DateTime startTime,
+      required int durationMinutes,
+    }) {
+      return Meeting(
+        id: 'extra-${DateTime.now().millisecondsSinceEpoch}-${startTime.microsecondsSinceEpoch}',
+        participantName: 'Open slot',
+        startTime: startTime,
+        durationMinutes: durationMinutes,
+        location: 'Room LL4',
+      );
+    }
+
+    final selectedAvailabilityIds = <String>{};
+    final customBatch = <({TimeOfDay time, int durationMinutes, int dayIndex})>[];
+
+    final toAdd = await showDialog<List<Meeting>>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
@@ -222,8 +334,49 @@ class _HomeScreenState extends State<HomeScreen>
               );
             }
 
+            final dayDate = sundayDate.add(Duration(days: dayIndex));
+            final dayAvailability =
+                availability.where((s) => sameDay(s.startTime, dayDate)).toList()
+                  ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+            int countAddableSelected() {
+              var n = 0;
+              for (final s in dayAvailability) {
+                if (!selectedAvailabilityIds.contains(s.id)) continue;
+                if (overlapsWithExisting(s.startTime, s.durationMinutes).isNotEmpty) continue;
+                n++;
+              }
+              for (final c in customBatch) {
+                final d = sundayDate.add(Duration(days: c.dayIndex));
+                final start = DateTime(d.year, d.month, d.day, c.time.hour, c.time.minute);
+                if (overlapsWithExisting(start, c.durationMinutes).isNotEmpty) continue;
+                // also check overlaps within the custom batch itself
+                var clashesInBatch = false;
+                for (final other in customBatch) {
+                  if (identical(other, c)) continue;
+                  final od = sundayDate.add(Duration(days: other.dayIndex));
+                  final ostart =
+                      DateTime(od.year, od.month, od.day, other.time.hour, other.time.minute);
+                  if (sameDay(ostart, start) &&
+                      overlaps(start, c.durationMinutes, ostart, other.durationMinutes)) {
+                    clashesInBatch = true;
+                    break;
+                  }
+                }
+                if (clashesInBatch) continue;
+                n++;
+              }
+              return n;
+            }
+
+            final openSlotsToday =
+                _mergedMeetingsForWeek().where((m) => sameDay(m.startTime, dayDate)).where((m) {
+                  return m.participantName.trim().toLowerCase() == 'open slot';
+                }).toList()
+                  ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
             return AlertDialog(
-              title: const Text('Add empty slot'),
+              title: const Text('Add slots'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -234,8 +387,8 @@ class _HomeScreenState extends State<HomeScreen>
                           ? 'Default time starts after the last meeting of the day (or 8:00 if none).'
                           : 'Default time sits before the last meeting of the day (or 17:00 if none).',
                       style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                            color: SyncUpTheme.textSecondary,
-                          ),
+                        color: SyncUpTheme.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<int>(
@@ -281,14 +434,15 @@ class _HomeScreenState extends State<HomeScreen>
                         labelText: 'Duration',
                         border: OutlineInputBorder(),
                       ),
-                      items: durations
-                          .map(
-                            (d) => DropdownMenuItem(
-                              value: d,
-                              child: Text('$d min'),
-                            ),
-                          )
-                          .toList(),
+                      items:
+                          durations
+                              .map(
+                                (d) => DropdownMenuItem(
+                                  value: d,
+                                  child: Text('$d min'),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (v) {
                         if (v != null) {
                           setDialogState(() {
@@ -300,17 +454,208 @@ class _HomeScreenState extends State<HomeScreen>
                         }
                       },
                     ),
+                    const SizedBox(height: 10),
+                    FilledButton.icon(
+                      onPressed: () {
+                        setDialogState(() {
+                          customBatch.add((time: slotTime, durationMinutes: duration, dayIndex: dayIndex));
+                        });
+                      },
+                      icon: const Icon(Icons.add),
+                      label: Text(
+                        customBatch.isEmpty ? 'Add this slot to batch' : 'Add another',
+                      ),
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                    ),
+                    if (customBatch.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        'Batch (${customBatch.length})',
+                        style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: SyncUpTheme.textPrimary,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      ...customBatch.map((c) {
+                        final d = sundayDate.add(Duration(days: c.dayIndex));
+                        final start = DateTime(d.year, d.month, d.day, c.time.hour, c.time.minute);
+                        final end = start.add(Duration(minutes: c.durationMinutes));
+                        final existingClashes = overlapsWithExisting(start, c.durationMinutes);
+                        var batchClashCount = 0;
+                        for (final other in customBatch) {
+                          if (identical(other, c)) continue;
+                          final od = sundayDate.add(Duration(days: other.dayIndex));
+                          final ostart =
+                              DateTime(od.year, od.month, od.day, other.time.hour, other.time.minute);
+                          if (sameDay(ostart, start) &&
+                              overlaps(start, c.durationMinutes, ostart, other.durationMinutes)) {
+                            batchClashCount++;
+                          }
+                        }
+                        final hasClash = existingClashes.isNotEmpty || batchClashCount > 0;
+                        final timeLabel =
+                            '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')} – ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${dayShortNamesSunFirst[c.dayIndex]} · $timeLabel · ${c.durationMinutes} min',
+                                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                                        color: hasClash ? const Color(0xFFDC2626) : SyncUpTheme.textSecondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                              if (hasClash)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 2),
+                                  child: Tooltip(
+                                    message: [
+                                      if (existingClashes.isNotEmpty) 'Overlaps with existing slot(s)',
+                                      if (batchClashCount > 0) 'Overlaps with $batchClashCount in this batch',
+                                    ].join(' · '),
+                                    child: const Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFDC2626)),
+                                  ),
+                                ),
+                              IconButton(
+                                tooltip: 'Remove',
+                                onPressed: () {
+                                  setDialogState(() {
+                                    customBatch.remove(c);
+                                  });
+                                },
+                                icon: const Icon(Icons.close, size: 18),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                    const SizedBox(height: 10),
+                    Text(
+                      'Available (Prof. Alexander) · not yet picked',
+                      style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: SyncUpTheme.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    if (dayAvailability.isEmpty)
+                      Text(
+                        'No availability seeded for ${dayShortNamesSunFirst[dayIndex]}.',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                              color: SyncUpTheme.textSecondary,
+                            ),
+                      )
+                    else
+                      ...dayAvailability.map((s) {
+                        final clashes = overlapsWithExisting(s.startTime, s.durationMinutes);
+                        final taken = clashes.isNotEmpty;
+                        final end = s.startTime.add(Duration(minutes: s.durationMinutes));
+                        final timeLabel =
+                            '${s.startTime.hour.toString().padLeft(2, '0')}:${s.startTime.minute.toString().padLeft(2, '0')} – ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+                        return CheckboxListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          value: selectedAvailabilityIds.contains(s.id),
+                          onChanged: taken
+                              ? null
+                              : (v) {
+                                  setDialogState(() {
+                                    if (v == true) {
+                                      selectedAvailabilityIds.add(s.id);
+                                    } else {
+                                      selectedAvailabilityIds.remove(s.id);
+                                    }
+                                  });
+                                },
+                          title: Text(
+                            timeLabel,
+                            style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: taken ? SyncUpTheme.textSecondary : SyncUpTheme.textPrimary,
+                                ),
+                          ),
+                          subtitle: Text(
+                            taken
+                                ? 'Overlaps with existing meeting'
+                                : (s.location ?? 'Room LL4'),
+                            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                                  color: SyncUpTheme.textSecondary,
+                                ),
+                          ),
+                          controlAffinity: ListTileControlAffinity.leading,
+                        );
+                      }),
+                    if (openSlotsToday.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Open slots already on this day (${openSlotsToday.length})',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                              color: SyncUpTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
+                  onPressed: () => Navigator.of(ctx).pop(const <Meeting>[]),
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  child: const Text('Add'),
+                  onPressed: () {
+                    final out = <Meeting>[];
+
+                    // Selected availability → open slots
+                    for (final s in dayAvailability) {
+                      if (!selectedAvailabilityIds.contains(s.id)) continue;
+                      if (overlapsWithExisting(s.startTime, s.durationMinutes).isNotEmpty) continue;
+                      out.add(
+                        meetingFromAvailability(
+                          slotId: s.id,
+                          startTime: s.startTime,
+                          durationMinutes: s.durationMinutes,
+                          location: s.location,
+                        ),
+                      );
+                    }
+
+                    // Custom batch → open slots
+                    for (final c in customBatch) {
+                      final d = sundayDate.add(Duration(days: c.dayIndex));
+                      final start = DateTime(d.year, d.month, d.day, c.time.hour, c.time.minute);
+                      if (overlapsWithExisting(start, c.durationMinutes).isNotEmpty) continue;
+                      var clashesInBatch = false;
+                      for (final other in customBatch) {
+                        if (identical(other, c)) continue;
+                        final od = sundayDate.add(Duration(days: other.dayIndex));
+                        final ostart =
+                            DateTime(od.year, od.month, od.day, other.time.hour, other.time.minute);
+                        if (sameDay(ostart, start) &&
+                            overlaps(start, c.durationMinutes, ostart, other.durationMinutes)) {
+                          clashesInBatch = true;
+                          break;
+                        }
+                      }
+                      if (clashesInBatch) continue;
+                      out.add(
+                        meetingFromCustom(startTime: start, durationMinutes: c.durationMinutes),
+                      );
+                    }
+
+                    Navigator.of(ctx).pop(out);
+                  },
+                  child: Text(
+                    'Add ${countAddableSelected()}',
+                  ),
                 ),
               ],
             );
@@ -319,34 +664,14 @@ class _HomeScreenState extends State<HomeScreen>
       },
     );
 
-    if (accepted == true && mounted) {
-      final day = weekSunday.add(Duration(days: dayIndex));
-      final start = DateTime(
-        day.year,
-        day.month,
-        day.day,
-        slotTime.hour,
-        slotTime.minute,
-      );
-      final id = 'extra-${DateTime.now().millisecondsSinceEpoch}';
-      setState(() {
-        _extraMeetings.add(
-          Meeting(
-            id: id,
-            participantName: 'Open slot',
-            startTime: start,
-            durationMinutes: duration,
-            location: 'Room LL4',
-          ),
-        );
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Empty slot added'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    if (toAdd == null || toAdd.isEmpty || !mounted) return;
+    setState(() => _extraMeetings.addAll(toAdd));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${toAdd.length} slot(s) added'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _prevWeek() {
@@ -369,8 +694,20 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   String get _monthLabel {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return months[_weekSunday.month - 1];
   }
 
@@ -379,8 +716,14 @@ class _HomeScreenState extends State<HomeScreen>
   /// Returns badge label for the displayed week: this week, past N week(s), or next N week(s).
   String get _weekBadgeLabel {
     final now = DateTime.now();
-    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
-    final displayedSunday = DateTime(_weekSunday.year, _weekSunday.month, _weekSunday.day);
+    final thisWeekSunday = startOfWeekSunday(
+      DateTime(now.year, now.month, now.day),
+    );
+    final displayedSunday = DateTime(
+      _weekSunday.year,
+      _weekSunday.month,
+      _weekSunday.day,
+    );
     if (displayedSunday == thisWeekSunday) return 'This week';
     if (displayedSunday.isAfter(thisWeekSunday)) {
       final weeksAhead = displayedSunday.difference(thisWeekSunday).inDays ~/ 7;
@@ -392,8 +735,14 @@ class _HomeScreenState extends State<HomeScreen>
 
   Color get _weekBadgeColor {
     final now = DateTime.now();
-    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
-    final displayedSunday = DateTime(_weekSunday.year, _weekSunday.month, _weekSunday.day);
+    final thisWeekSunday = startOfWeekSunday(
+      DateTime(now.year, now.month, now.day),
+    );
+    final displayedSunday = DateTime(
+      _weekSunday.year,
+      _weekSunday.month,
+      _weekSunday.day,
+    );
     if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
     if (displayedSunday.isAfter(thisWeekSunday)) return Colors.blue.shade700;
     return SyncUpTheme.textSecondary;
@@ -404,30 +753,28 @@ class _HomeScreenState extends State<HomeScreen>
     final compactAppBar = Responsive.isMobile(context);
     return Scaffold(
       appBar: AppBar(
-        title: SyncUpLogo(
-          size: 28,
-          compact: compactAppBar,
-        ),
+        title: SyncUpLogo(size: 28, compact: compactAppBar),
         actions: [
           Builder(
-            builder: (context) => GestureDetector(
-              onTap: () => Scaffold.of(context).openEndDrawer(),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: SyncUpTheme.primary,
-                  child: const Text(
-                    'M',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+            builder:
+                (context) => GestureDetector(
+                  onTap: () => Scaffold.of(context).openEndDrawer(),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: SyncUpTheme.primary,
+                      child: const Text(
+                        'M',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
           ),
         ],
       ),
@@ -438,9 +785,7 @@ class _HomeScreenState extends State<HomeScreen>
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: SyncUpTheme.surface,
-              border: Border(
-                bottom: BorderSide(color: SyncUpTheme.border),
-              ),
+              border: Border(bottom: BorderSide(color: SyncUpTheme.border)),
             ),
             child: Row(
               children: [
@@ -456,10 +801,12 @@ class _HomeScreenState extends State<HomeScreen>
                       children: [
                         Text(
                           _weekLabel,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: SyncUpTheme.textPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleSmall?.copyWith(
+                            color: SyncUpTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -481,11 +828,13 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           child: Text(
                             _weekBadgeLabel,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: _weekBadgeColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 10,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.copyWith(
+                              color: _weekBadgeColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
+                            ),
                           ),
                         ),
                       ],
@@ -502,10 +851,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           TabBar(
             controller: _tabController,
-            tabs: const [
-              Tab(text: 'Meetings'),
-              Tab(text: 'Calendar'),
-            ],
+            tabs: const [Tab(text: 'Meetings'), Tab(text: 'Calendar')],
           ),
           ValueListenableBuilder<DateTime>(
             valueListenable: _clock,
@@ -520,7 +866,10 @@ class _HomeScreenState extends State<HomeScreen>
                 switchOutCurve: Curves.easeInCubic,
                 // Default uses StackFit.passthrough + center alignment, which can let
                 // the banner subtree expand to the full column height above the tab body.
-                layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                layoutBuilder: (
+                  Widget? currentChild,
+                  List<Widget> previousChildren,
+                ) {
                   return Stack(
                     alignment: Alignment.topCenter,
                     fit: StackFit.loose,
@@ -545,7 +894,10 @@ class _HomeScreenState extends State<HomeScreen>
                         end: Offset.zero,
                       ).animate(curved),
                       child: ScaleTransition(
-                        scale: Tween<double>(begin: 0.97, end: 1).animate(curved),
+                        scale: Tween<double>(
+                          begin: 0.97,
+                          end: 1,
+                        ).animate(curved),
                         alignment: Alignment.topCenter,
                         child: child,
                       ),
@@ -557,8 +909,8 @@ class _HomeScreenState extends State<HomeScreen>
                     current != null
                         ? 'current-${current.id}'
                         : dismissed != null
-                            ? 'dismissed-${dismissed.id}'
-                            : 'empty',
+                        ? 'dismissed-${dismissed.id}'
+                        : 'empty',
                   ),
                   current: current,
                   dismissed: dismissed,
@@ -581,7 +933,9 @@ class _HomeScreenState extends State<HomeScreen>
                   meetings: _mergedMeetingsForWeek(),
                   selectedDayIndex: _selectedDayIndex,
                   liveClock: _tabController.index == 0 ? _clock : null,
-                  onAddSlot: (fromBottom) => _showAddSlotDialog(addFromBottom: fromBottom),
+                  onAddSlot:
+                      (fromBottom) =>
+                          _showAddSlotDialog(addFromBottom: fromBottom),
                   onBulkPostpone: _onBulkPostpone,
                   onRemoveNewSlots: _removeNewSlots,
                 ),
@@ -596,10 +950,12 @@ class _HomeScreenState extends State<HomeScreen>
                         position: Tween<Offset>(
                           begin: const Offset(0, 0.03),
                           end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        )),
+                        ).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          ),
+                        ),
                         child: child,
                       ),
                     );

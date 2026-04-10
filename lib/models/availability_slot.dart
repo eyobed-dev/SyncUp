@@ -1,9 +1,9 @@
-/// An available time slot that a user can book (e.g. Mentoring, Consultation).
+/// An available time slot that a user can book (e.g. Consultation, Mentoring).
 class AvailabilitySlot {
   final String id;
   final DateTime startTime;
   final int durationMinutes;
-  final String title; // e.g. "Mentoring", "Consultation Academic"
+  final String title; // e.g. "Consultation – …", "Mentoring"
   final String? location;
 
   const AvailabilitySlot({
