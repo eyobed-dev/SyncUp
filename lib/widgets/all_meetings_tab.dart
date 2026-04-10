@@ -9,6 +9,61 @@ import '../utils/week_calendar.dart';
 import 'meeting_list_card.dart';
 import 'week_day_selector.dart';
 
+Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        'Students (${meetings.length})',
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: SyncUpTheme.textPrimary,
+            ),
+      ),
+      const SizedBox(height: 10),
+      Container(
+        constraints: const BoxConstraints(maxHeight: 260),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: SyncUpTheme.zenGreenLight,
+          borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+          border: Border.all(color: SyncUpTheme.border),
+        ),
+        child: ListView.separated(
+          shrinkWrap: meetings.length <= 5,
+          physics: meetings.length > 5
+              ? const AlwaysScrollableScrollPhysics()
+              : const NeverScrollableScrollPhysics(),
+          itemCount: meetings.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, i) {
+            final name = meetings[i].participantName.trim();
+            final label = name.isEmpty ? '—' : name;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.person, size: 22, color: SyncUpTheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 17,
+                          height: 1.35,
+                          color: const Color(0xFF0F172A),
+                        ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    ],
+  );
+}
+
 /// Meetings tab: day summary + list rows, plus selection and bulk actions.
 class AllMeetingsTab extends StatefulWidget {
   final DateTime weekStart;
@@ -39,6 +94,7 @@ class AllMeetingsTab extends StatefulWidget {
 
 class _AllMeetingsTabState extends State<AllMeetingsTab> {
   final Set<String> _selectedIds = {};
+  bool _manageOpenSlots = false;
 
   Future<bool?> _showBulkEmailDialog(
     BuildContext context, {
@@ -161,8 +217,9 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
       );
       return;
     }
+    final rootContext = this.context;
     final ok = await showDialog<bool>(
-      context: context,
+      context: rootContext,
       builder: (ctx) => AlertDialog(
         title: Text('Remove ${ids.length} slot${ids.length == 1 ? '' : 's'}?'),
         content: const Text('This will delete the selected empty slots.'),
@@ -179,10 +236,10 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
         ],
       ),
     );
-    if (ok != true || !context.mounted) return;
+    if (ok != true || !mounted) return;
     widget.onRemoveNewSlots(ids);
     setState(() => _selectedIds.removeWhere(ids.contains));
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(rootContext).showSnackBar(
       SnackBar(
         content: Text('Removed ${ids.length} slot${ids.length == 1 ? '' : 's'}'),
         behavior: SnackBarBehavior.floating,
@@ -191,8 +248,9 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
   }
 
   Future<void> _confirmRemoveOne(BuildContext context, Meeting m) async {
+    final rootContext = this.context;
     final ok = await showDialog<bool>(
-      context: context,
+      context: rootContext,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove slot?'),
         content: const Text('This will delete the empty slot.'),
@@ -209,10 +267,10 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
         ],
       ),
     );
-    if (ok != true || !context.mounted) return;
+    if (ok != true || !mounted) return;
     widget.onRemoveNewSlots({m.id});
     setState(() => _selectedIds.remove(m.id));
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(rootContext).showSnackBar(
       const SnackBar(
         content: Text('Slot removed'),
         behavior: SnackBarBehavior.floating,
@@ -220,350 +278,51 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
     );
   }
 
-  Widget _dialogStudentNamesBlock(BuildContext context, List<Meeting> meetings) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Students (${meetings.length})',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: SyncUpTheme.textPrimary,
-              ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          constraints: const BoxConstraints(maxHeight: 260),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: SyncUpTheme.zenGreenLight,
-            borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-            border: Border.all(color: SyncUpTheme.border),
-          ),
-          child: ListView.separated(
-            shrinkWrap: meetings.length <= 5,
-            physics: meetings.length > 5
-                ? const AlwaysScrollableScrollPhysics()
-                : const NeverScrollableScrollPhysics(),
-            itemCount: meetings.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, i) {
-              final name = meetings[i].participantName.trim();
-              final label = name.isEmpty ? '—' : name;
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.person, size: 22, color: SyncUpTheme.primary),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 17,
-                            height: 1.35,
-                            color: const Color(0xFF0F172A),
-                          ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Future<void> _openBulkEmail(BuildContext context) async {
     if (_selectedIds.isEmpty) return;
     final selected = widget.meetings.where((m) => _selectedIds.contains(m.id)).toList();
     final names = selected.map((m) => m.participantName).join(', ');
-    final ok = await _showBulkEmailDialog(context, selected: selected, names: names);
-    if (ok != true || !context.mounted) return;
+    final rootContext = this.context;
+    final ok = await _showBulkEmailDialog(rootContext, selected: selected, names: names);
+    if (ok != true || !mounted) return;
 
     setState(() => _selectedIds.clear());
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email sent.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-class _BulkEmailDialog extends StatefulWidget {
-  const _BulkEmailDialog({required this.selected, required this.names});
-
-  final List<Meeting> selected;
-  final String names;
-
-  @override
-  State<_BulkEmailDialog> createState() => _BulkEmailDialogState();
-}
-
-class _BulkEmailDialogState extends State<_BulkEmailDialog> {
-  late final TextEditingController _subjectController;
-  late final TextEditingController _bodyController;
-  var _isSending = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _subjectController = TextEditingController(text: 'Schedule update');
-    _bodyController = TextEditingController(
-      text:
-          'Hello,\n\nI am writing regarding upcoming sessions.\n\nParticipants: ${widget.names}\n\n',
+    if (!rootContext.mounted) return;
+    await _showActionDoneModal(
+      rootContext,
+      title: 'Email sent',
+      message: 'Your email was sent to ${selected.length} student(s) (demo).',
     );
   }
-
-  @override
-  void dispose() {
-    _subjectController.dispose();
-    _bodyController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _send() async {
-    if (_isSending) return;
-    setState(() => _isSending = true);
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-    // Demo: treat as sent.
-    if (kDebugMode) {
-      debugPrint('Bulk email subject: ${_subjectController.text}');
-      debugPrint('Bulk email body: ${_bodyController.text}');
-    }
-    Navigator.of(context).pop(true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final maxW = (size.width * 0.92).clamp(320.0, 640.0);
-    final maxH = size.height * 0.88;
-
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Email selected',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: SyncUpTheme.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${widget.selected.length} student(s) will be emailed.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: SyncUpTheme.textSecondary,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              if (_isSending) ...[
-                const LinearProgressIndicator(minHeight: 3),
-                const SizedBox(height: 12),
-              ],
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _dialogStudentNamesBlock(context, widget.selected),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _subjectController,
-                        enabled: !_isSending,
-                        decoration: const InputDecoration(
-                          labelText: 'Subject',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _bodyController,
-                        enabled: !_isSending,
-                        decoration: const InputDecoration(
-                          labelText: 'Message',
-                          border: OutlineInputBorder(),
-                          alignLabelWithHint: true,
-                        ),
-                        minLines: 6,
-                        maxLines: 12,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: _isSending ? null : () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _isSending ? null : _send,
-                    child: Text(_isSending ? 'Sending…' : 'Send email'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
   Future<void> _openBulkPostpone(BuildContext context) async {
     if (_selectedIds.isEmpty) return;
     final selected = widget.meetings.where((m) => _selectedIds.contains(m.id)).toList();
-    final n = selected.length;
-    final controller = TextEditingController(
-      text:
-          "Hi {student},\n\nI'm sorry—we need to reschedule your session on {date} at {time} (Room {room}).\n\nI'll follow up shortly with a new time that works better.\n\nThank you,\n",
+    final rootContext = this.context;
+    final template = await showDialog<String?>(
+      context: rootContext,
+      builder: (ctx) => _BulkPostponeDialog(selected: selected),
     );
 
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        final size = MediaQuery.sizeOf(ctx);
-        final maxW = (size.width * 0.92).clamp(320.0, 640.0);
-        final maxH = size.height * 0.88;
-        return StatefulBuilder(
-          builder: (ctx, setLocalState) {
-            var isWorking = false;
-
-            Future<void> postpone() async {
-              if (isWorking) return;
-              setLocalState(() => isWorking = true);
-              await Future<void>.delayed(const Duration(milliseconds: 900));
-              if (ctx.mounted) Navigator.of(ctx).pop(true);
-            }
-
-            return Dialog(
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Postpone $n session${n == 1 ? '' : 's'}?',
-                        style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: SyncUpTheme.textPrimary,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'An apology email will be sent to each participant below (demo).',
-                        style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                              color: SyncUpTheme.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Mail-merge fields: {student}, {date}, {time}, {room}',
-                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                              color: SyncUpTheme.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (isWorking) ...[
-                        const LinearProgressIndicator(minHeight: 3),
-                        const SizedBox(height: 12),
-                      ],
-                      Flexible(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _dialogStudentNamesBlock(ctx, selected),
-                              const SizedBox(height: 20),
-                              TextField(
-                                controller: controller,
-                                enabled: !isWorking,
-                                decoration: const InputDecoration(
-                                  labelText: 'Apology message',
-                                  border: OutlineInputBorder(),
-                                  alignLabelWithHint: true,
-                                ),
-                                minLines: 5,
-                                maxLines: 10,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed:
-                                isWorking ? null : () => Navigator.of(ctx).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            onPressed: isWorking ? null : postpone,
-                            child: Text(isWorking ? 'Working…' : 'Postpone & send'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (ok != true) {
-      controller.dispose();
-      return;
-    }
-    final msg = controller.text.trim();
-    controller.dispose();
-
-    if (!context.mounted) return;
+    if (template == null || !mounted) return;
     final ids = Set<String>.from(_selectedIds);
-    final template = msg.isEmpty ? '(No message)' : msg;
+    final safeTemplate = template.trim().isEmpty ? '(No message)' : template.trim();
     // Demo mail-merge: generate one personalized message per student.
     if (kDebugMode) {
       for (final m in selected) {
         debugPrint('Postpone mail-merge to ${m.participantName}:');
-        debugPrint(_mergePostponeTemplate(template, m));
+        debugPrint(_mergePostponeTemplate(safeTemplate, m));
       }
     }
-    widget.onBulkPostpone(ids, template);
+    widget.onBulkPostpone(ids, safeTemplate);
     setState(() => _selectedIds.clear());
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Postponed. Email sent.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    if (!rootContext.mounted) return;
+    await _showActionDoneModal(
+      rootContext,
+      title: 'Meetings postponed',
+      message:
+          'Postponed ${selected.length} meeting(s) and sent the apology email (demo).',
+    );
   }
 
   Widget _addSlotButton(BuildContext context, {required bool fromBottom}) {
@@ -623,44 +382,101 @@ class _BulkEmailDialogState extends State<_BulkEmailDialog> {
         SizedBox(height: outerPadding),
         Padding(
           padding: EdgeInsets.fromLTRB(outerPadding, 4, outerPadding, 10),
-          child: ValueListenableBuilder<int>(
-            valueListenable: widget.selectedDayIndex,
-            builder: (context, dayIndex, _) {
-              return Material(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                  onTap: () => _pickDay(context),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Row(
-                      children: [
-                        Icon(Icons.calendar_today_outlined, size: 18, color: SyncUpTheme.textSecondary),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _selectedDayLabel(widget.weekStart, dayIndex),
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: SyncUpTheme.textPrimary,
+          child: Row(
+            children: [
+              Expanded(
+                child: ValueListenableBuilder<int>(
+                  valueListenable: widget.selectedDayIndex,
+                  builder: (context, dayIndex, _) {
+                    return Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+                        onTap: () => _pickDay(context),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                size: 18,
+                                color: SyncUpTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _selectedDayLabel(widget.weekStart, dayIndex),
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: SyncUpTheme.textPrimary,
+                                      ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.expand_more, color: SyncUpTheme.textSecondary),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Icon(Icons.expand_more, color: SyncUpTheme.textSecondary),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: 10),
+              ValueListenableBuilder<int>(
+                valueListenable: widget.selectedDayIndex,
+                builder: (context, dayIndex, _) {
+                  final meetings = _meetingsForDayIndex(dayIndex);
+                  final available = meetings.where(_isEmptySlot).length;
+                  final booked = meetings.length - available;
+                  final label = '$available/$booked';
+                  return Tooltip(
+                    message: '$available available · $booked booked',
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 44),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: SyncUpTheme.border),
+                      ),
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: SyncUpTheme.textSecondary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _manageOpenSlots = !_manageOpenSlots;
+                    if (!_manageOpenSlots) _selectedIds.clear();
+                  });
+                },
+                icon: Icon(_manageOpenSlots ? Icons.check : Icons.tune, size: 18),
+                label: Text(_manageOpenSlots ? 'Done' : 'Manage'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  side: BorderSide(color: SyncUpTheme.border),
+                  foregroundColor: SyncUpTheme.textPrimary,
+                ),
+              ),
+            ],
           ),
         ),
         const Divider(height: 1),
-        if (_selectedIds.isNotEmpty)
+        if (_manageOpenSlots && _selectedIds.isNotEmpty)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: outerPadding, vertical: 8),
             child: Material(
@@ -721,7 +537,9 @@ class _BulkEmailDialogState extends State<_BulkEmailDialog> {
                                         }
                                       });
                                     },
-                              child: Text(allSelectedForDay ? 'Deselect all' : 'Select all'),
+                              child: Text(
+                                allSelectedForDay ? 'Deselect all' : 'Select all',
+                              ),
                             ),
                             TextButton(
                               style: TextButton.styleFrom(
@@ -830,21 +648,23 @@ class _BulkEmailDialogState extends State<_BulkEmailDialog> {
                           colorIndex: i,
                           currentMeeting: current,
                           omitTopicInListTitle: omitTopicInList,
-                          leading: Checkbox(
-                            value: selected,
-                            onChanged: (_) {
-                              setState(() {
-                                if (selected) {
-                                  _selectedIds.remove(m.id);
-                                } else {
-                                  _selectedIds.add(m.id);
-                                }
-                              });
-                            },
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          trailing: isEmptySlot
+                          leading: _manageOpenSlots
+                              ? Checkbox(
+                                  value: selected,
+                                  onChanged: (_) {
+                                    setState(() {
+                                      if (selected) {
+                                        _selectedIds.remove(m.id);
+                                      } else {
+                                        _selectedIds.add(m.id);
+                                      }
+                                    });
+                                  },
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                )
+                              : null,
+                          trailing: (_manageOpenSlots && isEmptySlot)
                               ? IconButton(
                                   tooltip: 'Remove slot',
                                   onPressed: () => _confirmRemoveOne(context, m),
@@ -878,6 +698,294 @@ class _BulkEmailDialogState extends State<_BulkEmailDialog> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _BulkEmailDialog extends StatefulWidget {
+  const _BulkEmailDialog({required this.selected, required this.names});
+
+  final List<Meeting> selected;
+  final String names;
+
+  @override
+  State<_BulkEmailDialog> createState() => _BulkEmailDialogState();
+}
+
+class _BulkEmailDialogState extends State<_BulkEmailDialog> {
+  late final TextEditingController _subjectController;
+  late final TextEditingController _bodyController;
+  var _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _subjectController = TextEditingController(text: 'Schedule update');
+    _bodyController = TextEditingController(
+      text:
+          'Hello,\n\nI am writing regarding upcoming sessions.\n\nParticipants: ${widget.names}\n\n',
+    );
+  }
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _bodyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+    // Demo: treat as sent.
+    if (kDebugMode) {
+      debugPrint('Bulk email subject: ${_subjectController.text}');
+      debugPrint('Bulk email body: ${_bodyController.text}');
+    }
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final maxW = (size.width * 0.92).clamp(320.0, 640.0);
+    final maxH = size.height * 0.88;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Email selected',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: SyncUpTheme.textPrimary,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${widget.selected.length} student(s) will be emailed.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: SyncUpTheme.textSecondary,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              if (_isSending) ...[
+                const LinearProgressIndicator(minHeight: 3),
+                const SizedBox(height: 12),
+              ],
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _studentNamesBlock(context, widget.selected),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: _subjectController,
+                        enabled: !_isSending,
+                        decoration: const InputDecoration(
+                          labelText: 'Subject',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _bodyController,
+                        enabled: !_isSending,
+                        decoration: const InputDecoration(
+                          labelText: 'Message',
+                          border: OutlineInputBorder(),
+                          alignLabelWithHint: true,
+                        ),
+                        minLines: 6,
+                        maxLines: 12,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _isSending ? null : () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _isSending ? null : _send,
+                    child: Text(_isSending ? 'Sending…' : 'Send email'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showActionDoneModal(
+  BuildContext context, {
+  required String title,
+  required String message,
+}) async {
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) {
+      return AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Color(0xFF16A34A)),
+            const SizedBox(width: 10),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+class _BulkPostponeDialog extends StatefulWidget {
+  final List<Meeting> selected;
+
+  const _BulkPostponeDialog({required this.selected});
+
+  @override
+  State<_BulkPostponeDialog> createState() => _BulkPostponeDialogState();
+}
+
+class _BulkPostponeDialogState extends State<_BulkPostponeDialog> {
+  late final TextEditingController _controller;
+  var _isWorking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text:
+          "Hi {student},\n\nI'm sorry—we need to reschedule your session on {date} at {time} (Room {room}).\n\nI'll follow up shortly with a new time that works better.\n\nThank you,\n",
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _postpone() async {
+    if (_isWorking) return;
+    setState(() => _isWorking = true);
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+    Navigator.of(context).pop(_controller.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final maxW = (size.width * 0.92).clamp(320.0, 640.0);
+    final maxH = size.height * 0.88;
+    final n = widget.selected.length;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Postpone $n session${n == 1 ? '' : 's'}?',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: SyncUpTheme.textPrimary,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'An apology email will be sent to each participant below (demo).',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: SyncUpTheme.textSecondary,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Mail-merge fields: {student}, {date}, {time}, {room}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: SyncUpTheme.textSecondary,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              if (_isWorking) ...[
+                const LinearProgressIndicator(minHeight: 3),
+                const SizedBox(height: 12),
+              ],
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _studentNamesBlock(context, widget.selected),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: _controller,
+                        enabled: !_isWorking,
+                        decoration: const InputDecoration(
+                          labelText: 'Apology message',
+                          border: OutlineInputBorder(),
+                          alignLabelWithHint: true,
+                        ),
+                        minLines: 5,
+                        maxLines: 10,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed:
+                        _isWorking ? null : () => Navigator.of(context).pop(null),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _isWorking ? null : _postpone,
+                    child: Text(_isWorking ? 'Working…' : 'Postpone & send'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

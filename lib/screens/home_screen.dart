@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen>
   late final ValueNotifier<int> _slotDurationMinutes;
   int? _expandedDayIndex;
   Set<String> _dismissedMeetingIds = {};
+  Set<String> _hiddenInProgressMeetingIds = {};
   Timer? _currentMeetingTimer;
 
   /// User-created slots for any week (filtered by visible week when merging).
@@ -168,14 +169,18 @@ class _HomeScreenState extends State<HomeScreen>
 
   Meeting? get _currentMeeting {
     final m = getCurrentMeetingFromList(_mergedMeetingsForWeek());
-    if (m == null || _dismissedMeetingIds.contains(m.id)) return null;
+    if (m == null) return null;
+    if (_dismissedMeetingIds.contains(m.id)) return null;
+    if (_hiddenInProgressMeetingIds.contains(m.id)) return null;
     return m;
   }
 
   /// Current meeting that was dismissed – show restore button.
   Meeting? get _dismissedCurrentMeeting {
     final m = getCurrentMeetingFromList(_mergedMeetingsForWeek());
-    if (m == null || !_dismissedMeetingIds.contains(m.id)) return null;
+    if (m == null) return null;
+    if (!_dismissedMeetingIds.contains(m.id)) return null;
+    if (_hiddenInProgressMeetingIds.contains(m.id)) return null;
     return m;
   }
 
@@ -200,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen>
       // Extra occurrence keys are the ids themselves.
       _hiddenOccurrenceKeys.removeWhere((k) => meetingIds.contains(k));
       _dismissedMeetingIds.removeWhere((id) => meetingIds.contains(id));
+      _hiddenInProgressMeetingIds.removeWhere((id) => meetingIds.contains(id));
     });
   }
 
@@ -920,6 +926,12 @@ class _HomeScreenState extends State<HomeScreen>
                   onRestoreMeeting: (id) {
                     setState(() => _dismissedMeetingIds.remove(id));
                   },
+                  onHideInProgress: (id) {
+                    setState(() {
+                      _hiddenInProgressMeetingIds.add(id);
+                      _dismissedMeetingIds.remove(id);
+                    });
+                  },
                 ),
               );
             },
@@ -987,6 +999,7 @@ class _MeetingBannerSlot extends StatelessWidget {
   final Meeting? dismissed;
   final ValueChanged<String> onDismissMeeting;
   final ValueChanged<String> onRestoreMeeting;
+  final ValueChanged<String> onHideInProgress;
 
   const _MeetingBannerSlot({
     super.key,
@@ -994,6 +1007,7 @@ class _MeetingBannerSlot extends StatelessWidget {
     required this.dismissed,
     required this.onDismissMeeting,
     required this.onRestoreMeeting,
+    required this.onHideInProgress,
   });
 
   @override
@@ -1030,6 +1044,7 @@ class _MeetingBannerSlot extends StatelessWidget {
       return DismissedMeetingButton(
         meeting: m,
         onTap: () => onRestoreMeeting(m.id),
+        onDismissAll: () => onHideInProgress(m.id),
       );
     }
     return const SizedBox.shrink();

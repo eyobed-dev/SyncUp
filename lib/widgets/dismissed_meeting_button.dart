@@ -8,11 +8,13 @@ import '../theme/sync_up_theme.dart';
 class DismissedMeetingButton extends StatefulWidget {
   final Meeting meeting;
   final VoidCallback onTap;
+  final VoidCallback? onDismissAll;
 
   const DismissedMeetingButton({
     super.key,
     required this.meeting,
     required this.onTap,
+    this.onDismissAll,
   });
 
   @override
@@ -264,10 +266,33 @@ class _DismissedMeetingButtonState extends State<DismissedMeetingButton>
                               },
                             )
                           else
-                            Icon(
-                              Icons.expand_less,
-                              size: 20,
-                              color: accentColor,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.expand_less,
+                                  size: 20,
+                                  color: accentColor,
+                                ),
+                                if (widget.onDismissAll != null) ...[
+                                  const SizedBox(width: 4),
+                                  IconButton(
+                                    onPressed: widget.onDismissAll,
+                                    icon: Icon(
+                                      Icons.close,
+                                      size: 18,
+                                      color: SyncUpTheme.textSecondary,
+                                    ),
+                                    style: IconButton.styleFrom(
+                                      padding: const EdgeInsets.all(4),
+                                      minimumSize: const Size(28, 28),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    tooltip: 'Hide',
+                                  ),
+                                ],
+                              ],
                             ),
                         ],
                       ),

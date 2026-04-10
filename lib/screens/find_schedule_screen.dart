@@ -9,6 +9,7 @@ import '../models/availability_slot.dart';
 import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import '../widgets/find_schedule_slots_view.dart';
+import '../widgets/week_day_selector.dart';
 import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
 
@@ -19,11 +20,15 @@ class FindScheduleScreen extends StatefulWidget {
   State<FindScheduleScreen> createState() => _FindScheduleScreenState();
 }
 
-class _FindScheduleScreenState extends State<FindScheduleScreen> {
+class _FindScheduleScreenState extends State<FindScheduleScreen>
+    with SingleTickerProviderStateMixin {
   DateTime _weekStart = DateTime.now();
   int _slotDurationMinutes = 15;
   int? _expandedDayIndex;
   ScheduleOwner? _selectedOwner;
+  late final TabController _viewTabController;
+  late final ValueNotifier<int> _selectedDayIndex;
+  final Set<String> _bookedSlotKeys = <String>{};
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   String _searchQuery = '';
@@ -39,6 +44,8 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
   @override
   void initState() {
     super.initState();
+    _viewTabController = TabController(length: 2, vsync: this, initialIndex: 0);
+    _selectedDayIndex = ValueNotifier(DateTime.now().weekday % 7);
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onSearchFocusChanged);
   }
@@ -80,6 +87,8 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _viewTabController.dispose();
+    _selectedDayIndex.dispose();
     super.dispose();
   }
 
@@ -154,218 +163,45 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     return 'Past ${weeksAgo} week${weeksAgo == 1 ? '' : 's'}';
   }
 
-  void _showSlotConfirmation(BuildContext context, AvailabilitySlot slot) {
+  String _slotKey(ScheduleOwner owner, AvailabilitySlot slot) =>
+      '${owner.id}|${slot.id}|${slot.startTime.toIso8601String()}';
+
+  Future<bool> _showSlotConfirmation(
+    BuildContext context,
+    AvailabilitySlot slot, {
+    required ScheduleOwner owner,
+  }) {
     final dateStr = '${slot.startTime.day}/${slot.startTime.month}/${slot.startTime.year}';
     final timeStr =
         '${slot.startTime.hour.toString().padLeft(2, '0')}:${slot.startTime.minute.toString().padLeft(2, '0')}';
     final endStr =
         '${slot.startTime.add(Duration(minutes: slot.durationMinutes)).hour.toString().padLeft(2, '0')}:${slot.startTime.add(Duration(minutes: slot.durationMinutes)).minute.toString().padLeft(2, '0')}';
     final locationStr = slot.location ?? '—';
-    final noteController = TextEditingController();
 
-    showDialog<void>(
+    return showDialog<bool>(
       context: context,
       barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
-        ),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 360),
-          decoration: BoxDecoration(
-            color: SyncUpTheme.surface,
-            borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
-            boxShadow: SyncUpTheme.modalShadow,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(SyncUpTheme.space12),
-                decoration: BoxDecoration(
-                  color: SyncUpTheme.primaryLight.withValues(alpha: 0.5),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(SyncUpTheme.radiusSm),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: SyncUpTheme.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
-                      ),
-                      child: Icon(Icons.event_available, color: SyncUpTheme.primary, size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Book this slot',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: SyncUpTheme.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Confirm your booking',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: SyncUpTheme.textSecondary,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Content
-              Padding(
-                padding: const EdgeInsets.all(SyncUpTheme.space16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Time slot highlight
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: SyncUpTheme.background,
-                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                        border: Border.all(color: SyncUpTheme.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.schedule, size: 20, color: SyncUpTheme.primary),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '$timeStr – $endStr',
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        color: SyncUpTheme.textPrimary,
-                                      ),
-                                ),
-                                Text(
-                                  '$dateStr • ${slot.durationMinutes} min',
-                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                        color: SyncUpTheme.textSecondary,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Info rows
-                    _InfoChip(icon: Icons.title, label: slot.title),
-                    if (locationStr != '—') ...[
-                      const SizedBox(height: 8),
-                      _InfoChip(icon: Icons.location_on_outlined, label: locationStr),
-                    ],
-                    const SizedBox(height: 12),
-                    // With owner
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: SyncUpTheme.primaryLight.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: SyncUpTheme.primary,
-                            child: Text(
-                              _selectedOwner!.name.isNotEmpty ? _selectedOwner!.name[0].toUpperCase() : '?',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'With ${_selectedOwner!.name}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: SyncUpTheme.textPrimary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Note
-                    TextField(
-                      controller: noteController,
-                      decoration: InputDecoration(
-                        labelText: 'Note (optional)',
-                        hintText: 'Add a note for this booking...',
-                        prefixIcon: Icon(Icons.note, size: 20, color: SyncUpTheme.textSecondary),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-                        ),
-                      ),
-                      maxLines: 2,
-                      textInputAction: TextInputAction.done,
-                    ),
-                  ],
-                ),
-              ),
-              // Actions
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          final note = noteController.text.trim();
-                          Navigator.pop(ctx);
-                          final msg = note.isEmpty
-                              ? 'Booked ${slot.title} – $timeStr at $locationStr with ${_selectedOwner!.name}'
-                              : 'Booked ${slot.title} – $timeStr with ${_selectedOwner!.name}. Note: $note';
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(msg),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.check, size: 18),
-                        label: const Text('Confirm'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (ctx) => _BookSlotDialog(
+        slot: slot,
+        owner: owner,
+        dateStr: dateStr,
+        timeStr: timeStr,
+        endStr: endStr,
+        locationStr: locationStr,
+        onConfirmed: (note) {
+          final msg = note.isEmpty
+              ? 'Booked ${slot.title} – $timeStr at $locationStr with ${owner.name}'
+              : 'Booked ${slot.title} – $timeStr with ${owner.name}. Note: $note';
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
       ),
-    ).then((_) => noteController.dispose());
+    ).then((v) => v == true);
   }
 
   Color get _weekBadgeColor {
@@ -637,62 +473,230 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
           ),
           // Slots grid
           Expanded(
-            child: _selectedOwner == null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.person_search,
-                          size: 48,
-                          color: SyncUpTheme.primary.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Select a person to view their schedule',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: SyncUpTheme.textSecondary,
-                              ),
-                        ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TabBar(
+                      controller: _viewTabController,
+                      labelColor: SyncUpTheme.textPrimary,
+                      unselectedLabelColor: SyncUpTheme.textSecondary,
+                      indicatorColor: SyncUpTheme.primary,
+                      tabs: const [
+                        Tab(text: 'List'),
+                        Tab(text: 'Grid'),
                       ],
                     ),
-                  )
-                : Builder(
-                    builder: (context) {
-                      final slots = getAvailabilityForOwner(_selectedOwner!.id, _weekStart);
-                      if (slots.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: TabBarView(
+                    controller: _viewTabController,
+                    children: [
+                      // List (default): pick day → list of empty slots (filtered by selected owner when set).
+                      Builder(
+                        builder: (context) {
+                          final weekSunday = _weekSunday;
+                          final sundayDate = DateTime(
+                            weekSunday.year,
+                            weekSunday.month,
+                            weekSunday.day,
+                          );
+
+                          final owner = _selectedOwner;
+
+                          String fmtTime(DateTime dt) =>
+                              '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+                          return Column(
                             children: [
-                              Icon(
-                                Icons.event_busy,
-                                size: 48,
-                                color: SyncUpTheme.textSecondary.withValues(alpha: 0.6),
+                              WeekDaySelector(
+                                weekStart: _weekStart,
+                                selectedIndex: _selectedDayIndex,
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No availability this week',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: SyncUpTheme.textSecondary,
-                                    ),
+                              const Divider(height: 1),
+                              Expanded(
+                                child: owner == null
+                                    ? Center(
+                                        child: Text(
+                                          'Select a person to view available slots',
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                color: SyncUpTheme.textSecondary,
+                                              ),
+                                        ),
+                                      )
+                                    : ValueListenableBuilder<int>(
+                                        valueListenable: _selectedDayIndex,
+                                        builder: (context, dayIdx, _) {
+                                          final dayDate = sundayDate.add(Duration(days: dayIdx));
+                                          final slots = getAvailabilityForOwner(owner.id, _weekStart)
+                                              .where((s) {
+                                                final d = s.startTime;
+                                                return d.year == dayDate.year &&
+                                                    d.month == dayDate.month &&
+                                                    d.day == dayDate.day;
+                                              })
+                                              .where((s) => !_bookedSlotKeys.contains(_slotKey(owner, s)))
+                                              .toList()
+                                            ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+                                          if (slots.isEmpty) {
+                                            return Center(
+                                              child: Text(
+                                                'No available slots for ${owner.name} this day',
+                                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                      color: SyncUpTheme.textSecondary,
+                                                    ),
+                                              ),
+                                            );
+                                          }
+
+                                          return ListView.separated(
+                                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                                            itemCount: slots.length,
+                                            separatorBuilder: (_, __) => const SizedBox(height: 6),
+                                            itemBuilder: (context, i) {
+                                              final s = slots[i];
+                                              final end = s.startTime.add(
+                                                Duration(minutes: s.durationMinutes),
+                                              );
+                                              final timeLabel =
+                                                  '${fmtTime(s.startTime)} – ${fmtTime(end)}';
+                                              final subtitleParts = <String>[
+                                                if (s.title.trim().isNotEmpty) s.title.trim(),
+                                                if ((s.location ?? '').trim().isNotEmpty)
+                                                  (s.location!).trim(),
+                                              ];
+
+                                              return Material(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(6),
+                                                child: ListTile(
+                                                  contentPadding: const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                                  title: Text(
+                                                    timeLabel,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .titleSmall
+                                                        ?.copyWith(
+                                                          fontWeight: FontWeight.w800,
+                                                          color: SyncUpTheme.textPrimary,
+                                                        ),
+                                                  ),
+                                                  subtitle: subtitleParts.isEmpty
+                                                      ? null
+                                                      : Text(
+                                                          subtitleParts.join(' · '),
+                                                          style: Theme.of(context)
+                                                              .textTheme
+                                                              .bodySmall
+                                                              ?.copyWith(
+                                                                color: SyncUpTheme.textSecondary,
+                                                              ),
+                                                        ),
+                                                  trailing: const Icon(Icons.chevron_right),
+                                                  onTap: () async {
+                                                    final ok = await _showSlotConfirmation(
+                                                      context,
+                                                      s,
+                                                      owner: owner,
+                                                    );
+                                                    if (!mounted || !ok) return;
+                                                    setState(() => _bookedSlotKeys.add(_slotKey(owner, s)));
+                                                  },
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
                               ),
                             ],
-                          ),
-                        );
-                      }
-                      return FindScheduleSlotsView(
-                        weekStart: _weekStart,
-                        slotDurationMinutes: _slotDurationMinutes,
-                        availabilitySlots: slots,
-                        expandedDayIndex: _expandedDayIndex,
-                        onDayTap: (i) => setState(() => _expandedDayIndex = i),
-                        onBack: () => setState(() => _expandedDayIndex = null),
-                        onSlotSelected: (slot) => _showSlotConfirmation(context, slot),
-                        onSlotDurationChanged: (v) => setState(() => _slotDurationMinutes = v),
-                      );
-                    },
+                          );
+                        },
+                      ),
+
+                      // Grid
+                      _selectedOwner == null
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.person_search,
+                                    size: 48,
+                                    color: SyncUpTheme.primary.withValues(alpha: 0.5),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Select a person to view their schedule',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: SyncUpTheme.textSecondary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Builder(
+                              builder: (context) {
+                                final owner = _selectedOwner!;
+                                final slots = getAvailabilityForOwner(owner.id, _weekStart);
+                                final visibleSlots = slots
+                                    .where((s) => !_bookedSlotKeys.contains(_slotKey(owner, s)))
+                                    .toList();
+                                if (visibleSlots.isEmpty) {
+                                  return Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.event_busy,
+                                          size: 48,
+                                          color: SyncUpTheme.textSecondary.withValues(alpha: 0.6),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'No availability this week',
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                color: SyncUpTheme.textSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return FindScheduleSlotsView(
+                                  weekStart: _weekStart,
+                                  slotDurationMinutes: _slotDurationMinutes,
+                                  availabilitySlots: visibleSlots,
+                                  expandedDayIndex: _expandedDayIndex,
+                                  onDayTap: (i) => setState(() => _expandedDayIndex = i),
+                                  onBack: () => setState(() => _expandedDayIndex = null),
+                                  onSlotSelected: (slot) async {
+                                    final ok = await _showSlotConfirmation(
+                                      context,
+                                      slot,
+                                      owner: owner,
+                                    );
+                                    if (!mounted || !ok) return;
+                                    setState(() => _bookedSlotKeys.add(_slotKey(owner, slot)));
+                                  },
+                                  onSlotDurationChanged: (v) =>
+                                      setState(() => _slotDurationMinutes = v),
+                                );
+                              },
+                            ),
+                    ],
                   ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -722,6 +726,241 @@ class _InfoChip extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _BookSlotDialog extends StatefulWidget {
+  const _BookSlotDialog({
+    required this.slot,
+    required this.owner,
+    required this.dateStr,
+    required this.timeStr,
+    required this.endStr,
+    required this.locationStr,
+    required this.onConfirmed,
+  });
+
+  final AvailabilitySlot slot;
+  final ScheduleOwner owner;
+  final String dateStr;
+  final String timeStr;
+  final String endStr;
+  final String locationStr;
+  final void Function(String note) onConfirmed;
+
+  @override
+  State<_BookSlotDialog> createState() => _BookSlotDialogState();
+}
+
+class _BookSlotDialogState extends State<_BookSlotDialog> {
+  late final TextEditingController _noteController;
+
+  @override
+  void initState() {
+    super.initState();
+    _noteController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final slot = widget.slot;
+    final owner = widget.owner;
+    final locationStr = widget.locationStr;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 360),
+        decoration: BoxDecoration(
+          color: SyncUpTheme.surface,
+          borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
+          boxShadow: SyncUpTheme.modalShadow,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(SyncUpTheme.space12),
+              decoration: BoxDecoration(
+                color: SyncUpTheme.primaryLight.withValues(alpha: 0.5),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(SyncUpTheme.radiusSm),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: SyncUpTheme.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
+                    ),
+                    child: Icon(Icons.event_available, color: SyncUpTheme.primary, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Book this slot',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: SyncUpTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Confirm your booking',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: SyncUpTheme.textSecondary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(SyncUpTheme.space16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: SyncUpTheme.background,
+                      borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+                      border: Border.all(color: SyncUpTheme.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule, size: 20, color: SyncUpTheme.primary),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${widget.timeStr} – ${widget.endStr}',
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: SyncUpTheme.textPrimary,
+                                    ),
+                              ),
+                              Text(
+                                '${widget.dateStr} • ${slot.durationMinutes} min',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: SyncUpTheme.textSecondary,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoChip(icon: Icons.title, label: slot.title),
+                  if (locationStr != '—') ...[
+                    const SizedBox(height: 8),
+                    _InfoChip(icon: Icons.location_on_outlined, label: locationStr),
+                  ],
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: SyncUpTheme.primaryLight.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: SyncUpTheme.primary,
+                          child: Text(
+                            owner.name.isNotEmpty ? owner.name[0].toUpperCase() : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'With ${owner.name}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: SyncUpTheme.textPrimary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _noteController,
+                    decoration: InputDecoration(
+                      labelText: 'Note (optional)',
+                      hintText: 'Add a note for this booking...',
+                      prefixIcon: Icon(Icons.note, size: 20, color: SyncUpTheme.textSecondary),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
+                      ),
+                    ),
+                    maxLines: 2,
+                    textInputAction: TextInputAction.done,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        final note = _noteController.text.trim();
+                        widget.onConfirmed(note);
+                        Navigator.pop(context, true);
+                      },
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text('Confirm'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

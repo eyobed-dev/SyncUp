@@ -124,38 +124,26 @@
     },
     {
       "id": "stu-25",
-      "displayName": "Ondřej Vlach"
-    },
-    {
-      "id": "stu-26",
-      "displayName": "Tereza Burešová"
-    },
-    {
-      "id": "stu-27",
-      "displayName": "Filip Kopecký"
-    },
-    {
-      "id": "stu-28",
-      "displayName": "Simona Tichá"
-    },
-    {
-      "id": "stu-29",
       "displayName": "Radek Štěpánek"
     },
     {
-      "id": "stu-30",
+      "id": "stu-26",
       "displayName": "Veronika Kolářová"
     },
     {
-      "id": "stu-31",
+      "id": "stu-27",
       "displayName": "Jana Novotná"
     },
     {
-      "id": "stu-32",
+      "id": "stu-28",
+      "displayName": "Filip Kopecký"
+    },
+    {
+      "id": "stu-29",
       "displayName": "Alžběta Horáková"
     },
     {
-      "id": "stu-33",
+      "id": "stu-30",
       "displayName": "Ondřej Kříž"
     }
   ],
@@ -486,54 +474,6 @@
       "studentId": "stu-24"
     },
     {
-      "id": "th1",
-      "participantName": "Ondřej Vlach",
-      "daysAfterMonday": 3,
-      "startHour": 10,
-      "startMinute": 30,
-      "durationMinutes": 30,
-      "discipline": "BSc",
-      "topic": "Mentoring",
-      "location": "Room B109",
-      "studentId": "stu-25"
-    },
-    {
-      "id": "th2",
-      "participantName": "Tereza Burešová",
-      "daysAfterMonday": 3,
-      "startHour": 11,
-      "startMinute": 0,
-      "durationMinutes": 30,
-      "discipline": "MIT-EN",
-      "topic": "Mentoring",
-      "location": "Office 204",
-      "studentId": "stu-26"
-    },
-    {
-      "id": "th3",
-      "participantName": "Filip Kopecký",
-      "daysAfterMonday": 3,
-      "startHour": 11,
-      "startMinute": 30,
-      "durationMinutes": 30,
-      "discipline": "BSc",
-      "topic": "Mentoring",
-      "location": "Lab B322",
-      "studentId": "stu-27"
-    },
-    {
-      "id": "t1",
-      "participantName": "Simona Tichá",
-      "daysAfterMonday": 3,
-      "startHour": 15,
-      "startMinute": 30,
-      "durationMinutes": 15,
-      "discipline": "BSc",
-      "topic": "Mentoring",
-      "location": "Office 204",
-      "studentId": "stu-28"
-    },
-    {
       "id": "t2",
       "participantName": "Radek Štěpánek",
       "daysAfterMonday": 3,
@@ -543,7 +483,7 @@
       "discipline": "MIT-EN",
       "topic": "Mentoring",
       "location": "Room A215",
-      "studentId": "stu-29"
+      "studentId": "stu-25"
     },
     {
       "id": "t3",
@@ -555,7 +495,7 @@
       "discipline": "BSc",
       "topic": "Mentoring",
       "location": "Room B109",
-      "studentId": "stu-30"
+      "studentId": "stu-26"
     },
     {
       "id": "10",
@@ -567,7 +507,7 @@
       "discipline": "BSc",
       "topic": "Mentoring",
       "location": "Room A215",
-      "studentId": "stu-31"
+      "studentId": "stu-27"
     },
     {
       "id": "f2",
@@ -579,7 +519,7 @@
       "discipline": "BSc",
       "topic": "Mentoring",
       "location": "Office 204",
-      "studentId": "stu-30"
+      "studentId": "stu-26"
     },
     {
       "id": "f3",
@@ -591,7 +531,7 @@
       "discipline": "BSc",
       "topic": "Mentoring",
       "location": "Room B109",
-      "studentId": "stu-27"
+      "studentId": "stu-28"
     },
     {
       "id": "11",
@@ -603,7 +543,7 @@
       "discipline": null,
       "topic": "Mentoring",
       "location": "Studio A, Brno Dance School",
-      "studentId": "stu-32"
+      "studentId": "stu-29"
     },
     {
       "id": "12",
@@ -615,7 +555,7 @@
       "discipline": "MIT-EN",
       "topic": "Mentoring",
       "location": "Zoom",
-      "studentId": "stu-33"
+      "studentId": "stu-30"
     }
   ],
   "sessions": [
@@ -700,12 +640,25 @@
       "id": "session-stu-8-past-1",
       "studentId": "stu-8",
       "participantName": "Tereza Nováková",
-      "startTime": "2026-02-12T12:47:00.000",
+      "startTime": "2026-02-12T14:00:00.000",
       "durationMinutes": 90,
       "discipline": "BSc",
       "topic": "Mentoring",
       "location": "Studio A, Brno Dance School",
-      "minutes": "Brief prior session with Tereza Nováková: check-in and quick plan for Mentoring."
+      "minutes": "Reviewed progress with Tereza Nováková on Mentoring. Walked through recent work and clarified expectations.",
+      "deliberations": "Agreed to continue with the current plan; reconvene if new blockers appear before the next slot."
+    },
+    {
+      "id": "session-stu-8-past-2",
+      "studentId": "stu-8",
+      "participantName": "Tereza Nováková",
+      "startTime": "2026-02-01T12:53:00.000",
+      "durationMinutes": 90,
+      "discipline": "BSc",
+      "topic": "Mentoring",
+      "location": "Studio A, Brno Dance School",
+      "minutes": "Discussed blockers and next milestones for Mentoring. Agreed on readings and practice focus.",
+      "deliberations": "Confirmed deadline alignment for Mentoring; student to send one-page summary by the agreed date."
     },
     {
       "id": "session-stu-9-past-1",
@@ -730,6 +683,18 @@
       "location": "Room C101",
       "minutes": "Discussed blockers and next milestones for Mentoring. Agreed on readings and practice focus.",
       "deliberations": "Confirmed deadline alignment for Mentoring; student to send one-page summary by the agreed date."
+    },
+    {
+      "id": "session-stu-9-past-3",
+      "studentId": "stu-9",
+      "participantName": "Filip Černý",
+      "startTime": "2026-01-19T11:46:00.000",
+      "durationMinutes": 60,
+      "discipline": "MIT-EN",
+      "topic": "Mentoring",
+      "location": "Room C101",
+      "minutes": "Follow-up on action items from prior week. Student summarized understanding of key concepts.",
+      "deliberations": "Decided to prioritize exercises A–C; optional stretch items deferred to the following week."
     },
     {
       "id": "session-stu-10-past-1",
@@ -766,6 +731,18 @@
       "location": "Office 312",
       "minutes": "Follow-up on action items from prior week. Student summarized understanding of key concepts.",
       "deliberations": "Decided to prioritize exercises A–C; optional stretch items deferred to the following week."
+    },
+    {
+      "id": "session-stu-10-past-4",
+      "studentId": "stu-10",
+      "participantName": "Barbora Malá",
+      "startTime": "2026-01-06T10:39:00.000",
+      "durationMinutes": 45,
+      "discipline": "BSc",
+      "topic": "Mentoring",
+      "location": "Office 312",
+      "minutes": "Office-style session: answered questions on Mentoring and outlined the path to the next checkpoint.",
+      "deliberations": "Recorded consent to share brief status with the instructor of record if grades are affected."
     },
     {
       "id": "session-stu-11-past-1",
@@ -816,6 +793,18 @@
       "deliberations": "Recorded consent to share brief status with the instructor of record if grades are affected."
     },
     {
+      "id": "session-stu-11-past-5",
+      "studentId": "stu-11",
+      "participantName": "David Veselý",
+      "startTime": "2025-12-24T09:32:00.000",
+      "durationMinutes": 30,
+      "discipline": "MIT-EN",
+      "topic": "Mentoring",
+      "location": "Room A215",
+      "minutes": "Checked preparation for upcoming work in Mentoring; adjusted pace based on student feedback.",
+      "deliberations": "Set expectation that David Veselý brings two concrete questions to the next session on Mentoring."
+    },
+    {
       "id": "session-stu-12-past-1",
       "studentId": "stu-12",
       "participantName": "Petra Holubová",
@@ -840,42 +829,6 @@
       "deliberations": "Confirmed deadline alignment for Mentoring; student to send one-page summary by the agreed date."
     },
     {
-      "id": "session-stu-12-past-3",
-      "studentId": "stu-12",
-      "participantName": "Petra Holubová",
-      "startTime": "2026-01-13T11:46:00.000",
-      "durationMinutes": 60,
-      "discipline": "BSc",
-      "topic": "Mentoring",
-      "location": "Room B109",
-      "minutes": "Follow-up on action items from prior week. Student summarized understanding of key concepts.",
-      "deliberations": "Decided to prioritize exercises A–C; optional stretch items deferred to the following week."
-    },
-    {
-      "id": "session-stu-12-past-4",
-      "studentId": "stu-12",
-      "participantName": "Petra Holubová",
-      "startTime": "2026-01-02T10:39:00.000",
-      "durationMinutes": 60,
-      "discipline": "BSc",
-      "topic": "Mentoring",
-      "location": "Room B109",
-      "minutes": "Office-style session: answered questions on Mentoring and outlined the path to the next checkpoint.",
-      "deliberations": "Recorded consent to share brief status with the instructor of record if grades are affected."
-    },
-    {
-      "id": "session-stu-12-past-5",
-      "studentId": "stu-12",
-      "participantName": "Petra Holubová",
-      "startTime": "2025-12-22T09:32:00.000",
-      "durationMinutes": 60,
-      "discipline": "BSc",
-      "topic": "Mentoring",
-      "location": "Room B109",
-      "minutes": "Checked preparation for upcoming work in Mentoring; adjusted pace based on student feedback.",
-      "deliberations": "Set expectation that Petra Holubová brings two concrete questions to the next session on Mentoring."
-    },
-    {
       "id": "session-stu-13-past-1",
       "studentId": "stu-13",
       "participantName": "Jan Pokorný",
@@ -898,6 +851,18 @@
       "location": "Office 204",
       "minutes": "Discussed blockers and next milestones for Mentoring. Agreed on readings and practice focus.",
       "deliberations": "Confirmed deadline alignment for Mentoring; student to send one-page summary by the agreed date."
+    },
+    {
+      "id": "session-stu-13-past-3",
+      "studentId": "stu-13",
+      "participantName": "Jan Pokorný",
+      "startTime": "2026-01-11T11:46:00.000",
+      "durationMinutes": 15,
+      "discipline": "MIT-EN",
+      "topic": "Mentoring",
+      "location": "Office 204",
+      "minutes": "Follow-up on action items from prior week. Student summarized understanding of key concepts.",
+      "deliberations": "Decided to prioritize exercises A–C; optional stretch items deferred to the following week."
     },
     {
       "id": "session-stu-14-past-1",
@@ -934,6 +899,18 @@
       "location": "Room B109",
       "minutes": "Follow-up on action items from prior week. Student summarized understanding of key concepts.",
       "deliberations": "Decided to prioritize exercises A–C; optional stretch items deferred to the following week."
+    },
+    {
+      "id": "session-stu-14-past-4",
+      "studentId": "stu-14",
+      "participantName": "Štěpán Dvořák",
+      "startTime": "2025-12-29T10:39:00.000",
+      "durationMinutes": 30,
+      "discipline": "MIT-EN",
+      "topic": "Mentoring",
+      "location": "Room B109",
+      "minutes": "Office-style session: answered questions on Mentoring and outlined the path to the next checkpoint.",
+      "deliberations": "Recorded consent to share brief status with the instructor of record if grades are affected."
     },
     {
       "id": "session-stu-15-past-1",
@@ -984,88 +961,16 @@
       "deliberations": "Recorded consent to share brief status with the instructor of record if grades are affected."
     },
     {
-      "id": "session-stu-16-past-1",
-      "studentId": "stu-16",
-      "participantName": "Adam Vávra",
-      "startTime": "2026-01-27T14:00:00.000",
+      "id": "session-stu-15-past-5",
+      "studentId": "stu-15",
+      "participantName": "Michaela Beránková",
+      "startTime": "2025-12-16T09:32:00.000",
       "durationMinutes": 15,
-      "discipline": "MIT-EN",
+      "discipline": "BSc",
       "topic": "Mentoring",
-      "location": "Office 204",
-      "minutes": "Reviewed progress with Adam Vávra on Mentoring. Walked through recent work and clarified expectations.",
-      "deliberations": "Agreed to continue with the current plan; reconvene if new blockers appear before the next slot."
-    },
-    {
-      "id": "session-stu-16-past-2",
-      "studentId": "stu-16",
-      "participantName": "Adam Vávra",
-      "startTime": "2026-01-16T12:53:00.000",
-      "durationMinutes": 15,
-      "discipline": "MIT-EN",
-      "topic": "Mentoring",
-      "location": "Office 204",
-      "minutes": "Discussed blockers and next milestones for Mentoring. Agreed on readings and practice focus.",
-      "deliberations": "Confirmed deadline alignment for Mentoring; student to send one-page summary by the agreed date."
-    },
-    {
-      "id": "session-stu-16-past-3",
-      "studentId": "stu-16",
-      "participantName": "Adam Vávra",
-      "startTime": "2026-01-05T11:46:00.000",
-      "durationMinutes": 15,
-      "discipline": "MIT-EN",
-      "topic": "Mentoring",
-      "location": "Office 204",
-      "minutes": "Follow-up on action items from prior week. Student summarized understanding of key concepts.",
-      "deliberations": "Decided to prioritize exercises A–C; optional stretch items deferred to the following week."
-    },
-    {
-      "id": "session-stu-16-past-4",
-      "studentId": "stu-16",
-      "participantName": "Adam Vávra",
-      "startTime": "2025-12-25T10:39:00.000",
-      "durationMinutes": 15,
-      "discipline": "MIT-EN",
-      "topic": "Mentoring",
-      "location": "Office 204",
-      "minutes": "Office-style session: answered questions on Mentoring and outlined the path to the next checkpoint.",
-      "deliberations": "Recorded consent to share brief status with the instructor of record if grades are affected."
-    },
-    {
-      "id": "session-stu-16-past-5",
-      "studentId": "stu-16",
-      "participantName": "Adam Vávra",
-      "startTime": "2025-12-14T09:32:00.000",
-      "durationMinutes": 15,
-      "discipline": "MIT-EN",
-      "topic": "Mentoring",
-      "location": "Office 204",
+      "location": "Room B109",
       "minutes": "Checked preparation for upcoming work in Mentoring; adjusted pace based on student feedback.",
-      "deliberations": "Set expectation that Adam Vávra brings two concrete questions to the next session on Mentoring."
-    },
-    {
-      "id": "session-stu-17-past-1",
-      "studentId": "stu-17",
-      "participantName": "Eva Sedláčková",
-      "startTime": "2026-01-25T14:00:00.000",
-      "durationMinutes": 15,
-      "discipline": "BSc",
-      "topic": "Mentoring",
-      "location": "Lab B322",
-      "minutes": "Reviewed progress with Eva Sedláčková on Mentoring. Walked through recent work and clarified expectations.",
-      "deliberations": "Agreed to continue with the current plan; reconvene if new blockers appear before the next slot."
-    },
-    {
-      "id": "session-stu-17-past-2",
-      "studentId": "stu-17",
-      "participantName": "Eva Sedláčková",
-      "startTime": "2026-01-14T12:53:00.000",
-      "durationMinutes": 15,
-      "discipline": "BSc",
-      "topic": "Mentoring",
-      "location": "Lab B322",
-      "minutes": "Discussed blockers and next milestones for Mentoring. Agreed on readings and practice focus.",
-      "deliberations": "Confirmed deadline alignment for Mentoring; student to send one-page summary by the agreed date."
+      "deliberations": "Set expectation that Michaela Beránková brings two concrete questions to the next session on Mentoring."
     }
   ],
   "availabilityByOwnerId": {
@@ -1195,6 +1100,42 @@
         "durationMinutes": 30,
         "title": "Mentoring",
         "location": "Room B109"
+      },
+      {
+        "id": "p1-th1-5",
+        "daysAfterMonday": 3,
+        "startHour": 8,
+        "startMinute": 0,
+        "durationMinutes": 15,
+        "title": "Mentoring",
+        "location": "Office 204"
+      },
+      {
+        "id": "p1-th1-6",
+        "daysAfterMonday": 3,
+        "startHour": 10,
+        "startMinute": 0,
+        "durationMinutes": 30,
+        "title": "Mentoring",
+        "location": "Room B109"
+      },
+      {
+        "id": "p1-th1-7",
+        "daysAfterMonday": 3,
+        "startHour": 12,
+        "startMinute": 0,
+        "durationMinutes": 15,
+        "title": "Mentoring",
+        "location": "Zoom"
+      },
+      {
+        "id": "p1-th1-8",
+        "daysAfterMonday": 3,
+        "startHour": 16,
+        "startMinute": 0,
+        "durationMinutes": 15,
+        "title": "Mentoring",
+        "location": "Office 204"
       },
       {
         "id": "p1-f1-1",

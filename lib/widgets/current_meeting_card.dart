@@ -37,6 +37,8 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
   late Animation<double> _bellAnimation;
   final ValueNotifier<int> _tickNotifier = ValueNotifier(0);
   Timer? _tickTimer;
+  _MeetingPunctuality? _selectedPunctuality;
+  bool _isCollapsing = false;
 
   @override
   void initState() {
@@ -127,6 +129,35 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
 
     final borderColor =
         _aboutToEnd ? const Color(0xFFDC2626) : widget.accentColor;
+
+    Future<void> selectAndCollapse(_MeetingPunctuality p) async {
+      if (_isCollapsing) return;
+      setState(() {
+        _selectedPunctuality = p;
+        _isCollapsing = true;
+      });
+
+      switch (p) {
+        case _MeetingPunctuality.ontime:
+          widget.onOntime?.call();
+          break;
+        case _MeetingPunctuality.late:
+          widget.onLate?.call();
+          break;
+        case _MeetingPunctuality.missed:
+          widget.onMissed?.call();
+          break;
+      }
+
+      // Briefly show the selected color, then collapse like the X button.
+      await Future<void>.delayed(const Duration(milliseconds: 140));
+      if (!mounted) return;
+      widget.onDismiss?.call();
+    }
+
+    const green = Color(0xFF16A34A);
+    const yellow = Color(0xFFF59E0B);
+    const red = Color(0xFFDC2626);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
@@ -510,12 +541,29 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: widget.onMissed,
+                          onPressed: _isCollapsing
+                              ? null
+                              : () => selectAndCollapse(
+                                    _MeetingPunctuality.missed,
+                                  ),
                           icon: const Icon(Icons.close, size: 16),
                           label: const Text('Missed'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFDC2626),
-                            side: const BorderSide(color: Color(0xFFDC2626)),
+                            backgroundColor:
+                                _selectedPunctuality == _MeetingPunctuality.missed
+                                    ? red
+                                    : Colors.transparent,
+                            foregroundColor:
+                                _selectedPunctuality == _MeetingPunctuality.missed
+                                    ? Colors.white
+                                    : red,
+                            side: BorderSide(
+                              color: red,
+                              width: _selectedPunctuality ==
+                                      _MeetingPunctuality.missed
+                                  ? 0
+                                  : 1,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
@@ -526,12 +574,29 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                       const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: widget.onLate,
+                          onPressed: _isCollapsing
+                              ? null
+                              : () => selectAndCollapse(
+                                    _MeetingPunctuality.late,
+                                  ),
                           icon: const Icon(Icons.schedule, size: 16),
                           label: const Text('Late'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFF59E0B),
-                            side: const BorderSide(color: Color(0xFFF59E0B)),
+                            backgroundColor:
+                                _selectedPunctuality == _MeetingPunctuality.late
+                                    ? yellow
+                                    : Colors.transparent,
+                            foregroundColor:
+                                _selectedPunctuality == _MeetingPunctuality.late
+                                    ? Colors.white
+                                    : yellow,
+                            side: BorderSide(
+                              color: yellow,
+                              width:
+                                  _selectedPunctuality == _MeetingPunctuality.late
+                                      ? 0
+                                      : 1,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
@@ -542,11 +607,18 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                       const SizedBox(width: 8),
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: widget.onOntime,
+                          onPressed: _isCollapsing
+                              ? null
+                              : () => selectAndCollapse(
+                                    _MeetingPunctuality.ontime,
+                                  ),
                           icon: const Icon(Icons.check, size: 16),
                           label: const Text('Ontime'),
                           style: FilledButton.styleFrom(
-                            backgroundColor: SyncUpTheme.primary,
+                            backgroundColor:
+                                _selectedPunctuality == _MeetingPunctuality.ontime
+                                    ? green
+                                    : SyncUpTheme.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             shape: RoundedRectangleBorder(
@@ -566,6 +638,8 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
     );
   }
 }
+
+enum _MeetingPunctuality { ontime, late, missed }
 
 /// Draws a subtle shimmer sweep across the card.
 class _ShimmerPainter extends CustomPainter {
