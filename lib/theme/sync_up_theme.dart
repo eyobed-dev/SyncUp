@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Modern compact design system for SyncUp.
-/// Bold indigo accent, tight spacing, striking visual hierarchy.
+/// Blue-teal accents, tight spacing, clear visual hierarchy.
 class SyncUpTheme {
   SyncUpTheme._();
 
   // ─── Colors ─────────────────────────────────────────────────────────────
-  static const Color primary = Color(0xFF6366F1);       // Electric indigo
-  static const Color primaryDark = Color(0xFF4F46E5);
-  static const Color primaryLight = Color(0xFFE0E7FF);
-  static const Color accent = Color(0xFF818CF8);         // Lighter indigo
+  static const Color primary = Color(0xFF0C7F89);       // Darker blue-teal
+  static const Color primaryDark = Color(0xFF0A5F69);
+  static const Color primaryLight = Color(0xFFCEEDEF);
+  static const Color accent = Color(0xFF0B647A);         // Darker deep teal-blue
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color surface = Color(0xFFFFFFFF);
@@ -21,8 +21,8 @@ class SyncUpTheme {
   // Legacy aliases for widget compatibility
   static const Color zenGreen = primary;
   static const Color zenGreenLight = primaryLight;
-  static const Color peach = Color(0xFFF5F3FF);  // Soft violet tint
-  static const Color peachLight = Color(0xFFFAF8FF);
+  static const Color peach = Color(0xFFE6F7FA);  // Soft teal tint
+  static const Color peachLight = Color(0xFFF2FCFD);
 
   // ─── Compact spacing (6px grid) ──────────────────────────────────────────
   static const double space2 = 2;
@@ -37,12 +37,12 @@ class SyncUpTheme {
   static const double space32 = 32;
 
   // ─── Border radius (compact) ─────────────────────────────────────────────
-  static const double radiusXs = 6;
-  static const double radiusSm = 8;
-  static const double radiusMd = 10;
-  static const double radiusLg = 12;
-  static const double radiusXl = 16;
-  static const double radiusPill = 999;
+  static const double radiusXs = 4;
+  static const double radiusSm = 6;
+  static const double radiusMd = 8;
+  static const double radiusLg = 10;
+  static const double radiusXl = 12;
+  static const double radiusPill = 12;
 
   // ─── Shadows ────────────────────────────────────────────────────────────
   static List<BoxShadow> get cardShadow => [
@@ -167,7 +167,7 @@ class SyncUpTheme {
         onSecondary: Colors.white,
         surface: surface,
         onSurface: textPrimary,
-        surfaceContainerHighest: const Color(0xFFF1F5F9),
+        surfaceContainerHighest: const Color(0xFFEAF7F9),
         outline: border,
       ),
       scaffoldBackgroundColor: background,

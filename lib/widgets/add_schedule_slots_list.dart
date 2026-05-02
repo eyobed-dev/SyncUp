@@ -7,12 +7,12 @@ import 'week_day_selector.dart';
 
 /// Calendar-style list of added availability slots (like main screen Calendar tab).
 const List<Color> _cardAccentColors = [
-  Color(0xFF6366F1),
-  Color(0xFF8B5CF6),
-  Color(0xFF3B82F6),
-  Color(0xFF10B981),
-  Color(0xFFEC4899),
-  Color(0xFFF59E0B),
+  Color(0xFF0F9FA8),
+  Color(0xFF0E7490),
+  Color(0xFF0891B2),
+  Color(0xFF14B8A6),
+  Color(0xFF06B6D4),
+  Color(0xFF22D3EE),
 ];
 
 class AddScheduleSlotsList extends StatelessWidget {
@@ -53,7 +53,7 @@ class AddScheduleSlotsList extends StatelessWidget {
     final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
     final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
     if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
-    if (displayedSunday.isAfter(thisWeekSunday)) return Colors.blue.shade700;
+    if (displayedSunday.isAfter(thisWeekSunday)) return const Color(0xFF0E7490);
     return SyncUpTheme.textSecondary;
   }
 

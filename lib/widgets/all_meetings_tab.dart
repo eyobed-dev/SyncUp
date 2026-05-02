@@ -71,7 +71,8 @@ class AllMeetingsTab extends StatefulWidget {
   final List<Meeting> meetings;
   final ValueNotifier<int> selectedDayIndex;
   final ValueListenable<DateTime>? liveClock;
-  /// `true` = bottom "Add meeting" (forward from last end).
+  final Future<void> Function(Meeting meeting, String status)? onMeetingStatus;
+  /// `true` = bottom "Add slot" (forward from last end).
   final void Function(bool addFromBottom) onAddSlot;
   final void Function(Set<String> meetingIds, String apologyMessage) onBulkPostpone;
   /// Remove newly added (empty) slots by id (ids start with `extra-`).
@@ -85,6 +86,7 @@ class AllMeetingsTab extends StatefulWidget {
     required this.onAddSlot,
     required this.onBulkPostpone,
     required this.onRemoveNewSlots,
+    this.onMeetingStatus,
     this.liveClock,
   });
 
@@ -331,7 +333,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
       child: FilledButton.icon(
         onPressed: () => widget.onAddSlot(fromBottom),
         icon: const Icon(Icons.add_circle_outline, size: 20),
-        label: const Text('Add meeting'),
+        label: const Text('Add slot'),
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(
@@ -431,10 +433,9 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                 builder: (context, dayIndex, _) {
                   final meetings = _meetingsForDayIndex(dayIndex);
                   final available = meetings.where(_isEmptySlot).length;
-                  final booked = meetings.length - available;
-                  final label = '$available/$booked';
+                  final label = '$available';
                   return Tooltip(
-                    message: '$available available · $booked booked',
+                    message: '$available available',
                     child: Container(
                       constraints: const BoxConstraints(minWidth: 44),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -494,7 +495,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusPill),
                         border: Border.all(color: SyncUpTheme.border),
                       ),
                       child: FittedBox(
@@ -647,6 +648,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                           meeting: m,
                           colorIndex: i,
                           currentMeeting: current,
+                          onMeetingStatus: widget.onMeetingStatus,
                           omitTopicInListTitle: omitTopicInList,
                           leading: _manageOpenSlots
                               ? Checkbox(
@@ -690,12 +692,24 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
             },
           ),
         ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(outerPadding, 8, outerPadding, outerPadding),
-            child: _addSlotButton(context, fromBottom: true),
-          ),
+        ValueListenableBuilder<int>(
+          valueListenable: widget.selectedDayIndex,
+          builder: (context, dayIndex, _) {
+            final showBottomAdd = _meetingsForDayIndex(dayIndex).isNotEmpty;
+            if (!showBottomAdd) return const SizedBox.shrink();
+            return SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  outerPadding,
+                  8,
+                  outerPadding,
+                  outerPadding,
+                ),
+                child: _addSlotButton(context, fromBottom: true),
+              ),
+            );
+          },
         ),
       ],
     );

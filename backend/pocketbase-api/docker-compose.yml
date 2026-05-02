@@ -1,0 +1,33 @@
+services:
+  pocketbase:
+    build:
+      context: ./pocketbase
+    container_name: syncup-pocketbase
+    environment:
+      POCKETBASE_SUPERUSER_EMAIL: ${POCKETBASE_SUPERUSER_EMAIL}
+      POCKETBASE_SUPERUSER_PASSWORD: ${POCKETBASE_SUPERUSER_PASSWORD}
+    ports:
+      - "8090:8090"
+    volumes:
+      - pocketbase_data:/pb_data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ../..
+      dockerfile: backend/pocketbase-api/Dockerfile
+    container_name: syncup-api
+    environment:
+      PORT: 8080
+      POCKETBASE_URL: http://pocketbase:8090
+      POCKETBASE_SUPERUSER_EMAIL: ${POCKETBASE_SUPERUSER_EMAIL}
+      POCKETBASE_SUPERUSER_PASSWORD: ${POCKETBASE_SUPERUSER_PASSWORD}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - pocketbase
+    restart: unless-stopped
+
+volumes:
+  pocketbase_data:
+

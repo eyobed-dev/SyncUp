@@ -8,18 +8,18 @@ import '../theme/sync_up_theme.dart';
 class CurrentMeetingCard extends StatefulWidget {
   final Meeting meeting;
   final Color accentColor;
-  final VoidCallback? onMissed;
-  final VoidCallback? onOntime;
-  final VoidCallback? onLate;
+  final Future<void> Function()? onLate;
+  final Future<void> Function()? onPostponed;
+  final Future<void> Function()? onCancelled;
   final VoidCallback? onDismiss;
 
   const CurrentMeetingCard({
     super.key,
     required this.meeting,
     this.accentColor = SyncUpTheme.primary,
-    this.onMissed,
-    this.onOntime,
     this.onLate,
+    this.onPostponed,
+    this.onCancelled,
     this.onDismiss,
   });
 
@@ -37,7 +37,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
   late Animation<double> _bellAnimation;
   final ValueNotifier<int> _tickNotifier = ValueNotifier(0);
   Timer? _tickTimer;
-  _MeetingPunctuality? _selectedPunctuality;
+  _MeetingStatusAction? _selectedStatus;
   bool _isCollapsing = false;
 
   @override
@@ -130,22 +130,22 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
     final borderColor =
         _aboutToEnd ? const Color(0xFFDC2626) : widget.accentColor;
 
-    Future<void> selectAndCollapse(_MeetingPunctuality p) async {
+    Future<void> selectAndCollapse(_MeetingStatusAction p) async {
       if (_isCollapsing) return;
       setState(() {
-        _selectedPunctuality = p;
+        _selectedStatus = p;
         _isCollapsing = true;
       });
 
       switch (p) {
-        case _MeetingPunctuality.ontime:
-          widget.onOntime?.call();
+        case _MeetingStatusAction.late:
+          await widget.onLate?.call();
           break;
-        case _MeetingPunctuality.late:
-          widget.onLate?.call();
+        case _MeetingStatusAction.postponed:
+          await widget.onPostponed?.call();
           break;
-        case _MeetingPunctuality.missed:
-          widget.onMissed?.call();
+        case _MeetingStatusAction.cancelled:
+          await widget.onCancelled?.call();
           break;
       }
 
@@ -155,8 +155,8 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
       widget.onDismiss?.call();
     }
 
-    const green = Color(0xFF16A34A);
     const yellow = Color(0xFFF59E0B);
+    const blue = Color(0xFF2563EB);
     const red = Color(0xFFDC2626);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -399,20 +399,21 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                   final progress = _progress;
                                   final aboutToEnd = _aboutToEnd;
                                   final countdown = _remainingCountdown;
-                                  final pct = (progress * 100).clamp(0, 100).round();
-                                  final pctStyle = Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.copyWith(
-                                        color: aboutToEnd
+                                  final pct =
+                                      (progress * 100).clamp(0, 100).round();
+                                  final pctStyle = Theme.of(
+                                    context,
+                                  ).textTheme.labelSmall?.copyWith(
+                                    color:
+                                        aboutToEnd
                                             ? const Color(0xFFDC2626)
                                             : SyncUpTheme.textSecondary,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12,
-                                        fontFeatures: const [
-                                          FontFeature.tabularFigures(),
-                                        ],
-                                      );
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  );
                                   return RepaintBoundary(
                                     child: Row(
                                       children: [
@@ -501,8 +502,8 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                         backgroundColor: SyncUpTheme.divider,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                          SyncUpTheme.textSecondary,
-                                        ),
+                                              SyncUpTheme.textSecondary,
+                                            ),
                                         minHeight: 3,
                                       ),
                                     ),
@@ -513,17 +514,16 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                     child: Text(
                                       '100%',
                                       textAlign: TextAlign.right,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: SyncUpTheme.textSecondary,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 12,
-                                            fontFeatures: const [
-                                              FontFeature.tabularFigures(),
-                                            ],
-                                          ),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelSmall?.copyWith(
+                                        color: SyncUpTheme.textSecondary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -541,59 +541,30 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: _isCollapsing
-                              ? null
-                              : () => selectAndCollapse(
-                                    _MeetingPunctuality.missed,
+                          onPressed:
+                              _isCollapsing
+                                  ? null
+                                  : () => selectAndCollapse(
+                                    _MeetingStatusAction.cancelled,
                                   ),
                           icon: const Icon(Icons.close, size: 16),
-                          label: const Text('Missed'),
+                          label: const Text('Cancelled'),
                           style: OutlinedButton.styleFrom(
                             backgroundColor:
-                                _selectedPunctuality == _MeetingPunctuality.missed
+                                _selectedStatus ==
+                                        _MeetingStatusAction.cancelled
                                     ? red
                                     : Colors.transparent,
                             foregroundColor:
-                                _selectedPunctuality == _MeetingPunctuality.missed
+                                _selectedStatus ==
+                                        _MeetingStatusAction.cancelled
                                     ? Colors.white
                                     : red,
                             side: BorderSide(
                               color: red,
-                              width: _selectedPunctuality ==
-                                      _MeetingPunctuality.missed
-                                  ? 0
-                                  : 1,
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _isCollapsing
-                              ? null
-                              : () => selectAndCollapse(
-                                    _MeetingPunctuality.late,
-                                  ),
-                          icon: const Icon(Icons.schedule, size: 16),
-                          label: const Text('Late'),
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor:
-                                _selectedPunctuality == _MeetingPunctuality.late
-                                    ? yellow
-                                    : Colors.transparent,
-                            foregroundColor:
-                                _selectedPunctuality == _MeetingPunctuality.late
-                                    ? Colors.white
-                                    : yellow,
-                            side: BorderSide(
-                              color: yellow,
                               width:
-                                  _selectedPunctuality == _MeetingPunctuality.late
+                                  _selectedStatus ==
+                                          _MeetingStatusAction.cancelled
                                       ? 0
                                       : 1,
                             ),
@@ -606,20 +577,68 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _isCollapsing
-                              ? null
-                              : () => selectAndCollapse(
-                                    _MeetingPunctuality.ontime,
+                        child: OutlinedButton.icon(
+                          onPressed:
+                              _isCollapsing
+                                  ? null
+                                  : () => selectAndCollapse(
+                                    _MeetingStatusAction.postponed,
                                   ),
-                          icon: const Icon(Icons.check, size: 16),
-                          label: const Text('Ontime'),
-                          style: FilledButton.styleFrom(
+                          icon: const Icon(Icons.schedule_send, size: 16),
+                          label: const Text('Postponed'),
+                          style: OutlinedButton.styleFrom(
                             backgroundColor:
-                                _selectedPunctuality == _MeetingPunctuality.ontime
-                                    ? green
-                                    : SyncUpTheme.primary,
-                            foregroundColor: Colors.white,
+                                _selectedStatus ==
+                                        _MeetingStatusAction.postponed
+                                    ? blue
+                                    : Colors.transparent,
+                            foregroundColor:
+                                _selectedStatus ==
+                                        _MeetingStatusAction.postponed
+                                    ? Colors.white
+                                    : blue,
+                            side: BorderSide(
+                              color: blue,
+                              width:
+                                  _selectedStatus ==
+                                          _MeetingStatusAction.postponed
+                                      ? 0
+                                      : 1,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed:
+                              _isCollapsing
+                                  ? null
+                                  : () => selectAndCollapse(
+                                    _MeetingStatusAction.late,
+                                  ),
+                          icon: const Icon(Icons.schedule, size: 16),
+                          label: const Text('Late'),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor:
+                                _selectedStatus == _MeetingStatusAction.late
+                                    ? yellow
+                                    : Colors.transparent,
+                            foregroundColor:
+                                _selectedStatus == _MeetingStatusAction.late
+                                    ? Colors.white
+                                    : yellow,
+                            side: BorderSide(
+                              color: yellow,
+                              width:
+                                  _selectedStatus == _MeetingStatusAction.late
+                                      ? 0
+                                      : 1,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
@@ -639,7 +658,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
   }
 }
 
-enum _MeetingPunctuality { ontime, late, missed }
+enum _MeetingStatusAction { late, postponed, cancelled }
 
 /// Draws a subtle shimmer sweep across the card.
 class _ShimmerPainter extends CustomPainter {

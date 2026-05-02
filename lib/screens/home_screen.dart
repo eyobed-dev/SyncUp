@@ -2,28 +2,40 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
+import '../models/availability_slot.dart';
 import '../models/meeting.dart';
-import '../data/backend_seed.dart';
+import '../data/live_backend_cache.dart';
 import '../data/sample_data.dart';
-import '../widgets/slots_view.dart';
+import '../data/availability_data.dart';
 import '../widgets/all_meetings_tab.dart';
-import '../widgets/current_meeting_card.dart';
-import '../widgets/dismissed_meeting_button.dart';
 import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({
+    super.key,
+    required this.ownerId,
+    required this.displayName,
+    required this.username,
+    required this.roleLabel,
+    required this.userId,
+    this.onSignOut,
+  });
+
+  final String ownerId;
+  final String displayName;
+  final String username;
+  final String roleLabel;
+  final String userId;
+  final VoidCallback? onSignOut;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _HomeScreenState extends State<HomeScreen> {
   late DateTime _weekStart;
   late ValueNotifier<int> _selectedDayIndex;
 
@@ -32,10 +44,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Grid slot size — updated by pinch or settings without rebuilding [HomeScreen].
   late final ValueNotifier<int> _slotDurationMinutes;
-  int? _expandedDayIndex;
-  Set<String> _dismissedMeetingIds = {};
-  Set<String> _hiddenInProgressMeetingIds = {};
   Timer? _currentMeetingTimer;
+  bool _isSyncingWeek = false;
 
   /// User-created slots for any week (filtered by visible week when merging).
   final List<Meeting> _extraMeetings = [];
@@ -47,23 +57,69 @@ class _HomeScreenState extends State<HomeScreen>
     DateTime(_weekStart.year, _weekStart.month, _weekStart.day),
   );
 
-  void _onTabChanged() {
-    if (_tabController.indexIsChanging) return;
-    setState(() {}); // Only to pass tickClock / liveClock to the active tab.
-  }
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(_onTabChanged);
-    _weekStart = DateTime.now();
+    _weekStart = startOfWeekSunday(DateTime.now());
     _selectedDayIndex = ValueNotifier(DateTime.now().weekday % 7);
     _clock = ValueNotifier(DateTime.now());
     _slotDurationMinutes = ValueNotifier(15);
     _currentMeetingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) _clock.value = DateTime.now();
     });
+    _syncWeekData();
+  }
+
+  Future<void> _syncWeekData() async {
+    setState(() => _isSyncingWeek = true);
+    final weekAnchor = _weekSunday;
+    try {
+      await syncMeetingsForWeek(
+        weekAnchor,
+        ownerId: widget.ownerId,
+      );
+      await syncAvailabilityForOwner(widget.ownerId, weekAnchor);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to load meetings for this week'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSyncingWeek = false);
+    }
+  }
+
+  Future<void> _submitMeetingStatus(Meeting meeting, String status) async {
+    try {
+      await LiveBackendCache.instance.updateMeetingStatus(
+        ownerId: widget.ownerId,
+        meeting: meeting,
+        status: status,
+      );
+      await syncMeetingsForWeek(
+        _weekSunday,
+        ownerId: widget.ownerId,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Meeting marked as ${status.toUpperCase()}'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      setState(() {});
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to update meeting status'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _openSettings() async {
@@ -85,8 +141,6 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _currentMeetingTimer?.cancel();
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
     _selectedDayIndex.dispose();
     _clock.dispose();
     _slotDurationMinutes.dispose();
@@ -99,9 +153,6 @@ class _HomeScreenState extends State<HomeScreen>
     final d = DateTime(m.startTime.year, m.startTime.month, m.startTime.day);
     return '${d.year}-${d.month}-${d.day}:${m.id}';
   }
-
-  /// Demo current user (schedule owner) id.
-  static const String _currentOwnerId = 'p1';
 
   Meeting _openSlotFromAvailability({
     required String slotId,
@@ -142,10 +193,13 @@ class _HomeScreenState extends State<HomeScreen>
       taken.add(key);
     }
 
-    final availability = BackendSeed.instance
-        .availabilityForOwner(_currentOwnerId, _weekStart)
+    final availability = getAvailabilityForOwner(widget.ownerId, _weekStart)
         .where((s) {
-          final d = DateTime(s.startTime.year, s.startTime.month, s.startTime.day);
+          final d = DateTime(
+            s.startTime.year,
+            s.startTime.month,
+            s.startTime.day,
+          );
           return !d.isBefore(weekStartDate) && !d.isAfter(weekEndDate);
         })
         .where((s) {
@@ -165,23 +219,6 @@ class _HomeScreenState extends State<HomeScreen>
     final all = [...weekly, ...extra, ...availability]
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
     return all;
-  }
-
-  Meeting? get _currentMeeting {
-    final m = getCurrentMeetingFromList(_mergedMeetingsForWeek());
-    if (m == null) return null;
-    if (_dismissedMeetingIds.contains(m.id)) return null;
-    if (_hiddenInProgressMeetingIds.contains(m.id)) return null;
-    return m;
-  }
-
-  /// Current meeting that was dismissed – show restore button.
-  Meeting? get _dismissedCurrentMeeting {
-    final m = getCurrentMeetingFromList(_mergedMeetingsForWeek());
-    if (m == null) return null;
-    if (!_dismissedMeetingIds.contains(m.id)) return null;
-    if (_hiddenInProgressMeetingIds.contains(m.id)) return null;
-    return m;
   }
 
   void _onBulkPostpone(Set<String> meetingIds, String apologyMessage) {
@@ -204,8 +241,6 @@ class _HomeScreenState extends State<HomeScreen>
       _extraMeetings.removeWhere((m) => meetingIds.contains(m.id));
       // Extra occurrence keys are the ids themselves.
       _hiddenOccurrenceKeys.removeWhere((k) => meetingIds.contains(k));
-      _dismissedMeetingIds.removeWhere((id) => meetingIds.contains(id));
-      _hiddenInProgressMeetingIds.removeWhere((id) => meetingIds.contains(id));
     });
   }
 
@@ -222,6 +257,34 @@ class _HomeScreenState extends State<HomeScreen>
         return md == dd;
       }).toList()
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
+  }
+
+  List<AvailabilitySlot> _toAvailabilitySlots(List<Meeting> meetings) {
+    return meetings
+        .where((m) => m.id.startsWith('extra-'))
+        .map((m) {
+          final rawLocation = (m.location ?? '').trim();
+          String? location;
+          String? meetingLink;
+          if (rawLocation.toLowerCase().startsWith('online')) {
+            final parts = rawLocation.split('•');
+            if (parts.length > 1) {
+              final link = parts.sublist(1).join('•').trim();
+              if (link.isNotEmpty) meetingLink = link;
+            }
+          } else if (rawLocation.isNotEmpty) {
+            location = rawLocation;
+          }
+          return AvailabilitySlot(
+            id: m.id,
+            startTime: m.startTime,
+            durationMinutes: m.durationMinutes,
+            title: 'Open slot',
+            location: location,
+            meetingLink: meetingLink,
+          );
+        })
+        .toList();
   }
 
   /// [addFromBottom]: top button = work backward from last meeting; bottom = forward from last end.
@@ -259,8 +322,12 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _showAddSlotDialog({required bool addFromBottom}) async {
     const durations = [5, 10, 15, 20, 25, 30, 45, 60, 90, 120];
+    const breakOptions = [0, 5, 10, 15, 20, 30, 45, 60];
     var dayIndex = _selectedDayIndex.value.clamp(0, 6);
     var duration = _slotDurationMinutes.value;
+    var breakBetweenSlotsMinutes = 0;
+    var customIsOnline = false;
+    var customMeetingLink = '';
     if (!durations.contains(duration)) {
       duration = 30;
     }
@@ -271,15 +338,21 @@ class _HomeScreenState extends State<HomeScreen>
     );
 
     final weekSunday = _weekSunday;
-    final availability = BackendSeed.instance.availabilityForOwner(
-      _currentOwnerId,
-      _weekStart,
+    final availability = getAvailabilityForOwner(widget.ownerId, _weekStart);
+    final sundayDate = DateTime(
+      weekSunday.year,
+      weekSunday.month,
+      weekSunday.day,
     );
-    final sundayDate = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
     bool sameDay(DateTime a, DateTime b) =>
         a.year == b.year && a.month == b.month && a.day == b.day;
 
-    bool overlaps(DateTime aStart, int aMinutes, DateTime bStart, int bMinutes) {
+    bool overlaps(
+      DateTime aStart,
+      int aMinutes,
+      DateTime bStart,
+      int bMinutes,
+    ) {
       final aEnd = aStart.add(Duration(minutes: aMinutes));
       final bEnd = bStart.add(Duration(minutes: bMinutes));
       return aStart.isBefore(bEnd) && bStart.isBefore(aEnd);
@@ -289,7 +362,14 @@ class _HomeScreenState extends State<HomeScreen>
       final list = _mergedMeetingsForWeek();
       return list
           .where((m) => sameDay(m.startTime, start))
-          .where((m) => overlaps(start, durationMinutes, m.startTime, m.durationMinutes))
+          .where(
+            (m) => overlaps(
+              start,
+              durationMinutes,
+              m.startTime,
+              m.durationMinutes,
+            ),
+          )
           .toList()
         ..sort((a, b) => a.startTime.compareTo(b.startTime));
     }
@@ -307,25 +387,40 @@ class _HomeScreenState extends State<HomeScreen>
         participantName: 'Open slot',
         startTime: startTime,
         durationMinutes: durationMinutes,
-        location: (location ?? '').trim().isEmpty ? 'Room LL4' : location!.trim(),
+        location:
+            (location ?? '').trim().isEmpty ? 'Room LL4' : location!.trim(),
       );
     }
 
     Meeting meetingFromCustom({
       required DateTime startTime,
       required int durationMinutes,
+      required bool isOnline,
+      String? meetingLink,
     }) {
+      final link = (meetingLink ?? '').trim();
       return Meeting(
-        id: 'extra-${DateTime.now().millisecondsSinceEpoch}-${startTime.microsecondsSinceEpoch}',
+        id:
+            'extra-${DateTime.now().millisecondsSinceEpoch}-${startTime.microsecondsSinceEpoch}',
         participantName: 'Open slot',
         startTime: startTime,
         durationMinutes: durationMinutes,
-        location: 'Room LL4',
+        location: isOnline
+            ? (link.isEmpty ? 'Online' : 'Online • $link')
+            : 'Room LL4',
       );
     }
 
     final selectedAvailabilityIds = <String>{};
-    final customBatch = <({TimeOfDay time, int durationMinutes, int dayIndex})>[];
+    final customBatch =
+        <({
+          TimeOfDay time,
+          int durationMinutes,
+          int dayIndex,
+          int breakAfterMinutes,
+          bool isOnline,
+          String meetingLink,
+        })>[];
 
     final toAdd = await showDialog<List<Meeting>>(
       context: context,
@@ -342,29 +437,52 @@ class _HomeScreenState extends State<HomeScreen>
 
             final dayDate = sundayDate.add(Duration(days: dayIndex));
             final dayAvailability =
-                availability.where((s) => sameDay(s.startTime, dayDate)).toList()
+                availability
+                    .where((s) => sameDay(s.startTime, dayDate))
+                    .toList()
                   ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
             int countAddableSelected() {
               var n = 0;
               for (final s in dayAvailability) {
                 if (!selectedAvailabilityIds.contains(s.id)) continue;
-                if (overlapsWithExisting(s.startTime, s.durationMinutes).isNotEmpty) continue;
+                if (overlapsWithExisting(
+                  s.startTime,
+                  s.durationMinutes,
+                ).isNotEmpty)
+                  continue;
                 n++;
               }
               for (final c in customBatch) {
                 final d = sundayDate.add(Duration(days: c.dayIndex));
-                final start = DateTime(d.year, d.month, d.day, c.time.hour, c.time.minute);
-                if (overlapsWithExisting(start, c.durationMinutes).isNotEmpty) continue;
+                final start = DateTime(
+                  d.year,
+                  d.month,
+                  d.day,
+                  c.time.hour,
+                  c.time.minute,
+                );
+                if (overlapsWithExisting(start, c.durationMinutes).isNotEmpty)
+                  continue;
                 // also check overlaps within the custom batch itself
                 var clashesInBatch = false;
                 for (final other in customBatch) {
                   if (identical(other, c)) continue;
                   final od = sundayDate.add(Duration(days: other.dayIndex));
-                  final ostart =
-                      DateTime(od.year, od.month, od.day, other.time.hour, other.time.minute);
+                  final ostart = DateTime(
+                    od.year,
+                    od.month,
+                    od.day,
+                    other.time.hour,
+                    other.time.minute,
+                  );
                   if (sameDay(ostart, start) &&
-                      overlaps(start, c.durationMinutes, ostart, other.durationMinutes)) {
+                      overlaps(
+                        start,
+                        c.durationMinutes,
+                        ostart,
+                        other.durationMinutes,
+                      )) {
                     clashesInBatch = true;
                     break;
                   }
@@ -376,9 +494,13 @@ class _HomeScreenState extends State<HomeScreen>
             }
 
             final openSlotsToday =
-                _mergedMeetingsForWeek().where((m) => sameDay(m.startTime, dayDate)).where((m) {
-                  return m.participantName.trim().toLowerCase() == 'open slot';
-                }).toList()
+                _mergedMeetingsForWeek()
+                    .where((m) => sameDay(m.startTime, dayDate))
+                    .where((m) {
+                      return m.participantName.trim().toLowerCase() ==
+                          'open slot';
+                    })
+                    .toList()
                   ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
             return AlertDialog(
@@ -461,18 +583,112 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                     ),
                     const SizedBox(height: 10),
+                    DropdownButtonFormField<int>(
+                      value: breakBetweenSlotsMinutes,
+                      decoration: const InputDecoration(
+                        labelText: 'Break after slot',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: breakOptions
+                          .map(
+                            (m) => DropdownMenuItem(
+                              value: m,
+                              child: Text(m == 0 ? 'No break' : '$m min'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setDialogState(() => breakBetweenSlotsMinutes = v);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(Icons.videocam_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Online meeting',
+                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                            color: SyncUpTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: customIsOnline,
+                          onChanged: (v) {
+                            setDialogState(() => customIsOnline = v);
+                          },
+                        ),
+                      ],
+                    ),
+                    if (customIsOnline) ...[
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        initialValue: customMeetingLink,
+                        decoration: const InputDecoration(
+                          labelText: 'Meeting link',
+                          hintText: 'https://meet.google.com/...',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (v) {
+                          customMeetingLink = v;
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 10),
                     FilledButton.icon(
                       onPressed: () {
+                        if (customIsOnline &&
+                            customMeetingLink.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please add a meeting link for online slots.',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
                         setDialogState(() {
-                          customBatch.add((time: slotTime, durationMinutes: duration, dayIndex: dayIndex));
+                          customBatch.add((
+                            time: slotTime,
+                            durationMinutes: duration,
+                            dayIndex: dayIndex,
+                            breakAfterMinutes: breakBetweenSlotsMinutes,
+                            isOnline: customIsOnline,
+                            meetingLink: customMeetingLink.trim(),
+                          ));
+                          final nextTime = DateTime(
+                            2000,
+                            1,
+                            1,
+                            slotTime.hour,
+                            slotTime.minute,
+                          ).add(
+                            Duration(
+                              minutes: duration + breakBetweenSlotsMinutes,
+                            ),
+                          );
+                          slotTime = TimeOfDay(
+                            hour: nextTime.hour % 24,
+                            minute: nextTime.minute,
+                          );
                         });
                       },
                       icon: const Icon(Icons.add),
                       label: Text(
-                        customBatch.isEmpty ? 'Add this slot to batch' : 'Add another',
+                        customBatch.isEmpty
+                            ? 'Add this slot to batch'
+                            : 'Add another',
                       ),
                       style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
                       ),
                     ),
                     if (customBatch.isNotEmpty) ...[
@@ -480,28 +696,52 @@ class _HomeScreenState extends State<HomeScreen>
                       Text(
                         'Batch (${customBatch.length})',
                         style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: SyncUpTheme.textPrimary,
-                            ),
+                          fontWeight: FontWeight.w800,
+                          color: SyncUpTheme.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       ...customBatch.map((c) {
                         final d = sundayDate.add(Duration(days: c.dayIndex));
-                        final start = DateTime(d.year, d.month, d.day, c.time.hour, c.time.minute);
-                        final end = start.add(Duration(minutes: c.durationMinutes));
-                        final existingClashes = overlapsWithExisting(start, c.durationMinutes);
+                        final start = DateTime(
+                          d.year,
+                          d.month,
+                          d.day,
+                          c.time.hour,
+                          c.time.minute,
+                        );
+                        final end = start.add(
+                          Duration(minutes: c.durationMinutes),
+                        );
+                        final existingClashes = overlapsWithExisting(
+                          start,
+                          c.durationMinutes,
+                        );
                         var batchClashCount = 0;
                         for (final other in customBatch) {
                           if (identical(other, c)) continue;
-                          final od = sundayDate.add(Duration(days: other.dayIndex));
-                          final ostart =
-                              DateTime(od.year, od.month, od.day, other.time.hour, other.time.minute);
+                          final od = sundayDate.add(
+                            Duration(days: other.dayIndex),
+                          );
+                          final ostart = DateTime(
+                            od.year,
+                            od.month,
+                            od.day,
+                            other.time.hour,
+                            other.time.minute,
+                          );
                           if (sameDay(ostart, start) &&
-                              overlaps(start, c.durationMinutes, ostart, other.durationMinutes)) {
+                              overlaps(
+                                start,
+                                c.durationMinutes,
+                                ostart,
+                                other.durationMinutes,
+                              )) {
                             batchClashCount++;
                           }
                         }
-                        final hasClash = existingClashes.isNotEmpty || batchClashCount > 0;
+                        final hasClash =
+                            existingClashes.isNotEmpty || batchClashCount > 0;
                         final timeLabel =
                             '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')} – ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
                         return Padding(
@@ -510,11 +750,18 @@ class _HomeScreenState extends State<HomeScreen>
                             children: [
                               Expanded(
                                 child: Text(
-                                  '${dayShortNamesSunFirst[c.dayIndex]} · $timeLabel · ${c.durationMinutes} min',
-                                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                                        color: hasClash ? const Color(0xFFDC2626) : SyncUpTheme.textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                  '${dayShortNamesSunFirst[c.dayIndex]} · $timeLabel · ${c.durationMinutes} min'
+                                  '${c.breakAfterMinutes > 0 ? ' · +${c.breakAfterMinutes}m break' : ''}'
+                                  '${c.isOnline ? ' · online' : ''}',
+                                  style: Theme.of(
+                                    ctx,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color:
+                                        hasClash
+                                            ? const Color(0xFFDC2626)
+                                            : SyncUpTheme.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                               if (hasClash)
@@ -522,10 +769,16 @@ class _HomeScreenState extends State<HomeScreen>
                                   padding: const EdgeInsets.only(right: 2),
                                   child: Tooltip(
                                     message: [
-                                      if (existingClashes.isNotEmpty) 'Overlaps with existing slot(s)',
-                                      if (batchClashCount > 0) 'Overlaps with $batchClashCount in this batch',
+                                      if (existingClashes.isNotEmpty)
+                                        'Overlaps with existing slot(s)',
+                                      if (batchClashCount > 0)
+                                        'Overlaps with $batchClashCount in this batch',
                                     ].join(' · '),
-                                    child: const Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFDC2626)),
+                                    child: const Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 18,
+                                      color: Color(0xFFDC2626),
+                                    ),
                                   ),
                                 ),
                               IconButton(
@@ -544,56 +797,65 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                     const SizedBox(height: 10),
                     Text(
-                      'Available (Prof. Alexander) · not yet picked',
+                      'Available slots · not yet picked',
                       style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: SyncUpTheme.textPrimary,
-                          ),
+                        fontWeight: FontWeight.w800,
+                        color: SyncUpTheme.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     if (dayAvailability.isEmpty)
                       Text(
-                        'No availability seeded for ${dayShortNamesSunFirst[dayIndex]}.',
+                        'No availability for ${dayShortNamesSunFirst[dayIndex]}.',
                         style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                              color: SyncUpTheme.textSecondary,
-                            ),
+                          color: SyncUpTheme.textSecondary,
+                        ),
                       )
                     else
                       ...dayAvailability.map((s) {
-                        final clashes = overlapsWithExisting(s.startTime, s.durationMinutes);
+                        final clashes = overlapsWithExisting(
+                          s.startTime,
+                          s.durationMinutes,
+                        );
                         final taken = clashes.isNotEmpty;
-                        final end = s.startTime.add(Duration(minutes: s.durationMinutes));
+                        final end = s.startTime.add(
+                          Duration(minutes: s.durationMinutes),
+                        );
                         final timeLabel =
                             '${s.startTime.hour.toString().padLeft(2, '0')}:${s.startTime.minute.toString().padLeft(2, '0')} – ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
                         return CheckboxListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           value: selectedAvailabilityIds.contains(s.id),
-                          onChanged: taken
-                              ? null
-                              : (v) {
-                                  setDialogState(() {
-                                    if (v == true) {
-                                      selectedAvailabilityIds.add(s.id);
-                                    } else {
-                                      selectedAvailabilityIds.remove(s.id);
-                                    }
-                                  });
-                                },
+                          onChanged:
+                              taken
+                                  ? null
+                                  : (v) {
+                                    setDialogState(() {
+                                      if (v == true) {
+                                        selectedAvailabilityIds.add(s.id);
+                                      } else {
+                                        selectedAvailabilityIds.remove(s.id);
+                                      }
+                                    });
+                                  },
                           title: Text(
                             timeLabel,
                             style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: taken ? SyncUpTheme.textSecondary : SyncUpTheme.textPrimary,
-                                ),
+                              fontWeight: FontWeight.w700,
+                              color:
+                                  taken
+                                      ? SyncUpTheme.textSecondary
+                                      : SyncUpTheme.textPrimary,
+                            ),
                           ),
                           subtitle: Text(
                             taken
                                 ? 'Overlaps with existing meeting'
                                 : (s.location ?? 'Room LL4'),
                             style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                                  color: SyncUpTheme.textSecondary,
-                                ),
+                              color: SyncUpTheme.textSecondary,
+                            ),
                           ),
                           controlAffinity: ListTileControlAffinity.leading,
                         );
@@ -603,9 +865,9 @@ class _HomeScreenState extends State<HomeScreen>
                       Text(
                         'Open slots already on this day (${openSlotsToday.length})',
                         style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                              color: SyncUpTheme.textSecondary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: SyncUpTheme.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ],
@@ -623,7 +885,11 @@ class _HomeScreenState extends State<HomeScreen>
                     // Selected availability → open slots
                     for (final s in dayAvailability) {
                       if (!selectedAvailabilityIds.contains(s.id)) continue;
-                      if (overlapsWithExisting(s.startTime, s.durationMinutes).isNotEmpty) continue;
+                      if (overlapsWithExisting(
+                        s.startTime,
+                        s.durationMinutes,
+                      ).isNotEmpty)
+                        continue;
                       out.add(
                         meetingFromAvailability(
                           slotId: s.id,
@@ -637,31 +903,56 @@ class _HomeScreenState extends State<HomeScreen>
                     // Custom batch → open slots
                     for (final c in customBatch) {
                       final d = sundayDate.add(Duration(days: c.dayIndex));
-                      final start = DateTime(d.year, d.month, d.day, c.time.hour, c.time.minute);
-                      if (overlapsWithExisting(start, c.durationMinutes).isNotEmpty) continue;
+                      final start = DateTime(
+                        d.year,
+                        d.month,
+                        d.day,
+                        c.time.hour,
+                        c.time.minute,
+                      );
+                      if (overlapsWithExisting(
+                        start,
+                        c.durationMinutes,
+                      ).isNotEmpty)
+                        continue;
                       var clashesInBatch = false;
                       for (final other in customBatch) {
                         if (identical(other, c)) continue;
-                        final od = sundayDate.add(Duration(days: other.dayIndex));
-                        final ostart =
-                            DateTime(od.year, od.month, od.day, other.time.hour, other.time.minute);
+                        final od = sundayDate.add(
+                          Duration(days: other.dayIndex),
+                        );
+                        final ostart = DateTime(
+                          od.year,
+                          od.month,
+                          od.day,
+                          other.time.hour,
+                          other.time.minute,
+                        );
                         if (sameDay(ostart, start) &&
-                            overlaps(start, c.durationMinutes, ostart, other.durationMinutes)) {
+                            overlaps(
+                              start,
+                              c.durationMinutes,
+                              ostart,
+                              other.durationMinutes,
+                            )) {
                           clashesInBatch = true;
                           break;
                         }
                       }
                       if (clashesInBatch) continue;
                       out.add(
-                        meetingFromCustom(startTime: start, durationMinutes: c.durationMinutes),
+                        meetingFromCustom(
+                          startTime: start,
+                          durationMinutes: c.durationMinutes,
+                          isOnline: c.isOnline,
+                          meetingLink: c.meetingLink,
+                        ),
                       );
                     }
 
                     Navigator.of(ctx).pop(out);
                   },
-                  child: Text(
-                    'Add ${countAddableSelected()}',
-                  ),
+                  child: Text('Add ${countAddableSelected()}'),
                 ),
               ],
             );
@@ -672,9 +963,33 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (toAdd == null || toAdd.isEmpty || !mounted) return;
     setState(() => _extraMeetings.addAll(toAdd));
+
+    final slotsToPersist = _toAvailabilitySlots(toAdd);
+    if (slotsToPersist.isNotEmpty) {
+      LiveBackendCache.instance.upsertAvailabilitySlotsLocal(
+        ownerId: widget.ownerId,
+        slots: slotsToPersist,
+      );
+      try {
+        await LiveBackendCache.instance.createAvailabilitySlots(
+          ownerId: widget.ownerId,
+          slots: slotsToPersist,
+        );
+        await syncAvailabilityForOwner(widget.ownerId, _weekStart);
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Saved locally, but backend sync failed.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${toAdd.length} slot(s) added'),
+        content: Text('${toAdd.length} schedule slot(s) added'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -683,15 +998,15 @@ class _HomeScreenState extends State<HomeScreen>
   void _prevWeek() {
     setState(() {
       _weekStart = _weekStart.subtract(const Duration(days: 7));
-      _expandedDayIndex = null;
     });
+    _syncWeekData();
   }
 
   void _nextWeek() {
     setState(() {
       _weekStart = _weekStart.add(const Duration(days: 7));
-      _expandedDayIndex = null;
     });
+    _syncWeekData();
   }
 
   String get _weekRange {
@@ -770,8 +1085,10 @@ class _HomeScreenState extends State<HomeScreen>
                     child: CircleAvatar(
                       radius: 16,
                       backgroundColor: SyncUpTheme.primary,
-                      child: const Text(
-                        'M',
+                      child: Text(
+                        widget.displayName.trim().isNotEmpty
+                            ? widget.displayName.trim()[0].toUpperCase()
+                            : '?',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -784,7 +1101,17 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
-      endDrawer: UserProfileDrawer(onSettingsTap: _openSettings),
+      endDrawer: UserProfileDrawer(
+        displayName: widget.displayName,
+        username: widget.username,
+        email: widget.username.trim().toLowerCase().contains('@')
+            ? widget.username.trim().toLowerCase()
+            : '${widget.username.trim().toLowerCase()}@fit.cvut.cz',
+        roleLabel: widget.roleLabel,
+        userId: widget.userId,
+        onSettingsTap: _openSettings,
+        onSignOutTap: widget.onSignOut,
+      ),
       body: Column(
         children: [
           Container(
@@ -855,198 +1182,23 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
-          TabBar(
-            controller: _tabController,
-            tabs: const [Tab(text: 'Meetings'), Tab(text: 'Calendar')],
-          ),
-          ValueListenableBuilder<DateTime>(
-            valueListenable: _clock,
-            builder: (context, _, __) {
-              final current = _currentMeeting;
-              final dismissed = _dismissedCurrentMeeting;
-              // Do not use [Flexible] here: it would split space 50/50 with [TabBarView]
-              // and shrink the calendar. Shrink-wrapped list keeps banner height intrinsic.
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 420),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                // Default uses StackFit.passthrough + center alignment, which can let
-                // the banner subtree expand to the full column height above the tab body.
-                layoutBuilder: (
-                  Widget? currentChild,
-                  List<Widget> previousChildren,
-                ) {
-                  return Stack(
-                    alignment: Alignment.topCenter,
-                    fit: StackFit.loose,
-                    clipBehavior: Clip.none,
-                    children: <Widget>[
-                      ...previousChildren,
-                      if (currentChild != null) currentChild,
-                    ],
-                  );
-                },
-                transitionBuilder: (child, animation) {
-                  final curved = CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                    reverseCurve: Curves.easeInCubic,
-                  );
-                  return FadeTransition(
-                    opacity: curved,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.08),
-                        end: Offset.zero,
-                      ).animate(curved),
-                      child: ScaleTransition(
-                        scale: Tween<double>(
-                          begin: 0.97,
-                          end: 1,
-                        ).animate(curved),
-                        alignment: Alignment.topCenter,
-                        child: child,
-                      ),
-                    ),
-                  );
-                },
-                child: _MeetingBannerSlot(
-                  key: ValueKey<String>(
-                    current != null
-                        ? 'current-${current.id}'
-                        : dismissed != null
-                        ? 'dismissed-${dismissed.id}'
-                        : 'empty',
-                  ),
-                  current: current,
-                  dismissed: dismissed,
-                  onDismissMeeting: (id) {
-                    setState(() => _dismissedMeetingIds.add(id));
-                  },
-                  onRestoreMeeting: (id) {
-                    setState(() => _dismissedMeetingIds.remove(id));
-                  },
-                  onHideInProgress: (id) {
-                    setState(() {
-                      _hiddenInProgressMeetingIds.add(id);
-                      _dismissedMeetingIds.remove(id);
-                    });
-                  },
-                ),
-              );
-            },
-          ),
+          if (_isSyncingWeek) const LinearProgressIndicator(minHeight: 2),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                AllMeetingsTab(
-                  weekStart: _weekStart,
-                  meetings: _mergedMeetingsForWeek(),
-                  selectedDayIndex: _selectedDayIndex,
-                  liveClock: _tabController.index == 0 ? _clock : null,
-                  onAddSlot:
-                      (fromBottom) =>
-                          _showAddSlotDialog(addFromBottom: fromBottom),
-                  onBulkPostpone: _onBulkPostpone,
-                  onRemoveNewSlots: _removeNewSlots,
-                ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 280),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.03),
-                          end: Offset.zero,
-                        ).animate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          ),
-                        ),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: SlotsView(
-                    key: ValueKey(_expandedDayIndex ?? -1),
-                    weekStart: _weekStart,
-                    slotDuration: _slotDurationMinutes,
-                    meetings: _mergedMeetingsForWeek(),
-                    expandedDayIndex: _expandedDayIndex,
-                    onDayTap: (i) => setState(() => _expandedDayIndex = i),
-                    onBack: () => setState(() => _expandedDayIndex = null),
-                    tickClock: _tabController.index == 1 ? _clock : null,
-                  ),
-                ),
-              ],
+            child: AllMeetingsTab(
+              weekStart: _weekStart,
+              meetings: _mergedMeetingsForWeek(),
+              selectedDayIndex: _selectedDayIndex,
+              liveClock: _clock,
+              onMeetingStatus: _submitMeetingStatus,
+              onAddSlot:
+                  (fromBottom) =>
+                      _showAddSlotDialog(addFromBottom: fromBottom),
+              onBulkPostpone: _onBulkPostpone,
+              onRemoveNewSlots: _removeNewSlots,
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-/// Banner under the tab bar: shrink-wrapped so [Expanded] below keeps full height.
-/// Keys drive [AnimatedSwitcher] when in-progress / dismissed / hidden changes.
-class _MeetingBannerSlot extends StatelessWidget {
-  final Meeting? current;
-  final Meeting? dismissed;
-  final ValueChanged<String> onDismissMeeting;
-  final ValueChanged<String> onRestoreMeeting;
-  final ValueChanged<String> onHideInProgress;
-
-  const _MeetingBannerSlot({
-    super.key,
-    required this.current,
-    required this.dismissed,
-    required this.onDismissMeeting,
-    required this.onRestoreMeeting,
-    required this.onHideInProgress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final h = MediaQuery.sizeOf(context).height;
-    // Cap banner height so TabBarView always gets the rest of the screen; scroll inside if needed.
-    final maxBannerH = (h * 0.34).clamp(120.0, 320.0);
-
-    if (current != null) {
-      final m = current!;
-      return ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxBannerH),
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: CurrentMeetingCard(
-            meeting: m,
-            accentColor: SyncUpTheme.primary,
-            onMissed: () {
-              // Record missed – card stays visible
-            },
-            onOntime: () {
-              // Record ontime – card stays visible
-            },
-            onLate: () {
-              // Record late – card stays visible
-            },
-            onDismiss: () => onDismissMeeting(m.id),
-          ),
-        ),
-      );
-    }
-    if (dismissed != null) {
-      final m = dismissed!;
-      return DismissedMeetingButton(
-        meeting: m,
-        onTap: () => onRestoreMeeting(m.id),
-        onDismissAll: () => onHideInProgress(m.id),
-      );
-    }
-    return const SizedBox.shrink();
   }
 }

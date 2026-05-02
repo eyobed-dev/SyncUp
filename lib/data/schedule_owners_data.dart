@@ -1,7 +1,11 @@
 import '../models/schedule_owner.dart';
-import 'backend_seed.dart';
+import 'live_backend_cache.dart';
 
-/// Professors / instructors for Find Schedule — from [backend_seed.json].
+/// Professors / instructors for Find Schedule — from backend API cache.
 List<ScheduleOwner> getScheduleOwners() {
-  return BackendSeed.instance.scheduleOwners;
+  return LiveBackendCache.instance.owners;
+}
+
+Future<void> syncScheduleOwners() async {
+  await LiveBackendCache.instance.syncOwners();
 }

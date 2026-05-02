@@ -5,6 +5,7 @@ class AvailabilitySlot {
   final int durationMinutes;
   final String title; // e.g. "Consultation – …", "Mentoring"
   final String? location;
+  final String? meetingLink;
 
   const AvailabilitySlot({
     required this.id,
@@ -12,6 +13,7 @@ class AvailabilitySlot {
     required this.durationMinutes,
     required this.title,
     this.location,
+    this.meetingLink,
   });
 
   DateTime get endTime =>

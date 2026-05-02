@@ -1,5 +1,5 @@
 import '../models/meeting.dart';
-import 'backend_seed.dart';
+import 'live_backend_cache.dart';
 
 /// Returns the meeting that is currently ongoing or recently ended (within 1 min), if any.
 /// When "Just ended" expires, returns null so the card disappears and the next meeting is shown.
@@ -17,31 +17,36 @@ Meeting? getCurrentMeetingFromList(List<Meeting> meetings) {
   return null;
 }
 
-/// Returns the current meeting from seed recurring [meetings] for [weekStart].
+/// Returns the current meeting from backend-synced weekly [meetings] for [weekStart].
 Meeting? getCurrentMeeting(DateTime weekStart) {
   return getCurrentMeetingFromList(getMeetingsForWeek(weekStart));
 }
 
-/// Recurring weekly meetings for [weekStart] — from [assets/data/backend_seed.json] `meetings`.
+/// Recurring weekly meetings for [weekStart] from backend cache.
 List<Meeting> getMeetingsForWeek(DateTime weekStart) {
-  return BackendSeed.instance.meetingsForWeek(weekStart);
+  return LiveBackendCache.instance.meetingsForWeek(weekStart) ?? const [];
 }
 
-/// Seed [sessions] that are already over, for the same student as [booking] (by [Meeting.studentId]
-/// or name when ids are absent). Newest first.
+/// Prior [sessions] for the same student as [booking] from backend cache.
+/// Newest first.
 List<Meeting> priorSessionsForBooking(Meeting booking) {
-  final now = DateTime.now();
-  bool matches(Meeting s) {
-    final sid = booking.studentId;
-    if (sid != null && sid.isNotEmpty) {
-      return s.studentId == sid;
-    }
-    return s.participantName.trim() == booking.participantName.trim();
-  }
+  return LiveBackendCache.instance.priorSessionsForBooking(booking) ?? const [];
+}
 
-  final out = BackendSeed.instance.seedSessions
-      .where((s) => matches(s) && s.endTime.isBefore(now))
-      .toList();
-  out.sort((a, b) => b.startTime.compareTo(a.startTime));
-  return out;
+Future<void> syncMeetingsForWeek(
+  DateTime weekStart, {
+  String ownerId = 'p1',
+  String? participantName,
+  String? participantUserId,
+}) async {
+  await LiveBackendCache.instance.syncMeetings(
+    weekStart,
+    ownerId: ownerId,
+    participantName: participantName,
+    participantUserId: participantUserId,
+  );
+}
+
+Future<void> syncPriorSessionsForBooking(Meeting booking) async {
+  await LiveBackendCache.instance.syncPriorSessions(booking);
 }

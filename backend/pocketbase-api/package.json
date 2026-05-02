@@ -1,0 +1,22 @@
+{
+  "name": "syncup-pocketbase-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lightweight API layer for SyncUp backed by PocketBase.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/startup.js",
+    "dev": "node --watch src/startup.js",
+    "bootstrap": "node scripts/bootstrapCollections.js",
+    "seed": "node scripts/seedFromBackendSeed.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "pocketbase": "^0.25.1"
+  }
+}

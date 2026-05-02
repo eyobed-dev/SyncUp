@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/sync_up_theme.dart';
 
-/// Creative SyncUp logo with icon on the side.
+/// Shared SyncUp wordmark logo used across the app.
 class SyncUpLogo extends StatelessWidget {
   final double size;
   final bool compact;
@@ -15,64 +15,46 @@ class SyncUpLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = size * 0.85;
-    return Row(
+    final fontSize =
+        (compact ? size * 0.66 : size * 0.72).clamp(16.0, 34.0).toDouble();
+    return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: SyncUpTheme.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(
-            Icons.sync_alt_rounded,
-            size: iconSize,
-            color: SyncUpTheme.primary,
-          ),
-        ),
-        SizedBox(width: size * 0.4),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(
+        Text.rich(
+          TextSpan(
+            children: [
               TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Sync',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: compact ? 16 : 18,
-                      fontWeight: FontWeight.w800,
-                      color: SyncUpTheme.textPrimary,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  TextSpan(
-                    text: 'Up',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: compact ? 16 : 18,
-                      fontWeight: FontWeight.w600,
-                      color: SyncUpTheme.primary,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (!compact)
-              Container(
-                width: 28,
-                height: 2,
-                margin: const EdgeInsets.only(top: 2),
-                decoration: BoxDecoration(
-                  color: SyncUpTheme.primary.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(1),
+                text: 'Sync',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w800,
+                  color: SyncUpTheme.textPrimary,
+                  letterSpacing: -0.45,
                 ),
               ),
-          ],
+              TextSpan(
+                text: 'Up',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w700,
+                  color: SyncUpTheme.primary,
+                  letterSpacing: -0.35,
+                ),
+              ),
+            ],
+          ),
         ),
+        if (!compact)
+          Container(
+            width: fontSize * 1.7,
+            height: 2.2,
+            margin: const EdgeInsets.only(top: 3),
+            decoration: BoxDecoration(
+              color: SyncUpTheme.primary.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
       ],
     );
   }

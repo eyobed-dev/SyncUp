@@ -1,20 +1,37 @@
 import 'package:flutter/material.dart';
 import '../theme/sync_up_theme.dart';
 
-/// Placeholder user data – replace with real auth/user model.
-const _userName = 'Prof Alexander Meduna';
-const _userEmail = 'meduna@fit.cvut.cz';
-const _userPhone = '+420 224 359 814';
-const _userRole = 'Teacher';
-
 /// End drawer showing user profile details.
 class UserProfileDrawer extends StatelessWidget {
+  final String displayName;
+  final String username;
+  final String roleLabel;
+  final String? userId;
+  final String? email;
+  final String? phone;
   final VoidCallback? onSettingsTap;
+  final VoidCallback? onSignOutTap;
 
-  const UserProfileDrawer({super.key, this.onSettingsTap});
+  const UserProfileDrawer({
+    super.key,
+    required this.displayName,
+    required this.username,
+    required this.roleLabel,
+    this.userId,
+    this.email,
+    this.phone,
+    this.onSettingsTap,
+    this.onSignOutTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final normalizedUsername = username.trim().toLowerCase();
+    final profileEmail = (email ?? '').trim().isNotEmpty
+        ? email!.trim()
+        : (normalizedUsername.contains('@')
+              ? normalizedUsername
+              : '$normalizedUsername@fit.cvut.cz');
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -29,7 +46,7 @@ class UserProfileDrawer extends StatelessWidget {
                     radius: 48,
                     backgroundColor: SyncUpTheme.primary,
                     child: Text(
-                      _userName.isNotEmpty ? _userName[0].toUpperCase() : '?',
+                      displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 36,
@@ -39,7 +56,7 @@ class UserProfileDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: SyncUpTheme.space16),
                   Text(
-                    _userName,
+                    displayName,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: SyncUpTheme.textPrimary,
                           fontWeight: FontWeight.w600,
@@ -47,25 +64,36 @@ class UserProfileDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _userEmail,
+                    profileEmail,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: SyncUpTheme.textSecondary,
                         ),
                   ),
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.phone_outlined, size: 14, color: SyncUpTheme.textSecondary),
-                      const SizedBox(width: 6),
-                      Text(
-                        _userPhone,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: SyncUpTheme.textSecondary,
-                            ),
-                      ),
-                    ],
-                  ),
+                  if ((phone ?? '').trim().isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.phone_outlined, size: 14, color: SyncUpTheme.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          phone!.trim(),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: SyncUpTheme.textSecondary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if ((userId ?? '').trim().isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'ID: ${userId!.trim()}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: SyncUpTheme.textSecondary,
+                          ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -77,7 +105,7 @@ class UserProfileDrawer extends StatelessWidget {
                       borderRadius: BorderRadius.circular(SyncUpTheme.radiusPill),
                     ),
                     child: Text(
-                      _userRole,
+                      roleLabel,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: SyncUpTheme.primary,
                             fontWeight: FontWeight.w600,
@@ -94,7 +122,7 @@ class UserProfileDrawer extends StatelessWidget {
                   ListTile(
                     leading: Icon(Icons.settings_outlined, color: SyncUpTheme.textSecondary),
                     title: Text(
-                      'Settings',
+                      'Preferences',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: SyncUpTheme.textPrimary,
                           ),
@@ -105,16 +133,6 @@ class UserProfileDrawer extends StatelessWidget {
                     },
                   ),
                   ListTile(
-                    leading: Icon(Icons.notifications_outlined, color: SyncUpTheme.textSecondary),
-                    title: Text(
-                      'Notifications',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: SyncUpTheme.textPrimary,
-                          ),
-                    ),
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  ListTile(
                     leading: Icon(Icons.help_outline, color: SyncUpTheme.textSecondary),
                     title: Text(
                       'Help',
@@ -122,7 +140,25 @@ class UserProfileDrawer extends StatelessWidget {
                             color: SyncUpTheme.textPrimary,
                           ),
                     ),
-                    onTap: () => Navigator.pop(context),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await showDialog<void>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Help'),
+                          content: const Text(
+                            'SyncUp helps professors publish meeting availability and helps students find and book slots. '
+                            'Open slots become booked meetings, and weekly views keep everyone aligned.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                   const Divider(),
                   ListTile(
@@ -134,7 +170,10 @@ class UserProfileDrawer extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                     ),
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onSignOutTap?.call();
+                    },
                   ),
                 ],
               ),

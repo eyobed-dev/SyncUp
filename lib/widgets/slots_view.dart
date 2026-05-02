@@ -27,12 +27,12 @@ final Color _currentDayHue = SyncUpTheme.primary.withValues(alpha: 0.06);
 
 /// Left accent colors for white cards (one per meeting for variety)
 final List<Color> _blockColors = [
-  const Color(0xFF6366F1), // Indigo
-  const Color(0xFF8B5CF6), // Violet
-  const Color(0xFF3B82F6), // Blue
-  const Color(0xFF10B981), // Emerald
-  const Color(0xFFEC4899), // Pink
-  const Color(0xFFF59E0B), // Amber
+  const Color(0xFF0F9FA8), // Blue-teal
+  const Color(0xFF0E7490), // Deep teal-blue
+  const Color(0xFF0891B2), // Cyan-blue
+  const Color(0xFF14B8A6), // Teal
+  const Color(0xFF06B6D4), // Bright cyan
+  const Color(0xFF22D3EE), // Light cyan
 ];
 
 class SlotsView extends StatefulWidget {

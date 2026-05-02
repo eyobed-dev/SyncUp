@@ -460,7 +460,8 @@ class _AvailabilityBlock extends StatelessWidget {
                           if (contentH >= 28)
                             Text(
                               '${slot.durationMinutes} min'
-                                  '${slot.location != null ? ' • ${slot.location}' : ''}',
+                                  '${slot.location != null ? ' • ${slot.location}' : ''}'
+                                  '${(slot.meetingLink ?? '').trim().isNotEmpty ? ' • online' : ''}',
                               style: TextStyle(
                                 color: SyncUpTheme.textSecondary,
                                 fontSize: contentH < 40 ? 8.0 : 9.0,

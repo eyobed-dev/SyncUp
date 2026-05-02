@@ -50,3 +50,16 @@ lib/
 ```bash
 flutter run
 ```
+
+## Self-hosted backend (PocketBase)
+
+A lightweight self-hosted backend scaffold is available at:
+
+- `backend/pocketbase-api/README.md`
+
+It includes:
+
+- PocketBase setup
+- API server
+- collection bootstrap script
+- seed importer from `assets/data/backend_seed.json`

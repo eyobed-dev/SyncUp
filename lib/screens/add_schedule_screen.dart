@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/availability_slot.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
+import '../data/live_backend_cache.dart';
 import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import '../widgets/find_schedule_slots_view.dart';
@@ -9,7 +10,22 @@ import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
 
 class AddScheduleScreen extends StatefulWidget {
-  const AddScheduleScreen({super.key});
+  const AddScheduleScreen({
+    super.key,
+    required this.ownerId,
+    required this.displayName,
+    required this.username,
+    required this.roleLabel,
+    required this.userId,
+    this.onSignOut,
+  });
+
+  final String ownerId;
+  final String displayName;
+  final String username;
+  final String roleLabel;
+  final String userId;
+  final VoidCallback? onSignOut;
 
   @override
   State<AddScheduleScreen> createState() => _AddScheduleScreenState();
@@ -20,6 +36,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _locationController = TextEditingController();
+  final _meetingLinkController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
@@ -29,10 +46,13 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
   int _attendeesPerSlot = 1;
   int _cancelUntilMinutes = 1440; // 1 day before (default)
   String _repeatOption = 'none'; // none, daily, weekly, monthly
+  bool _isOnline = false;
 
   final List<AvailabilitySlot> _addedSlots = [];
   DateTime _slotsWeekStart = startOfWeekSunday(DateTime.now());
-  final ValueNotifier<int> _selectedDayIndex = ValueNotifier(dayIndexSunWeek(DateTime.now()));
+  final ValueNotifier<int> _selectedDayIndex = ValueNotifier(
+    dayIndexSunWeek(DateTime.now()),
+  );
   late TabController _tabController;
   late TabController _addedSlotsTabController;
   int? _addedSlotsExpandedDayIndex;
@@ -45,66 +65,119 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
     _addedSlotsTabController = TabController(vsync: this, length: 1);
     _titleController.addListener(_onFormChanged);
     _locationController.addListener(_onFormChanged);
+    _meetingLinkController.addListener(_onFormChanged);
   }
 
   void _onFormChanged() => setState(() {});
-
 
   @override
   void dispose() {
     _titleController.removeListener(_onFormChanged);
     _locationController.removeListener(_onFormChanged);
+    _meetingLinkController.removeListener(_onFormChanged);
     _tabController.dispose();
     _addedSlotsTabController.dispose();
     _titleController.dispose();
     _locationController.dispose();
+    _meetingLinkController.dispose();
     _selectedDayIndex.dispose();
     super.dispose();
   }
 
   /// Dates to create slots for, based on repeat option.
   List<DateTime> get _datesToAdd {
-    final base = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final base = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
     switch (_repeatOption) {
       case 'daily':
         return List.generate(7, (i) => base.add(Duration(days: i)));
       case 'weekly':
         return List.generate(4, (i) => base.add(Duration(days: i * 7)));
       case 'monthly':
-        return List.generate(3, (i) => DateTime(base.year, base.month + i, base.day));
+        return List.generate(
+          3,
+          (i) => DateTime(base.year, base.month + i, base.day),
+        );
       default:
         return [base];
     }
   }
 
-  void _addSlots() {
-    final totalMins = _endTime.hour * 60 + _endTime.minute -
+  Future<void> _addSlots() async {
+    final totalMins =
+        _endTime.hour * 60 +
+        _endTime.minute -
         (_startTime.hour * 60 + _startTime.minute);
     final breakTotal = _breakBetweenSlotsMinutes * (_numberOfSlots - 1);
     final slotDuration = ((totalMins - breakTotal) / _numberOfSlots).floor();
     final title = _titleController.text.trim();
-    final location = _locationController.text.trim().isEmpty
-        ? null
-        : _locationController.text.trim();
+    final meetingLink =
+        _isOnline && _meetingLinkController.text.trim().isNotEmpty
+            ? _meetingLinkController.text.trim()
+            : null;
+    final location =
+        _locationController.text.trim().isEmpty
+            ? null
+            : _locationController.text.trim();
 
+    if (_isOnline && (meetingLink == null || meetingLink.isEmpty)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please provide an online meeting link.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final newlyAdded = <AvailabilitySlot>[];
     var slotIndex = 0;
     for (final date in _datesToAdd) {
       final daySlots = _generatedSlotsForDate(date);
       for (var i = 0; i < daySlots.length; i++) {
         final start = daySlots[i];
-        _addedSlots.add(AvailabilitySlot(
+        final slot = AvailabilitySlot(
           id: 'add-${start.millisecondsSinceEpoch}-$slotIndex',
           startTime: start,
           durationMinutes: slotDuration,
           title: title,
           location: location,
-        ));
+          meetingLink: meetingLink,
+        );
+        _addedSlots.add(slot);
+        newlyAdded.add(slot);
         slotIndex++;
       }
     }
-    final d = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final d = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
     _slotsWeekStart = startOfWeekSunday(d);
     _selectedDayIndex.value = dayIndexSunWeek(d);
+    try {
+      LiveBackendCache.instance.upsertAvailabilitySlotsLocal(
+        ownerId: widget.ownerId,
+        slots: newlyAdded,
+      );
+      await LiveBackendCache.instance.createAvailabilitySlots(
+        ownerId: widget.ownerId,
+        slots: newlyAdded,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saved locally, but backend sync failed.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   List<DateTime> _generatedSlotsForDate(DateTime date) {
@@ -130,14 +203,18 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
     final slotDurationMinutes = availableMinutes ~/ _numberOfSlots;
     return List.generate(
       _numberOfSlots,
-      (i) => start.add(Duration(
-        minutes: i * (slotDurationMinutes + _breakBetweenSlotsMinutes),
-      )),
+      (i) => start.add(
+        Duration(
+          minutes: i * (slotDurationMinutes + _breakBetweenSlotsMinutes),
+        ),
+      ),
     );
   }
 
   int get _slotDurationMinutes {
-    final totalMins = _endTime.hour * 60 + _endTime.minute -
+    final totalMins =
+        _endTime.hour * 60 +
+        _endTime.minute -
         (_startTime.hour * 60 + _startTime.minute);
     final breakTotal = _breakBetweenSlotsMinutes * (_numberOfSlots - 1);
     if (_numberOfSlots < 1) return 0;
@@ -155,39 +232,39 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
   String _formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  String _formatDate(DateTime d) =>
-      '${d.day}/${d.month}/${d.year}';
+  String _formatDate(DateTime d) => '${d.day}/${d.month}/${d.year}';
 
   void _confirmRemoveSlot(AvailabilitySlot slot) {
     final timeStr =
         '${slot.startTime.hour.toString().padLeft(2, '0')}:${slot.startTime.minute.toString().padLeft(2, '0')}';
     showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
-        ),
-        title: const Text('Remove slot'),
-        content: Text(
-          'Remove "${slot.title}" at $timeStr?',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: SyncUpTheme.textPrimary,
-              ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
             ),
-            child: const Text('Remove'),
+            title: const Text('Remove slot'),
+            content: Text(
+              'Remove "${slot.title}" at $timeStr?',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: SyncUpTheme.textPrimary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                ),
+                child: const Text('Remove'),
+              ),
+            ],
           ),
-        ],
-      ),
     ).then((confirmed) {
       if (confirmed == true && mounted) {
         setState(() => _addedSlots.removeWhere((s) => s.id == slot.id));
@@ -219,36 +296,46 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
         elevation: 0,
         actions: [
           Builder(
-            builder: (context) => GestureDetector(
-              onTap: () => Scaffold.of(context).openEndDrawer(),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: SyncUpTheme.primary,
-                  child: const Text(
-                    'M',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+            builder:
+                (context) => GestureDetector(
+                  onTap: () => Scaffold.of(context).openEndDrawer(),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: SyncUpTheme.primary,
+                      child: Text(
+                        widget.displayName.trim().isNotEmpty
+                            ? widget.displayName.trim()[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
           ),
         ],
       ),
       endDrawer: UserProfileDrawer(
-        onSettingsTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SettingsScreen(
-              slotDurationMinutes: 15,
+        displayName: widget.displayName,
+        username: widget.username,
+        email: widget.username.trim().toLowerCase().contains('@')
+            ? widget.username.trim().toLowerCase()
+            : '${widget.username.trim().toLowerCase()}@fit.cvut.cz',
+        roleLabel: widget.roleLabel,
+        userId: widget.userId,
+        onSettingsTap:
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SettingsScreen(slotDurationMinutes: 15),
+              ),
             ),
-          ),
-        ),
+        onSignOutTap: widget.onSignOut,
       ),
       body: Column(
         children: [
@@ -258,9 +345,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
             unselectedLabelColor: SyncUpTheme.textSecondary,
             indicatorColor: SyncUpTheme.primary,
             labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: SyncUpTheme.textPrimary,
-                ),
+              fontWeight: FontWeight.w600,
+              color: SyncUpTheme.textPrimary,
+            ),
             tabs: [
               Tab(text: 'Add'),
               Tab(
@@ -271,17 +358,24 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                     if (_addedSlots.isNotEmpty) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: SyncUpTheme.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusPill),
+                          borderRadius: BorderRadius.circular(
+                            SyncUpTheme.radiusPill,
+                          ),
                         ),
                         child: Text(
                           '${_addedSlots.length}',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: SyncUpTheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelSmall?.copyWith(
+                            color: SyncUpTheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
@@ -304,17 +398,18 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                       children: [
                         Text(
                           'Add Schedule',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: SyncUpTheme.textPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            color: SyncUpTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Create availability slots for others to book',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: SyncUpTheme.textSecondary,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: SyncUpTheme.textSecondary),
                         ),
                         if (_addedSlots.isNotEmpty) ...[
                           const SizedBox(height: 12),
@@ -324,6 +419,8 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                         _AddScheduleSummaryCard(
                           title: _titleController.text.trim(),
                           location: _locationController.text.trim(),
+                          isOnline: _isOnline,
+                          meetingLink: _meetingLinkController.text.trim(),
                           date: _selectedDate,
                           startTime: _startTime,
                           endTime: _endTime,
@@ -337,182 +434,266 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                         ),
                         const SizedBox(height: 12),
                         Container(
-                padding: const EdgeInsets.all(SyncUpTheme.space12),
-                decoration: BoxDecoration(
-                  color: SyncUpTheme.surface,
-                  borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                  border: Border.all(color: SyncUpTheme.border),
-                  boxShadow: SyncUpTheme.cardShadow,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final useRow = constraints.maxWidth > 400;
-                        final fields = [
-                          TextFormField(
-                            controller: _titleController,
-                            decoration: InputDecoration(
-                              labelText: 'Title',
-                              hintText: 'e.g. Consultation, Mentoring, Office hours',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
+                          padding: const EdgeInsets.all(SyncUpTheme.space12),
+                          decoration: BoxDecoration(
+                            color: SyncUpTheme.surface,
+                            borderRadius: BorderRadius.circular(
+                              SyncUpTheme.radiusMd,
                             ),
-                            validator: (v) =>
-                                (v == null || v.trim().isEmpty) ? 'Required' : null,
+                            border: Border.all(color: SyncUpTheme.border),
+                            boxShadow: SyncUpTheme.cardShadow,
                           ),
-                          TextFormField(
-                            controller: _locationController,
-                            decoration: InputDecoration(
-                              labelText: 'Location',
-                              hintText: 'Room 101, Zoom',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                            ),
-                          ),
-                        ];
-                        if (useRow) {
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(child: fields[0]),
-                              const SizedBox(width: 12),
-                              Expanded(child: fields[1]),
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final useRow = constraints.maxWidth > 400;
+                                  final fields = [
+                                    TextFormField(
+                                      controller: _titleController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Title',
+                                        hintText:
+                                            'e.g. Consultation, Mentoring, Office hours',
+                                        isDense: true,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 10,
+                                            ),
+                                      ),
+                                      validator:
+                                          (v) =>
+                                              (v == null || v.trim().isEmpty)
+                                                  ? 'Required'
+                                                  : null,
+                                    ),
+                                    TextFormField(
+                                      controller: _locationController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Location',
+                                        hintText: 'Room 101, Zoom',
+                                        isDense: true,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 10,
+                                            ),
+                                      ),
+                                    ),
+                                  ];
+                                  if (useRow) {
+                                    return Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(child: fields[0]),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: fields[1]),
+                                      ],
+                                    );
+                                  }
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      fields[0],
+                                      const SizedBox(height: 12),
+                                      fields[1],
+                                    ],
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _CompactChip(
+                                      icon: Icons.calendar_today,
+                                      label: _formatDate(_selectedDate),
+                                      onTap: () async {
+                                        final picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: _selectedDate,
+                                          firstDate: DateTime.now(),
+                                          lastDate: DateTime.now().add(
+                                            const Duration(days: 365),
+                                          ),
+                                        );
+                                        if (picked != null)
+                                          setState(
+                                            () => _selectedDate = picked,
+                                          );
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _CompactChip(
+                                      icon: Icons.schedule,
+                                      label:
+                                          '${_formatTime(_startTime)} – ${_formatTime(_endTime)}',
+                                      onTap: () async {
+                                        final range = await showDialog<
+                                          ({TimeOfDay start, TimeOfDay end})
+                                        >(
+                                          context: context,
+                                          builder:
+                                              (ctx) => _TimeRangePicker(
+                                                start: _startTime,
+                                                end: _endTime,
+                                              ),
+                                        );
+                                        if (range != null) {
+                                          setState(() {
+                                            _startTime = range.start;
+                                            _endTime = range.end;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _CompactStepper(
+                                      label: 'Slots',
+                                      value: _numberOfSlots,
+                                      min: 1,
+                                      max: 48,
+                                      onChanged:
+                                          (v) => setState(
+                                            () => _numberOfSlots = v,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _CompactStepper(
+                                      label: 'Break',
+                                      value: _breakBetweenSlotsMinutes,
+                                      suffix: 'min',
+                                      step: 5,
+                                      min: 0,
+                                      max: 60,
+                                      onChanged:
+                                          (v) => setState(
+                                            () => _breakBetweenSlotsMinutes = v,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _CompactStepper(
+                                      label: 'Max',
+                                      value: _attendeesPerSlot,
+                                      min: 1,
+                                      max: 50,
+                                      onChanged:
+                                          (v) => setState(
+                                            () => _attendeesPerSlot = v,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  const Icon(Icons.videocam_outlined, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Online meeting',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: SyncUpTheme.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  const Spacer(),
+                                  Switch(
+                                    value: _isOnline,
+                                    onChanged: (v) {
+                                      setState(() => _isOnline = v);
+                                    },
+                                  ),
+                                ],
+                              ),
+                              if (_isOnline) ...[
+                                const SizedBox(height: 8),
+                                TextFormField(
+                                  controller: _meetingLinkController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Meeting link',
+                                    hintText: 'https://meet.google.com/...',
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  validator: (v) {
+                                    if (!_isOnline) return null;
+                                    final value = (v ?? '').trim();
+                                    if (value.isEmpty) return 'Required for online meetings';
+                                    final uri = Uri.tryParse(value);
+                                    if (uri == null ||
+                                        !uri.hasScheme ||
+                                        !(uri.scheme == 'http' ||
+                                            uri.scheme == 'https')) {
+                                      return 'Enter a valid http/https URL';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              _CancelUntilSelector(
+                                value: _cancelUntilMinutes,
+                                options: _cancelUntilOptions,
+                                onChanged:
+                                    (v) =>
+                                        setState(() => _cancelUntilMinutes = v),
+                              ),
+                              const SizedBox(height: 12),
+                              _RepeatSelector(
+                                value: _repeatOption,
+                                onChanged:
+                                    (v) => setState(() => _repeatOption = v),
+                              ),
                             ],
-                          );
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            fields[0],
-                            const SizedBox(height: 12),
-                            fields[1],
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _CompactChip(
-                            icon: Icons.calendar_today,
-                            label: _formatDate(_selectedDate),
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _selectedDate,
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                              );
-                              if (picked != null) setState(() => _selectedDate = picked);
-                            },
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _CompactChip(
-                            icon: Icons.schedule,
-                            label: '${_formatTime(_startTime)} – ${_formatTime(_endTime)}',
-                            onTap: () async {
-                              final range = await showDialog<({TimeOfDay start, TimeOfDay end})>(
-                                context: context,
-                                builder: (ctx) => _TimeRangePicker(
-                                  start: _startTime,
-                                  end: _endTime,
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: () async {
+                            if (_formKey.currentState?.validate() ?? false) {
+                              await _addSlots();
+                              if (!mounted) return;
+                              setState(() {});
+                              _tabController.animateTo(1);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Added $_totalGeneratedSlotsCount slots: ${_titleController.text}',
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
                                 ),
                               );
-                              if (range != null) {
-                                setState(() {
-                                  _startTime = range.start;
-                                  _endTime = range.end;
-                                });
-                              }
-                            },
+                            }
+                          },
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add schedule'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _CompactStepper(
-                            label: 'Slots',
-                            value: _numberOfSlots,
-                            min: 1,
-                            max: 48,
-                            onChanged: (v) => setState(() => _numberOfSlots = v),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _CompactStepper(
-                            label: 'Break',
-                            value: _breakBetweenSlotsMinutes,
-                            suffix: 'min',
-                            step: 5,
-                            min: 0,
-                            max: 60,
-                            onChanged: (v) => setState(() => _breakBetweenSlotsMinutes = v),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _CompactStepper(
-                            label: 'Max',
-                            value: _attendeesPerSlot,
-                            min: 1,
-                            max: 50,
-                            onChanged: (v) => setState(() => _attendeesPerSlot = v),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _CancelUntilSelector(
-                      value: _cancelUntilMinutes,
-                      options: _cancelUntilOptions,
-                      onChanged: (v) => setState(() => _cancelUntilMinutes = v),
-                    ),
-                    const SizedBox(height: 12),
-                    _RepeatSelector(
-                      value: _repeatOption,
-                      onChanged: (v) => setState(() => _repeatOption = v),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () {
-                  if (_formKey.currentState?.validate() ?? false) {
-                    _addSlots();
-                    setState(() {});
-                    _tabController.animateTo(1);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Added $_totalGeneratedSlotsCount slots: ${_titleController.text}',
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add schedule'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
                       ],
                     ),
                   ),
@@ -527,18 +708,19 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                         children: [
                           Text(
                             'Added slots',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: SyncUpTheme.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              color: SyncUpTheme.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const Spacer(),
                           if (_addedSlots.isNotEmpty)
                             Text(
                               '${_addedSlots.length} total',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: SyncUpTheme.textSecondary,
-                                  ),
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(color: SyncUpTheme.textSecondary),
                             ),
                         ],
                       ),
@@ -548,22 +730,24 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                         weekStart: _slotsWeekStart,
                         onPrev: () {
                           setState(() {
-                            _slotsWeekStart = _slotsWeekStart.subtract(const Duration(days: 7));
+                            _slotsWeekStart = _slotsWeekStart.subtract(
+                              const Duration(days: 7),
+                            );
                             _addedSlotsExpandedDayIndex = null;
                           });
                         },
                         onNext: () {
                           setState(() {
-                            _slotsWeekStart = _slotsWeekStart.add(const Duration(days: 7));
+                            _slotsWeekStart = _slotsWeekStart.add(
+                              const Duration(days: 7),
+                            );
                             _addedSlotsExpandedDayIndex = null;
                           });
                         },
                       ),
                       TabBar(
                         controller: _addedSlotsTabController,
-                        tabs: const [
-                          Tab(text: 'Calendar'),
-                        ],
+                        tabs: const [Tab(text: 'Calendar')],
                         labelColor: SyncUpTheme.primary,
                         unselectedLabelColor: SyncUpTheme.textSecondary,
                         indicatorColor: SyncUpTheme.primary,
@@ -577,9 +761,16 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                               slotDurationMinutes: _addedSlotsSlotDuration,
                               availabilitySlots: _addedSlots,
                               expandedDayIndex: _addedSlotsExpandedDayIndex,
-                              onDayTap: (i) => setState(() => _addedSlotsExpandedDayIndex = i),
-                              onBack: () => setState(() => _addedSlotsExpandedDayIndex = null),
-                              onSlotSelected: (slot) => _confirmRemoveSlot(slot),
+                              onDayTap:
+                                  (i) => setState(
+                                    () => _addedSlotsExpandedDayIndex = i,
+                                  ),
+                              onBack:
+                                  () => setState(
+                                    () => _addedSlotsExpandedDayIndex = null,
+                                  ),
+                              onSlotSelected:
+                                  (slot) => _confirmRemoveSlot(slot),
                             ),
                           ],
                         ),
@@ -593,21 +784,27 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                               Icon(
                                 Icons.event_available,
                                 size: 48,
-                                color: SyncUpTheme.textSecondary.withValues(alpha: 0.5),
+                                color: SyncUpTheme.textSecondary.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                               const SizedBox(height: 12),
                               Text(
                                 'No slots yet',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: SyncUpTheme.textSecondary,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.copyWith(
+                                  color: SyncUpTheme.textSecondary,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Add slots in the Add tab',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: SyncUpTheme.textSecondary,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: SyncUpTheme.textSecondary,
+                                ),
                               ),
                             ],
                           ),
@@ -628,6 +825,8 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
 class _AddScheduleSummaryCard extends StatelessWidget {
   final String title;
   final String location;
+  final bool isOnline;
+  final String meetingLink;
   final DateTime date;
   final TimeOfDay startTime;
   final TimeOfDay endTime;
@@ -642,6 +841,8 @@ class _AddScheduleSummaryCard extends StatelessWidget {
   const _AddScheduleSummaryCard({
     required this.title,
     required this.location,
+    required this.isOnline,
+    required this.meetingLink,
     required this.date,
     required this.startTime,
     required this.endTime,
@@ -658,17 +859,33 @@ class _AddScheduleSummaryCard extends StatelessWidget {
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   String _formatDate(DateTime d) {
-    const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const m = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${m[d.month - 1]} ${d.day}, ${d.year}';
   }
 
   String get _repeatLabel {
     switch (repeatOption) {
-      case 'daily': return 'Daily';
-      case 'weekly': return 'Weekly';
-      case 'monthly': return 'Monthly';
-      default: return 'Once';
+      case 'daily':
+        return 'Daily';
+      case 'weekly':
+        return 'Weekly';
+      case 'monthly':
+        return 'Monthly';
+      default:
+        return 'Once';
     }
   }
 
@@ -676,7 +893,8 @@ class _AddScheduleSummaryCard extends StatelessWidget {
     if (cancelUntilMinutes == 0) return 'Until start';
     if (cancelUntilMinutes < 60) return '${cancelUntilMinutes}m before';
     if (cancelUntilMinutes < 1440) return '${cancelUntilMinutes ~/ 60}h before';
-    if (cancelUntilMinutes < 10080) return '${cancelUntilMinutes ~/ 1440}d before';
+    if (cancelUntilMinutes < 10080)
+      return '${cancelUntilMinutes ~/ 1440}d before';
     return '${cancelUntilMinutes ~/ 10080}w before';
   }
 
@@ -702,16 +920,19 @@ class _AddScheduleSummaryCard extends StatelessWidget {
                 child: Text(
                   title.isEmpty ? 'Untitled' : title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: SyncUpTheme.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: SyncUpTheme.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (totalSlotsCount > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: SyncUpTheme.primaryLight,
                     borderRadius: BorderRadius.circular(SyncUpTheme.radiusPill),
@@ -719,9 +940,9 @@ class _AddScheduleSummaryCard extends StatelessWidget {
                   child: Text(
                     '$totalSlotsCount slots',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: SyncUpTheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: SyncUpTheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
             ],
@@ -730,14 +951,43 @@ class _AddScheduleSummaryCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.place_outlined, size: 14, color: SyncUpTheme.textSecondary),
+                Icon(
+                  Icons.place_outlined,
+                  size: 14,
+                  color: SyncUpTheme.textSecondary,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     location,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: SyncUpTheme.textSecondary,
-                        ),
+                      color: SyncUpTheme.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (isOnline) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.link_outlined,
+                  size: 14,
+                  color: SyncUpTheme.textSecondary,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    meetingLink.isEmpty ? 'Meeting link required' : meetingLink,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: meetingLink.isEmpty
+                          ? Colors.red.shade700
+                          : SyncUpTheme.textSecondary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -769,16 +1019,11 @@ class _AddScheduleSummaryCard extends StatelessWidget {
                 ),
               _SummaryChip(
                 icon: Icons.person_outline,
-                label: attendeesPerSlot == 1 ? '1-on-1' : 'Max $attendeesPerSlot',
+                label:
+                    attendeesPerSlot == 1 ? '1-on-1' : 'Max $attendeesPerSlot',
               ),
-              _SummaryChip(
-                icon: Icons.repeat,
-                label: _repeatLabel,
-              ),
-              _SummaryChip(
-                icon: Icons.event_busy,
-                label: _cancelUntilLabel,
-              ),
+              _SummaryChip(icon: Icons.repeat, label: _repeatLabel),
+              _SummaryChip(icon: Icons.event_busy, label: _cancelUntilLabel),
             ],
           ),
         ],
@@ -803,9 +1048,9 @@ class _SummaryChip extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: SyncUpTheme.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+            color: SyncUpTheme.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -826,7 +1071,11 @@ class _ActiveSchedulesList extends StatelessWidget {
       if (existing == null) {
         map[key] = (title: s.title, location: s.location, count: 1);
       } else {
-        map[key] = (title: s.title, location: s.location, count: existing.count + 1);
+        map[key] = (
+          title: s.title,
+          location: s.location,
+          count: existing.count + 1,
+        );
       }
     }
     return map.values.toList();
@@ -855,16 +1104,16 @@ class _ActiveSchedulesList extends StatelessWidget {
               Text(
                 'Active schedules',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: SyncUpTheme.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: SyncUpTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const Spacer(),
               Text(
                 '${slots.length} slots',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: SyncUpTheme.textSecondary,
-                    ),
+                  color: SyncUpTheme.textSecondary,
+                ),
               ),
             ],
           ),
@@ -872,56 +1121,75 @@ class _ActiveSchedulesList extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 6,
-            children: items.map((item) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: SyncUpTheme.primaryLight.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-                  border: Border.all(color: SyncUpTheme.primary.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item.title,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            children:
+                items.map((item) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: SyncUpTheme.primaryLight.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
+                      border: Border.all(
+                        color: SyncUpTheme.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.title,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelMedium?.copyWith(
                             color: SyncUpTheme.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
-                    ),
-                    if (item.location != null && item.location!.isNotEmpty) ...[
-                      const SizedBox(width: 4),
-                      Icon(Icons.place, size: 12, color: SyncUpTheme.textSecondary),
-                      const SizedBox(width: 2),
-                      Text(
-                        item.location!,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: SyncUpTheme.textSecondary,
+                        ),
+                        if (item.location != null &&
+                            item.location!.isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.place,
+                            size: 12,
+                            color: SyncUpTheme.textSecondary,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            item.location!,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: SyncUpTheme.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: SyncUpTheme.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(
+                              SyncUpTheme.radiusXs,
                             ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: SyncUpTheme.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-                      ),
-                      child: Text(
-                        '${item.count}',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          ),
+                          child: Text(
+                            '${item.count}',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.copyWith(
                               color: SyncUpTheme.primary,
                               fontWeight: FontWeight.w700,
                             ),
-                      ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
           ),
         ],
       ),
@@ -933,10 +1201,7 @@ class _RepeatSelector extends StatelessWidget {
   final String value;
   final ValueChanged<String> onChanged;
 
-  const _RepeatSelector({
-    required this.value,
-    required this.onChanged,
-  });
+  const _RepeatSelector({required this.value, required this.onChanged});
 
   static const _options = [
     ('none', 'No repeat', Icons.repeat),
@@ -958,8 +1223,8 @@ class _RepeatSelector extends StatelessWidget {
             Text(
               'Repeat',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: SyncUpTheme.textSecondary,
-                  ),
+                color: SyncUpTheme.textSecondary,
+              ),
             ),
           ],
         ),
@@ -967,44 +1232,59 @@ class _RepeatSelector extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 6,
-          children: _options.map((opt) {
-            final selected = value == opt.$1;
-            return GestureDetector(
-              onTap: () => onChanged(opt.$1),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? SyncUpTheme.primaryLight.withValues(alpha: 0.6)
-                      : SyncUpTheme.background,
-                  borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-                  border: Border.all(
-                    color: selected ? SyncUpTheme.primary : SyncUpTheme.border,
-                    width: selected ? 2 : 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      opt.$3,
-                      size: 16,
-                      color: selected ? SyncUpTheme.primary : SyncUpTheme.textSecondary,
+          children:
+              _options.map((opt) {
+                final selected = value == opt.$1;
+                return GestureDetector(
+                  onTap: () => onChanged(opt.$1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      opt.$2,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: selected ? SyncUpTheme.primary : SyncUpTheme.textPrimary,
-                            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    decoration: BoxDecoration(
+                      color:
+                          selected
+                              ? SyncUpTheme.primaryLight.withValues(alpha: 0.6)
+                              : SyncUpTheme.background,
+                      borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
+                      border: Border.all(
+                        color:
+                            selected ? SyncUpTheme.primary : SyncUpTheme.border,
+                        width: selected ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          opt.$3,
+                          size: 16,
+                          color:
+                              selected
+                                  ? SyncUpTheme.primary
+                                  : SyncUpTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          opt.$2,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelMedium?.copyWith(
+                            color:
+                                selected
+                                    ? SyncUpTheme.primary
+                                    : SyncUpTheme.textPrimary,
+                            fontWeight:
+                                selected ? FontWeight.w600 : FontWeight.w500,
                           ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
+                  ),
+                );
+              }).toList(),
         ),
       ],
     );
@@ -1035,8 +1315,8 @@ class _CancelUntilSelector extends StatelessWidget {
             Text(
               'Can cancel until',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: SyncUpTheme.textSecondary,
-                  ),
+                color: SyncUpTheme.textSecondary,
+              ),
             ),
           ],
         ),
@@ -1055,17 +1335,19 @@ class _CancelUntilSelector extends StatelessWidget {
               icon: Icon(Icons.arrow_drop_down, color: SyncUpTheme.primary),
               borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
               dropdownColor: SyncUpTheme.surface,
-              items: options
-                  .map((o) => DropdownMenuItem<int>(
-                        value: o.minutes,
-                        child: Text(
-                          o.label,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: SyncUpTheme.textPrimary,
-                              ),
+              items:
+                  options
+                      .map(
+                        (o) => DropdownMenuItem<int>(
+                          value: o.minutes,
+                          child: Text(
+                            o.label,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: SyncUpTheme.textPrimary),
+                          ),
                         ),
-                      ))
-                  .toList(),
+                      )
+                      .toList(),
               onChanged: (v) => onChanged(v ?? value),
             ),
           ),
@@ -1088,8 +1370,14 @@ class _AddedSlotsWeekRow extends StatelessWidget {
 
   String _weekBadgeLabel(DateTime weekSunday) {
     final now = DateTime.now();
-    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
-    final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
+    final thisWeekSunday = startOfWeekSunday(
+      DateTime(now.year, now.month, now.day),
+    );
+    final displayedSunday = DateTime(
+      weekSunday.year,
+      weekSunday.month,
+      weekSunday.day,
+    );
     if (displayedSunday == thisWeekSunday) return 'This week';
     if (displayedSunday.isAfter(thisWeekSunday)) {
       final weeksAhead = displayedSunday.difference(thisWeekSunday).inDays ~/ 7;
@@ -1101,8 +1389,14 @@ class _AddedSlotsWeekRow extends StatelessWidget {
 
   Color _weekBadgeColor(DateTime weekSunday) {
     final now = DateTime.now();
-    final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
-    final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
+    final thisWeekSunday = startOfWeekSunday(
+      DateTime(now.year, now.month, now.day),
+    );
+    final displayedSunday = DateTime(
+      weekSunday.year,
+      weekSunday.month,
+      weekSunday.day,
+    );
     if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
     if (displayedSunday.isAfter(thisWeekSunday)) return Colors.blue.shade700;
     return SyncUpTheme.textSecondary;
@@ -1113,10 +1407,23 @@ class _AddedSlotsWeekRow extends StatelessWidget {
     final weekSunday = startOfWeekSunday(
       DateTime(weekStart.year, weekStart.month, weekStart.day),
     );
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final sat = weekSunday.add(const Duration(days: 6));
-    final weekLabel = '${months[weekSunday.month - 1]} ${weekSunday.day}–${sat.day} ${weekSunday.year}';
+    final weekLabel =
+        '${months[weekSunday.month - 1]} ${weekSunday.day}–${sat.day} ${weekSunday.year}';
     final badgeColor = _weekBadgeColor(weekSunday);
 
     return Container(
@@ -1136,9 +1443,9 @@ class _AddedSlotsWeekRow extends StatelessWidget {
                   Text(
                     weekLabel,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: SyncUpTheme.textPrimary,
-                        ),
+                      fontWeight: FontWeight.w600,
+                      color: SyncUpTheme.textPrimary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1150,9 +1457,7 @@ class _AddedSlotsWeekRow extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: badgeColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(
-                        SyncUpTheme.radiusXs,
-                      ),
+                      borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
                       border: Border.all(
                         color: badgeColor.withValues(alpha: 0.3),
                         width: 1,
@@ -1161,10 +1466,10 @@ class _AddedSlotsWeekRow extends StatelessWidget {
                     child: Text(
                       _weekBadgeLabel(weekSunday),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: badgeColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                          ),
+                        color: badgeColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 10,
+                      ),
                     ),
                   ),
                 ],
@@ -1211,14 +1516,18 @@ class _CompactChip extends StatelessWidget {
                 child: Text(
                   label,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: SyncUpTheme.textPrimary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: SyncUpTheme.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Icon(Icons.chevron_right, size: 16, color: SyncUpTheme.textSecondary),
+              Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: SyncUpTheme.textSecondary,
+              ),
             ],
           ),
         ),
@@ -1248,40 +1557,47 @@ class _CompactStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayValue = suffix != null
-        ? (value > 0 ? '$value $suffix' : 'None')
-        : value.toString();
+    final displayValue =
+        suffix != null
+            ? (value > 0 ? '$value $suffix' : 'None')
+            : value.toString();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: SyncUpTheme.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: SyncUpTheme.textSecondary),
         ),
         const SizedBox(height: 4),
         Row(
           children: [
             _StepperBtn(
               icon: Icons.remove,
-              onPressed: value > min ? () => onChanged((value - step).clamp(min, max)) : null,
+              onPressed:
+                  value > min
+                      ? () => onChanged((value - step).clamp(min, max))
+                      : null,
             ),
             Expanded(
               child: Center(
                 child: Text(
                   displayValue,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: SyncUpTheme.textPrimary,
-                      ),
+                    fontWeight: FontWeight.w600,
+                    color: SyncUpTheme.textPrimary,
+                  ),
                 ),
               ),
             ),
             _StepperBtn(
               icon: Icons.add,
-              onPressed: value < max ? () => onChanged((value + step).clamp(min, max)) : null,
+              onPressed:
+                  value < max
+                      ? () => onChanged((value + step).clamp(min, max))
+                      : null,
             ),
           ],
         ),
@@ -1359,7 +1675,10 @@ class _TimeRangePickerState extends State<_TimeRangePicker> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Start', style: Theme.of(context).textTheme.labelMedium),
+                    Text(
+                      'Start',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
                     const SizedBox(height: 4),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
