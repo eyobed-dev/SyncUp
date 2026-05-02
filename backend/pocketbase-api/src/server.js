@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import cors from "cors";
 import express from "express";
+import crypto from "node:crypto";
 import { pb, withAdminAuth } from "./pocketbase.js";
 
 dotenv.config();
@@ -16,6 +17,48 @@ app.use(express.json({ limit: "1mb" }));
 
 const PORT = Number(process.env.PORT || 8080);
 const DAY_MS = 24 * 60 * 60 * 1000;
+const SCRYPT_N = Number(process.env.PASSWORD_HASH_N || 16384);
+const SCRYPT_R = Number(process.env.PASSWORD_HASH_R || 8);
+const SCRYPT_P = Number(process.env.PASSWORD_HASH_P || 1);
+// Keep under app_users.password max length (120 chars in collection schema).
+const SCRYPT_KEYLEN = Number(process.env.PASSWORD_HASH_KEYLEN || 32);
+
+function isScryptHash(value) {
+  return String(value || "").startsWith("scrypt$");
+}
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const derived = crypto.scryptSync(String(password), salt, SCRYPT_KEYLEN, {
+    N: SCRYPT_N,
+    r: SCRYPT_R,
+    p: SCRYPT_P,
+  });
+  return `scrypt$${SCRYPT_N}$${SCRYPT_R}$${SCRYPT_P}$${salt}$${derived.toString("hex")}`;
+}
+
+function verifyScryptHash(candidate, storedPassword) {
+  const [algo, n, r, p, salt, hashHex] = String(storedPassword || "").split("$");
+  if (algo !== "scrypt" || !salt || !hashHex) return false;
+  const expected = Buffer.from(hashHex, "hex");
+  if (!expected.length) return false;
+  const actual = crypto.scryptSync(String(candidate), salt, expected.length, {
+    N: Number(n),
+    r: Number(r),
+    p: Number(p),
+  });
+  if (actual.length !== expected.length) return false;
+  return crypto.timingSafeEqual(actual, expected);
+}
+
+async function verifyPassword(candidate, storedPassword) {
+  const stored = String(storedPassword || "");
+  if (!stored) return false;
+  if (isScryptHash(stored)) {
+    return verifyScryptHash(candidate, stored);
+  }
+  return stored === String(candidate);
+}
 
 function normalizeDateOnly(value) {
   const date = new Date(value);
@@ -142,8 +185,26 @@ app.post("/api/v1/auth/login", async (req, res) => {
     }
 
     const user = await withAdminAuth(() => getAppUserByUsername(username));
-    if (!user || String(user.password || "") !== password) {
+    if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const currentStoredPassword = String(user.password || "");
+    const validPassword = await verifyPassword(password, currentStoredPassword);
+    if (!validPassword) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Seamlessly migrate legacy plaintext passwords to scrypt after successful login.
+    if (!isScryptHash(currentStoredPassword)) {
+      try {
+        const nextHashedPassword = await hashPassword(password);
+        await withAdminAuth(() =>
+          pb.collection("app_users").update(user.id, { password: nextHashedPassword }),
+        );
+      } catch (_) {
+        // Best-effort migration; do not block successful login.
+      }
     }
 
     return res.status(200).json({

@@ -1,9 +1,25 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import dotenv from "dotenv";
+import crypto from "node:crypto";
 import { withAdminAuth, pb } from "../src/pocketbase.js";
 
 dotenv.config();
+const SCRYPT_N = Number(process.env.PASSWORD_HASH_N || 16384);
+const SCRYPT_R = Number(process.env.PASSWORD_HASH_R || 8);
+const SCRYPT_P = Number(process.env.PASSWORD_HASH_P || 1);
+// Keep under app_users.password max length (120 chars in collection schema).
+const SCRYPT_KEYLEN = Number(process.env.PASSWORD_HASH_KEYLEN || 32);
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const derived = crypto.scryptSync(String(password), salt, SCRYPT_KEYLEN, {
+    N: SCRYPT_N,
+    r: SCRYPT_R,
+    p: SCRYPT_P,
+  });
+  return `scrypt$${SCRYPT_N}$${SCRYPT_R}$${SCRYPT_P}$${salt}$${derived.toString("hex")}`;
+}
 
 async function readBackendSeed() {
   const root = path.resolve(process.cwd(), "../..");
@@ -97,6 +113,7 @@ async function ensureSession(session) {
 }
 
 async function ensureAppUser(user) {
+  const hashedPassword = await hashPassword(user.password);
   const escaped = String(user.username).replace(/"/g, '\\"');
   try {
     const existing = await pb
@@ -104,7 +121,7 @@ async function ensureAppUser(user) {
       .getFirstListItem(`username="${escaped}"`);
     return pb.collection("app_users").update(existing.id, {
       username: String(user.username),
-      password: String(user.password),
+      password: hashedPassword,
       role: String(user.role),
       display_name: String(user.displayName),
       owner_external_id: user.ownerExternalId ? String(user.ownerExternalId) : "",
@@ -113,7 +130,7 @@ async function ensureAppUser(user) {
   } catch {
     return pb.collection("app_users").create({
       username: String(user.username),
-      password: String(user.password),
+      password: hashedPassword,
       role: String(user.role),
       display_name: String(user.displayName),
       owner_external_id: user.ownerExternalId ? String(user.ownerExternalId) : "",
