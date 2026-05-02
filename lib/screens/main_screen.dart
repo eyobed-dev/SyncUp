@@ -66,13 +66,7 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Add Schedule',
             ),
           ]
-        : const [
-            (
-              icon: Icons.search_outlined,
-              active: Icons.search,
-              label: 'Find Schedule',
-            ),
-          ];
+        : const [];
 
     if (_currentIndex >= screens.length) {
       _currentIndex = 0;
@@ -81,7 +75,7 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       body: Row(
         children: [
-          if (useRail) ...[
+          if (useRail && navItems.length >= 2) ...[
             NavigationRail(
               selectedIndex: _currentIndex,
               onDestinationSelected: (i) => setState(() => _currentIndex = i),

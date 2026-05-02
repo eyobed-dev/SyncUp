@@ -85,25 +85,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: SyncUpTheme.primaryLight,
-                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
-                        border: Border.all(color: SyncUpTheme.primary.withValues(alpha: 0.18)),
-                      ),
-                      child: const Text(
-                        'Default users:\n'
-                        '- professor / Professor@123\n'
-                        '- student / Student@123',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     TextField(
                       controller: _usernameController,
                       decoration: const InputDecoration(
                         labelText: 'Username',
-                        hintText: 'professor or student',
                       ),
                     ),
                     const SizedBox(height: 16),

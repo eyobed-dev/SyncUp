@@ -220,16 +220,16 @@ async function main() {
 
     const defaultUsers = [
       {
-        username: "professor",
-        password: "Professor@123",
+        username: "p",
+        password: "1",
         role: "owner",
         displayName: "Prof. Alexander Meduna",
         ownerExternalId: "p1",
         discipline: "",
       },
       {
-        username: "student",
-        password: "Student@123",
+        username: "s",
+        password: "1",
         role: "attendee",
         displayName: "Liam Carter",
         ownerExternalId: "",

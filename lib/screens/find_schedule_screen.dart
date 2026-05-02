@@ -11,8 +11,6 @@ import '../models/availability_slot.dart';
 import '../models/meeting.dart';
 import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
-import '../widgets/week_day_selector.dart';
-import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
 
 class FindScheduleScreen extends StatefulWidget {
@@ -46,26 +44,23 @@ class FindScheduleScreen extends StatefulWidget {
 class _FindScheduleScreenState extends State<FindScheduleScreen> {
   DateTime _weekStart = DateTime.now();
   int _slotDurationMinutes = 15;
-  ScheduleOwner? _selectedOwner;
-  late final ValueNotifier<int> _selectedDayIndex;
-  final Set<String> _bookedSlotKeys = <String>{};
-  final Set<String> _bookingInFlightSlotKeys = <String>{};
+  
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   final LayerLink _searchLayerLink = LayerLink();
   final GlobalKey _searchFieldKey = GlobalKey();
   final TextEditingController _cancelReasonController = TextEditingController();
+  
   String _searchQuery = '';
   bool _searchFocused = false;
-  bool _isSelectingFromDropdown = false;
   bool _keepDropdownVisible = false;
   Timer? _dropdownHideTimer;
   bool _isSyncing = false;
   List<Meeting> _myBookings = const [];
 
   DateTime get _weekSunday => startOfWeekSunday(
-    DateTime(_weekStart.year, _weekStart.month, _weekStart.day),
-  );
+        DateTime(_weekStart.year, _weekStart.month, _weekStart.day),
+      );
 
   bool get _isStudentView =>
       widget.currentOwnerId == null || widget.currentOwnerId!.trim().isEmpty;
@@ -73,23 +68,27 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDayIndex = ValueNotifier(DateTime.now().weekday % 7);
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onSearchFocusChanged);
     _syncInitial();
+    
+    if (widget.startInFinder) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        FocusScope.of(context).requestFocus(_searchFocusNode);
+      });
+    }
   }
 
   Future<void> _syncInitial() async {
     setState(() => _isSyncing = true);
     final futures = <Future<void>>[syncScheduleOwners()];
-    if (_selectedOwner != null) {
-      futures.add(syncAvailabilityForOwner(_selectedOwner!.id, _weekSunday));
-    }
     await Future.wait(futures);
+    
     List<Meeting> myBookings = _myBookings;
     if (_isStudentView) {
       myBookings = await _fetchMyBookingsForWeek();
     }
+    
     if (mounted) {
       setState(() {
         _myBookings = myBookings;
@@ -99,23 +98,13 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
   }
 
   Future<void> _syncVisibleWeekData() async {
-    final owner = _selectedOwner;
     setState(() => _isSyncing = true);
-    final futures = <Future<void>>[];
-    if (owner != null) {
-      futures.add(syncAvailabilityForOwner(owner.id, _weekSunday));
-    }
+    
     List<Meeting> myBookings = _myBookings;
     if (_isStudentView) {
-      futures.add(
-        _fetchMyBookingsForWeek().then((value) {
-          myBookings = value;
-        }),
-      );
+      myBookings = await _fetchMyBookingsForWeek();
     }
-    if (futures.isNotEmpty) {
-      await Future.wait(futures);
-    }
+    
     if (mounted) {
       setState(() {
         _myBookings = myBookings;
@@ -125,14 +114,8 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
   }
 
   void _onSearchChanged() {
-    if (_isSelectingFromDropdown) return;
     setState(() {
       _searchQuery = _searchController.text.toLowerCase();
-      if (_selectedOwner != null &&
-          _searchController.text.trim().toLowerCase() !=
-              _selectedOwner!.name.trim().toLowerCase()) {
-        _selectedOwner = null;
-      }
     });
   }
 
@@ -162,7 +145,6 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _cancelReasonController.dispose();
-    _selectedDayIndex.dispose();
     super.dispose();
   }
 
@@ -185,7 +167,6 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     }
 
     bool isMine(Meeting m) {
-      // Never treat open availability placeholders as booked meetings.
       if (m.participantName.trim().toLowerCase() == 'open slot') return false;
 
       final myUserId = (widget.attendeeUserId ?? '').trim();
@@ -197,7 +178,6 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
         return meetingStudentId == myUserId;
       }
       if (myUserId.isNotEmpty && meetingStudentId.isEmpty) {
-        // Fallback when backend row lacks studentId.
         return meetingName == myName;
       }
       return meetingName == myName;
@@ -208,38 +188,6 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     return out;
   }
 
-  void _startFindingMeeting() {
-    if (_isStudentView && !widget.startInFinder) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => FindScheduleScreen(
-                attendeeName: widget.attendeeName,
-                attendeeUserId: widget.attendeeUserId,
-                currentOwnerId: widget.currentOwnerId,
-                profileDisplayName: widget.profileDisplayName,
-                profileUsername: widget.profileUsername,
-                profileRoleLabel: widget.profileRoleLabel,
-                profileUserId: widget.profileUserId,
-                startInFinder: true,
-                onSignOut: widget.onSignOut,
-              ),
-        ),
-      ).then((_) {
-        if (mounted) _syncVisibleWeekData();
-      });
-      return;
-    }
-    setState(() {
-      _selectedOwner = null;
-      _keepDropdownVisible = true;
-      _searchFocused = true;
-    });
-    FocusScope.of(context).requestFocus(_searchFocusNode);
-  }
-
-  /// Converts wildcard pattern (* = any chars, ? = single char) to regex.
   bool _matchesWildcard(String text, String pattern) {
     if (pattern.isEmpty) return true;
     const regexSpecial = r'.+^${}()|[]\';
@@ -271,163 +219,43 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     }
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.trim();
-      list =
-          list.where((o) {
-            return _matchesWildcard(o.name, query) ||
-                (o.role != null && _matchesWildcard(o.role!, query)) ||
-                (o.department != null &&
-                    _matchesWildcard(o.department!, query));
-          }).toList();
+      list = list.where((o) {
+        return _matchesWildcard(o.name, query) ||
+            (o.role != null && _matchesWildcard(o.role!, query)) ||
+            (o.department != null && _matchesWildcard(o.department!, query));
+      }).toList();
     }
     return list;
   }
 
-  void _prevWeek() {
-    setState(() {
-      _weekStart = _weekStart.subtract(const Duration(days: 7));
-    });
-    _syncVisibleWeekData();
-  }
-
-  void _nextWeek() {
-    setState(() {
-      _weekStart = _weekStart.add(const Duration(days: 7));
-    });
-    _syncVisibleWeekData();
-  }
-
-  String get _weekLabel {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final sat = _weekSunday.add(const Duration(days: 6));
-    return '${months[_weekSunday.month - 1]} ${_weekSunday.day}–${sat.day} ${_weekSunday.year}';
-  }
-
-  String get _weekBadgeLabel {
-    final now = DateTime.now();
-    final thisWeekSunday = startOfWeekSunday(
-      DateTime(now.year, now.month, now.day),
-    );
-    final displayedSunday = DateTime(
-      _weekSunday.year,
-      _weekSunday.month,
-      _weekSunday.day,
-    );
-    if (displayedSunday == thisWeekSunday) return 'This week';
-    if (displayedSunday.isAfter(thisWeekSunday)) {
-      final weeksAhead = displayedSunday.difference(thisWeekSunday).inDays ~/ 7;
-      return 'Next ${weeksAhead} week${weeksAhead == 1 ? '' : 's'}';
-    }
-    final weeksAgo = thisWeekSunday.difference(displayedSunday).inDays ~/ 7;
-    return 'Past ${weeksAgo} week${weeksAgo == 1 ? '' : 's'}';
-  }
-
-  String _slotKey(ScheduleOwner owner, AvailabilitySlot slot) =>
-      '${owner.id}|${slot.id}|${slot.startTime.toIso8601String()}';
-
-  Future<bool> _showSlotConfirmation(
-    BuildContext context,
-    AvailabilitySlot slot, {
-    required ScheduleOwner owner,
-  }) {
-    final dateStr =
-        '${slot.startTime.day}/${slot.startTime.month}/${slot.startTime.year}';
-    final timeStr =
-        '${slot.startTime.hour.toString().padLeft(2, '0')}:${slot.startTime.minute.toString().padLeft(2, '0')}';
-    final endStr =
-        '${slot.startTime.add(Duration(minutes: slot.durationMinutes)).hour.toString().padLeft(2, '0')}:${slot.startTime.add(Duration(minutes: slot.durationMinutes)).minute.toString().padLeft(2, '0')}';
-    final locationStr = slot.location ?? '—';
-
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder:
-          (ctx) => _BookSlotDialog(
-            slot: slot,
-            owner: owner,
-            dateStr: dateStr,
-            timeStr: timeStr,
-            endStr: endStr,
-            locationStr: locationStr,
-            onConfirmed: (note) {
-              final msg =
-                  note.isEmpty
-                      ? 'Booked ${slot.title} – $timeStr at $locationStr with ${owner.name}'
-                      : 'Booked ${slot.title} – $timeStr with ${owner.name}. Note: $note';
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(msg),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
-    ).then((v) => v == true);
-  }
-
-  Future<String?> _showBulkCancelBookingDialog(List<Meeting> bookings) {
-    final now = DateTime.now();
-    final withinOneDay = bookings.any((b) {
-      final startsIn = b.startTime.difference(now);
-      return startsIn.inMinutes >= 0 && startsIn <= const Duration(days: 1);
-    });
+  Future<String?> _showCancelBookingDialog(Meeting booking) {
     _cancelReasonController.text =
         'Hello Professor,\n\nI need to cancel my booking due to a scheduling conflict.\n\nThank you.';
+    
     return showDialog<String>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(
-            bookings.length == 1 ? 'Cancel booking?' : 'Cancel ${bookings.length} bookings?',
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd)),
+          title: const Text('Cancel booking?'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (withinOneDay)
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
-                      ),
-                    ),
-                    child: const Text(
-                      'Warning: At least one selected meeting is within 1 day. Please include a clear reason to notify the professor.',
-                    ),
-                  ),
                 Text(
-                  bookings.length == 1
-                      ? 'After cancelling, this slot will become available again.'
-                      : 'After cancelling, all selected slots will become available again.',
+                  'After cancelling, this slot will become available again.',
                   style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                     color: SyncUpTheme.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _cancelReasonController,
                   maxLines: 4,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Email to professor (reason)',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm)),
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -447,10 +275,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                 final reason = _cancelReasonController.text.trim();
                 if (reason.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please enter a cancellation reason.'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
+                    const SnackBar(content: Text('Please enter a cancellation reason.')),
                   );
                   return;
                 }
@@ -464,868 +289,437 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     );
   }
 
-  Future<void> _cancelStudentBookings(List<Meeting> bookings) async {
-    final cancellable = bookings
-        .where((b) => b.id.trim().startsWith('booking-'))
-        .toList();
-    if (cancellable.isEmpty) return;
-    final reason = await _showBulkCancelBookingDialog(cancellable);
-    if (!mounted || reason == null) return;
+  Future<bool> _cancelSingleBooking(Meeting booking) async {
+    final reason = await _showCancelBookingDialog(booking);
+    if (!mounted || reason == null) return false;
+    
     try {
-      for (final booking in cancellable) {
-        final bookingId = booking.id.trim().substring('booking-'.length);
-        await LiveBackendCache.instance.cancelBooking(
-          bookingId: bookingId,
-          participantUserId: widget.attendeeUserId,
-          participantName: widget.attendeeName,
-          cancelReason: reason,
-        );
-      }
-      if (!mounted) return;
+      final bookingId = booking.id.trim().substring('booking-'.length);
+      await LiveBackendCache.instance.cancelBooking(
+        bookingId: bookingId,
+        participantUserId: widget.attendeeUserId,
+        participantName: widget.attendeeName,
+        cancelReason: reason,
+      );
+      
+      if (!mounted) return true;
       await _syncVisibleWeekData();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            cancellable.length == 1
-                ? 'Booking cancelled and professor notified.'
-                : '${cancellable.length} bookings cancelled and professor notified.',
-          ),
+        const SnackBar(
+          content: Text('Booking cancelled and professor notified.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      return true;
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to cancel booking. Please try again.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      return false;
     }
   }
 
-  Color get _weekBadgeColor {
-    final now = DateTime.now();
-    final thisWeekSunday = startOfWeekSunday(
-      DateTime(now.year, now.month, now.day),
+  void _onProfessorSelected(ScheduleOwner owner) {
+    _searchFocusNode.unfocus();
+    _searchController.clear();
+    setState(() => _searchQuery = '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: SyncUpTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _ProfessorBookingSheet(
+        owner: owner,
+        weekSunday: _weekSunday,
+        attendeeName: widget.attendeeName,
+        attendeeUserId: widget.attendeeUserId,
+        onBookingComplete: _syncVisibleWeekData,
+      ),
     );
-    final displayedSunday = DateTime(
-      _weekSunday.year,
-      _weekSunday.month,
-      _weekSunday.day,
-    );
-    if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
-    if (displayedSunday.isAfter(thisWeekSunday)) return Colors.blue.shade700;
-    return SyncUpTheme.textSecondary;
   }
 
   @override
   Widget build(BuildContext context) {
     final compact = Responsive.isMobile(context);
-    final showStudentListPage = _isStudentView && !widget.startInFinder;
-    final selectedOwner = _selectedOwner;
-    final weekSunday = _weekSunday;
-    final emptySlotCountsByDay =
-        selectedOwner == null
-            ? const <int>[]
-            : List<int>.generate(7, (dayIdx) {
-              final dayDate = weekSunday.add(Duration(days: dayIdx));
-              return getAvailabilityForOwner(selectedOwner.id, weekSunday)
-                  .where((slot) {
-                    final t = slot.startTime;
-                    return t.year == dayDate.year &&
-                        t.month == dayDate.month &&
-                        t.day == dayDate.day;
-                  })
-                  .where((slot) {
-                    final key = _slotKey(
-                      selectedOwner,
-                      slot,
-                    );
-                    return !_bookedSlotKeys.contains(key) &&
-                        !_bookingInFlightSlotKeys.contains(key);
-                  })
-                  .length;
-            });
-    final showOwnerDropdown =
-        _filteredOwners.isNotEmpty &&
-        _selectedOwner == null &&
+    final showOwnerDropdown = _filteredOwners.isNotEmpty &&
         (_searchFocused || _keepDropdownVisible || _searchQuery.isNotEmpty);
     final viewportWidth = MediaQuery.sizeOf(context).width;
-    final searchFieldWidth = (viewportWidth - 24).clamp(220.0, 560.0);
-    return Scaffold(
-      appBar: AppBar(
-        title: SyncUpLogo(size: 28, compact: compact),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          Builder(
-            builder:
-                (context) => GestureDetector(
+    final searchFieldWidth = (viewportWidth - 32).clamp(220.0, 800.0);
+
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: SyncUpTheme.background,
+          appBar: AppBar(
+            title: SyncUpLogo(size: 28, compact: compact),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            actions: [
+              // User Avatar
+              Builder(
+                builder: (context) => GestureDetector(
                   onTap: () => Scaffold.of(context).openEndDrawer(),
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.only(right: 16),
                     child: CircleAvatar(
-                      radius: 16,
+                      radius: 18,
                       backgroundColor: SyncUpTheme.primary,
                       child: Text(
                         widget.profileDisplayName.trim().isNotEmpty
                             ? widget.profileDisplayName.trim()[0].toUpperCase()
                             : '?',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
                 ),
+              ),
+            ],
           ),
-        ],
-      ),
-      endDrawer: UserProfileDrawer(
-        displayName: widget.profileDisplayName,
-        username: widget.profileUsername,
-        email: widget.profileUsername.trim().toLowerCase().contains('@')
-            ? widget.profileUsername.trim().toLowerCase()
-            : '${widget.profileUsername.trim().toLowerCase()}@fit.cvut.cz',
-        roleLabel: widget.profileRoleLabel,
-        userId: widget.profileUserId,
-        onSettingsTap: () async {
-          final result = await Navigator.push<int>(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => SettingsScreen(
+          endDrawer: UserProfileDrawer(
+            displayName: widget.profileDisplayName,
+            username: widget.profileUsername,
+            email: widget.profileUsername.trim().toLowerCase().contains('@')
+                ? widget.profileUsername.trim().toLowerCase()
+                : '${widget.profileUsername.trim().toLowerCase()}@fit.cvut.cz',
+            roleLabel: widget.profileRoleLabel,
+            userId: widget.profileUserId,
+            onSettingsTap: () async {
+              final result = await Navigator.push<int>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsScreen(
                     slotDurationMinutes: _slotDurationMinutes,
-                    onSlotDurationChanged:
-                        (v) => setState(() => _slotDurationMinutes = v),
-                  ),
-            ),
-          );
-          if (result != null) {
-            setState(() => _slotDurationMinutes = result);
-          }
-        },
-        onSignOutTap: widget.onSignOut,
-      ),
-      body: showStudentListPage
-          ? _StudentMeetingsPage(
-              bookings: _myBookings,
-              onCancelBookings: _cancelStudentBookings,
-              onFindMeeting: _startFindingMeeting,
-            )
-          : Stack(
-        children: [
-          Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Search section
-          Container(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            decoration: BoxDecoration(
-              color: SyncUpTheme.surface,
-              border: Border(bottom: BorderSide(color: SyncUpTheme.border)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Find Schedule',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: SyncUpTheme.textPrimary,
-                    fontWeight: FontWeight.w600,
+                    onSlotDurationChanged: (v) => setState(() => _slotDurationMinutes = v),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    CompositedTransformTarget(
-                      link: _searchLayerLink,
-                      child: SizedBox(
-                        key: _searchFieldKey,
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          decoration: InputDecoration(
-                            hintText: 'Search By Name, Profession, Title',
-                            prefixIcon: Icon(
-                              Icons.search,
-                              size: 20,
-                              color: SyncUpTheme.textSecondary,
+              );
+              if (result != null) {
+                setState(() => _slotDurationMinutes = result);
+              }
+            },
+            onSignOutTap: widget.onSignOut,
+          ),
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // --- Hero Search Bar ---
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                      child: CompositedTransformTarget(
+                        link: _searchLayerLink,
+                        child: SizedBox(
+                          key: _searchFieldKey,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(100),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: SyncUpTheme.textSecondary.withValues(alpha: 0.1),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            suffixIcon:
-                                _searchController.text.isNotEmpty
-                                    ? IconButton(
-                                      icon: Icon(
-                                        Icons.clear,
-                                        size: 20,
-                                        color: SyncUpTheme.textSecondary,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _searchController.clear();
-                                          _selectedOwner = null;
-                                        });
-                                      },
-                                      tooltip: 'Clear',
-                                    )
-                                    : null,
-                            filled: true,
-                            fillColor: SyncUpTheme.background,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                SyncUpTheme.radiusXs,
+                            child: TextField(
+                              controller: _searchController,
+                              focusNode: _searchFocusNode,
+                              decoration: InputDecoration(
+                                hintText: 'Search for a professor...',
+                                hintStyle: TextStyle(color: SyncUpTheme.textSecondary.withValues(alpha: 0.7)),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
+                                  child: Icon(
+                                    Icons.search,
+                                    size: 22,
+                                    color: SyncUpTheme.primary,
+                                  ),
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                               ),
-                              borderSide: BorderSide.none,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: SyncUpTheme.textPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                          ),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: SyncUpTheme.textPrimary,
                           ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-          if (_isSyncing) const LinearProgressIndicator(minHeight: 2),
-          // Week row (same as HomeScreen)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: SyncUpTheme.surface,
-              border: Border(bottom: BorderSide(color: SyncUpTheme.border)),
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _prevWeek,
-                  tooltip: 'Previous week',
-                ),
-                Expanded(
-                  child: Center(
+              if (_isSyncing) const LinearProgressIndicator(minHeight: 2),
+
+              // --- My Meetings Dashboard ---
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 700),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          _weekLabel,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleSmall?.copyWith(
-                            color: SyncUpTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'My Meetings',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  color: SyncUpTheme.textPrimary,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if (_myBookings.isNotEmpty)
+                                Text(
+                                  '${_myBookings.length} upcoming',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: SyncUpTheme.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                            ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _weekBadgeColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(
-                              SyncUpTheme.radiusXs,
-                            ),
-                            border: Border.all(
-                              color: _weekBadgeColor.withValues(alpha: 0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            _weekBadgeLabel,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelSmall?.copyWith(
-                              color: _weekBadgeColor,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 10,
-                            ),
-                          ),
+                        Expanded(
+                          child: _myBookings.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.calendar_today_outlined, size: 48, color: SyncUpTheme.border),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'You have no upcoming meetings.',
+                                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                          color: SyncUpTheme.textSecondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                                  itemCount: _myBookings.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                  itemBuilder: (context, i) {
+                                    final booking = _myBookings[i];
+                                    final end = booking.startTime.add(
+                                      Duration(minutes: booking.durationMinutes),
+                                    );
+                                    
+                                    String fmtTime(DateTime dt) =>
+                                      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+                                    final title = (booking.topic ?? '').trim().isNotEmpty
+                                        ? booking.topic!.trim()
+                                        : 'Booked session';
+                                        
+                                    final subtitleParts = <String>[
+                                      '${dayShortNamesSunFirst[booking.startTime.weekday % 7]}',
+                                      if ((booking.location ?? '').trim().isNotEmpty)
+                                        booking.location!.trim(),
+                                      '${booking.durationMinutes} min',
+                                    ];
+
+                                    return Dismissible(
+                                      key: ValueKey(booking.id),
+                                      direction: DismissDirection.endToStart,
+                                      confirmDismiss: (direction) async {
+                                        return await _cancelSingleBooking(booking);
+                                      },
+                                      background: Container(
+                                        alignment: Alignment.centerRight,
+                                        padding: const EdgeInsets.only(right: 24),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFDC2626),
+                                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+                                        ),
+                                        child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+                                      ),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.03),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                          border: Border.all(color: SyncUpTheme.border.withValues(alpha: 0.5)),
+                                        ),
+                                        child: Stack(
+                                          children: [
+                                            ListTile(
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                              leading: Container(
+                                                padding: const EdgeInsets.all(10),
+                                                decoration: BoxDecoration(
+                                                  color: SyncUpTheme.primaryLight.withValues(alpha: 0.3),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(Icons.event_available, color: SyncUpTheme.primary, size: 20),
+                                              ),
+                                              title: Text(
+                                                '${fmtTime(booking.startTime)} - ${fmtTime(end)}',
+                                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  color: SyncUpTheme.textPrimary,
+                                                ),
+                                              ),
+                                              subtitle: Padding(
+                                                padding: const EdgeInsets.only(top: 4.0),
+                                                child: Text(
+                                                  '$title\n${subtitleParts.join(' · ')}',
+                                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                    color: SyncUpTheme.textSecondary,
+                                                    height: 1.4,
+                                                  ),
+                                                ),
+                                              ),
+                                              isThreeLine: true,
+                                              trailing: compact 
+                                                  ? Icon(Icons.swipe_left_outlined, color: SyncUpTheme.border)
+                                                  : null,
+                                            ),
+                                            if (!compact)
+                                              Positioned(
+                                                top: 4,
+                                                right: 4,
+                                                child: IconButton(
+                                                  visualDensity: VisualDensity.compact,
+                                                  icon: Icon(
+                                                    Icons.close, 
+                                                    size: 18, 
+                                                    color: SyncUpTheme.textSecondary.withValues(alpha: 0.5)
+                                                  ),
+                                                  tooltip: 'Cancel Booking',
+                                                  onPressed: () => _cancelSingleBooking(booking),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: _nextWeek,
-                  tooltip: 'Next week',
-                ),
-              ],
-            ),
-          ),
-          // Slots grid
-          if (selectedOwner != null)
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              decoration: BoxDecoration(
-                color: SyncUpTheme.surface,
-                border: Border(bottom: BorderSide(color: SyncUpTheme.border)),
               ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List<Widget>.generate(7, (dayIdx) {
-                    final count = emptySlotCountsByDay[dayIdx];
-                    final hasAny = count > 0;
-                    return Container(
-                      margin: EdgeInsets.only(right: dayIdx == 6 ? 0 : 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: hasAny
-                            ? SyncUpTheme.primary.withValues(alpha: 0.12)
-                            : SyncUpTheme.border.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-                        border: Border.all(
-                          color: hasAny
-                              ? SyncUpTheme.primary.withValues(alpha: 0.3)
-                              : SyncUpTheme.border,
-                        ),
-                      ),
-                      child: Text(
-                        '${dayShortNamesSunFirst[dayIdx]}: $count empty',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: hasAny
-                                  ? SyncUpTheme.primary
-                                  : SyncUpTheme.textSecondary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          Expanded(
-            child: Builder(
-              builder: (context) {
-                          final weekSunday = _weekSunday;
-                          final sundayDate = DateTime(
-                            weekSunday.year,
-                            weekSunday.month,
-                            weekSunday.day,
-                          );
-
-                          final owner = _selectedOwner;
-
-                          String fmtTime(DateTime dt) =>
-                              '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-
-                          return Column(
-                            children: [
-                              WeekDaySelector(
-                                weekStart: _weekStart,
-                                selectedIndex: _selectedDayIndex,
-                              ),
-                              const Divider(height: 1),
-                              Expanded(
-                                child:
-                                    owner == null
-                                        ? widget.startInFinder
-                                            ? Center(
-                                                child: Text(
-                                                  'Select a professor from search to view available slots',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodyMedium
-                                                      ?.copyWith(
-                                                        color: SyncUpTheme
-                                                            .textSecondary,
-                                                      ),
-                                                ),
-                                              )
-                                            : Builder(
-                                          builder: (context) {
-                                            final bookings = [..._myBookings]
-                                              ..sort(
-                                                (a, b) => a.startTime.compareTo(b.startTime),
-                                              );
-                                            return Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.fromLTRB(
-                                                    12,
-                                                    10,
-                                                    12,
-                                                    8,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: SyncUpTheme.surface,
-                                                    border: Border(
-                                                      bottom: BorderSide(
-                                                        color: SyncUpTheme.border,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            Text(
-                                                              'My meetings',
-                                                              style: Theme.of(
-                                                                context,
-                                                              ).textTheme.titleSmall?.copyWith(
-                                                                color: SyncUpTheme
-                                                                    .textPrimary,
-                                                                fontWeight:
-                                                                    FontWeight.w700,
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                              height: 2,
-                                                            ),
-                                                            Text(
-                                                              bookings.isEmpty
-                                                                  ? 'No bookings yet. Choose a professor to book a meeting.'
-                                                                  : '${bookings.length} booking${bookings.length == 1 ? '' : 's'} this week',
-                                                              style: Theme.of(
-                                                                context,
-                                                              ).textTheme.bodySmall?.copyWith(
-                                                                color: SyncUpTheme
-                                                                    .textSecondary,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 10),
-                                                      OutlinedButton.icon(
-                                                        onPressed:
-                                                            _startFindingMeeting,
-                                                        icon: const Icon(
-                                                          Icons.search,
-                                                          size: 18,
-                                                        ),
-                                                        label: const Text(
-                                                          'Find meeting',
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Expanded(
-                                                  child:
-                                                      bookings.isEmpty
-                                                          ? Center(
-                                                            child: Text(
-                                                              'No bookings this week yet',
-                                                              style: Theme.of(
-                                                                context,
-                                                              ).textTheme.bodyMedium?.copyWith(
-                                                                color: SyncUpTheme
-                                                                    .textSecondary,
-                                                              ),
-                                                            ),
-                                                          )
-                                                          : ListView.separated(
-                                                            padding:
-                                                                const EdgeInsets.all(
-                                                                  12,
-                                                                ),
-                                                            itemCount:
-                                                                bookings.length,
-                                                            separatorBuilder:
-                                                                (_, __) =>
-                                                                    const SizedBox(
-                                                                      height: 8,
-                                                                    ),
-                                                            itemBuilder: (
-                                                              context,
-                                                              i,
-                                                            ) {
-                                                              final booking =
-                                                                  bookings[i];
-                                                              final end = booking
-                                                                  .startTime
-                                                                  .add(
-                                                                    Duration(
-                                                                      minutes:
-                                                                          booking
-                                                                              .durationMinutes,
-                                                                    ),
-                                                                  );
-                                                              final title =
-                                                                  (booking.topic ??
-                                                                              '')
-                                                                          .trim()
-                                                                          .isNotEmpty
-                                                                      ? booking
-                                                                          .topic!
-                                                                          .trim()
-                                                                      : 'Booked session';
-                                                              final subtitleParts =
-                                                                  <String>[
-                                                                    '${dayShortNamesSunFirst[booking.startTime.weekday % 7]}',
-                                                                    if ((booking.location ??
-                                                                            '')
-                                                                        .trim()
-                                                                        .isNotEmpty)
-                                                                      booking
-                                                                          .location!
-                                                                          .trim(),
-                                                                    '${booking.durationMinutes} min',
-                                                                  ];
-                                                              return Material(
-                                                                color:
-                                                                    Colors.white,
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      6,
-                                                                    ),
-                                                                child: ListTile(
-                                                                  contentPadding:
-                                                                      const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            12,
-                                                                        vertical:
-                                                                            6,
-                                                                      ),
-                                                                  leading: Icon(
-                                                                    Icons
-                                                                        .event_available,
-                                                                    color: SyncUpTheme
-                                                                        .primary,
-                                                                  ),
-                                                                  title: Text(
-                                                                    '${fmtTime(booking.startTime)} - ${fmtTime(end)}',
-                                                                    style: Theme.of(
-                                                                      context,
-                                                                    ).textTheme.titleSmall?.copyWith(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w800,
-                                                                      color: SyncUpTheme
-                                                                          .textPrimary,
-                                                                    ),
-                                                                  ),
-                                                                  subtitle: Text(
-                                                                    '$title · ${subtitleParts.join(' · ')}',
-                                                                    style: Theme.of(
-                                                                      context,
-                                                                    ).textTheme.bodySmall?.copyWith(
-                                                                      color: SyncUpTheme
-                                                                          .textSecondary,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              );
-                                                            },
-                                                          ),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        )
-                                        : ValueListenableBuilder<int>(
-                                          valueListenable: _selectedDayIndex,
-                                          builder: (context, dayIdx, _) {
-                                            final dayDate = sundayDate.add(
-                                              Duration(days: dayIdx),
-                                            );
-                                            final slots =
-                                                getAvailabilityForOwner(
-                                                      owner.id,
-                                                      _weekSunday,
-                                                    )
-                                                    .where((s) {
-                                                      final d = s.startTime;
-                                                      return d.year ==
-                                                              dayDate.year &&
-                                                          d.month ==
-                                                              dayDate.month &&
-                                                          d.day == dayDate.day;
-                                                    })
-                                                    .where(
-                                                      (s) =>
-                                                          !_bookedSlotKeys
-                                                              .contains(
-                                                                _slotKey(
-                                                                  owner,
-                                                                  s,
-                                                                ),
-                                                              ),
-                                                    )
-                                                    .toList()
-                                                  ..sort(
-                                                    (a, b) => a.startTime
-                                                        .compareTo(b.startTime),
-                                                  );
-
-                                            if (slots.isEmpty) {
-                                              return Center(
-                                                child: Text(
-                                                  'No available slots for ${owner.name} this day',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodyMedium
-                                                      ?.copyWith(
-                                                        color:
-                                                            SyncUpTheme
-                                                                .textSecondary,
-                                                      ),
-                                                ),
-                                              );
-                                            }
-
-                                            return ListView.separated(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                    12,
-                                                    10,
-                                                    12,
-                                                    12,
-                                                  ),
-                                              itemCount: slots.length,
-                                              separatorBuilder:
-                                                  (_, __) =>
-                                                      const SizedBox(height: 6),
-                                              itemBuilder: (context, i) {
-                                                final s = slots[i];
-                                                final end = s.startTime.add(
-                                                  Duration(
-                                                    minutes: s.durationMinutes,
-                                                  ),
-                                                );
-                                                final timeLabel =
-                                                    '${fmtTime(s.startTime)} – ${fmtTime(end)}';
-                                                final subtitleParts = <String>[
-                                                  if (s.title.trim().isNotEmpty)
-                                                    s.title.trim(),
-                                                  if ((s.location ?? '')
-                                                      .trim()
-                                                      .isNotEmpty)
-                                                    (s.location!).trim(),
-                                                  if ((s.meetingLink ?? '')
-                                                      .trim()
-                                                      .isNotEmpty)
-                                                    'Online',
-                                                ];
-
-                                                return Material(
-                                                  color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                  child: ListTile(
-                                                    contentPadding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 12,
-                                                          vertical: 6,
-                                                        ),
-                                                    title: Text(
-                                                      timeLabel,
-                                                      style: Theme.of(context)
-                                                          .textTheme
-                                                          .titleSmall
-                                                          ?.copyWith(
-                                                            fontWeight:
-                                                                FontWeight.w800,
-                                                            color:
-                                                                SyncUpTheme
-                                                                    .textPrimary,
-                                                          ),
-                                                    ),
-                                                    subtitle:
-                                                        subtitleParts.isEmpty
-                                                            ? null
-                                                            : Text(
-                                                              subtitleParts
-                                                                  .join(' · '),
-                                                              style: Theme.of(
-                                                                    context,
-                                                                  )
-                                                                  .textTheme
-                                                                  .bodySmall
-                                                                  ?.copyWith(
-                                                                    color:
-                                                                        SyncUpTheme
-                                                                            .textSecondary,
-                                                                  ),
-                                                            ),
-                                                    trailing: const Icon(
-                                                      Icons.chevron_right,
-                                                    ),
-                                                    onTap: () async {
-                                                      final key = _slotKey(owner, s);
-                                                      if (_bookedSlotKeys.contains(key) ||
-                                                          _bookingInFlightSlotKeys.contains(key)) {
-                                                        return;
-                                                      }
-                                                      setState(() {
-                                                        _bookingInFlightSlotKeys.add(key);
-                                                        _bookedSlotKeys.add(key);
-                                                      });
-                                                      final ok =
-                                                          await _showSlotConfirmation(
-                                                            context,
-                                                            s,
-                                                            owner: owner,
-                                                          );
-                                                      if (!mounted) return;
-                                                      if (!ok) {
-                                                        setState(() {
-                                                          _bookingInFlightSlotKeys.remove(key);
-                                                          _bookedSlotKeys.remove(key);
-                                                        });
-                                                        return;
-                                                      }
-                                                      try {
-                                                        await LiveBackendCache
-                                                            .instance
-                                                            .bookSlot(
-                                                              ownerId: owner.id,
-                                                              slotId: s.id,
-                                                              weekStart:
-                                                                  _weekSunday,
-                                                              participantName:
-                                                                  widget
-                                                                      .attendeeName,
-                                                              participantUserId:
-                                                                  widget
-                                                                      .attendeeUserId,
-                                                            );
-                                                        if (!mounted) return;
-                                                        setState(() {
-                                                          _bookingInFlightSlotKeys.remove(key);
-                                                        });
-                                                        await _syncVisibleWeekData();
-                                                      } catch (_) {
-                                                        if (!mounted) return;
-                                                        setState(() {
-                                                          _bookingInFlightSlotKeys.remove(key);
-                                                          _bookedSlotKeys.remove(key);
-                                                        });
-                                                        ScaffoldMessenger.of(
-                                                          this.context,
-                                                        ).showSnackBar(
-                                                          const SnackBar(
-                                                            content: Text(
-                                                              'Booking failed. Slot may already be taken.',
-                                                            ),
-                                                            behavior:
-                                                                SnackBarBehavior
-                                                                    .floating,
-                                                          ),
-                                                        );
-                                                      }
-                                                    },
-                                                  ),
-                                                );
-                                              },
-                                            );
-                                          },
-                                        ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
+            ],
           ),
-        ],
-      ),
-          if (showOwnerDropdown)
-            Positioned.fill(
-              child: IgnorePointer(
-                ignoring: false,
+        ),
+        
+        // --- Overlay Search Results Dropdown ---
+        if (showOwnerDropdown)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                _searchFocusNode.unfocus();
+              },
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: CompositedTransformFollower(
                   link: _searchLayerLink,
                   showWhenUnlinked: false,
-                  offset: const Offset(0, 46),
+                  offset: const Offset(0, 60), 
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: Material(
                       color: Colors.transparent,
                       child: Container(
                         width: searchFieldWidth,
-                        constraints: const BoxConstraints(maxHeight: 260),
+                        constraints: const BoxConstraints(maxHeight: 320),
                         decoration: BoxDecoration(
-                          color: SyncUpTheme.surface,
-                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-                          border: Border.all(color: SyncUpTheme.border),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
+                              color: Colors.black.withValues(alpha: 0.12),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          itemCount: _filteredOwners.length,
-                          itemBuilder: (context, i) {
-                            final owner = _filteredOwners[i];
-                            return Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () {
-                                  _dropdownHideTimer?.cancel();
-                                  _isSelectingFromDropdown = true;
-                                  setState(() {
-                                    _selectedOwner = owner;
-                                    _searchController.text = owner.name;
-                                    _searchQuery = owner.name.toLowerCase();
-                                    _keepDropdownVisible = false;
-                                  });
-                                  _isSelectingFromDropdown = false;
-                                  _searchFocusNode.unfocus();
-                                  _syncVisibleWeekData();
-                                },
-                                child: ListTile(
-                                  dense: true,
-                                  leading: CircleAvatar(
-                                    radius: 16,
-                                    backgroundColor: SyncUpTheme.primary
-                                        .withValues(alpha: 0.15),
-                                    child: Text(
-                                      owner.name.isNotEmpty
-                                          ? owner.name[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(
-                                        color: SyncUpTheme.primary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  title: Text(
-                                    owner.name,
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: SyncUpTheme.textPrimary,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: _filteredOwners.length,
+                            separatorBuilder: (context, index) => Divider(height: 1, color: SyncUpTheme.border.withValues(alpha: 0.3)),
+                            itemBuilder: (context, i) {
+                              final owner = _filteredOwners[i];
+                              return InkWell(
+                                onTap: () => _onProfessorSelected(owner),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor: SyncUpTheme.primary.withValues(alpha: 0.1),
+                                        child: Text(
+                                          owner.name.isNotEmpty ? owner.name[0].toUpperCase() : '?',
+                                          style: const TextStyle(
+                                            color: SyncUpTheme.primary,
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                         ),
-                                  ),
-                                  subtitle: owner.role != null
-                                      ? Text(
-                                          owner.role!,
-                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                color: SyncUpTheme.textSecondary,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              owner.name,
+                                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                                color: SyncUpTheme.textPrimary,
                                               ),
-                                        )
-                                      : null,
+                                            ),
+                                            if (owner.role != null)
+                                              Text(
+                                                owner.role!,
+                                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                  color: SyncUpTheme.textSecondary,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -1333,216 +727,383 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                 ),
               ),
             ),
+          ),
+      ],
+    );
+  }
+}
+
+// ==========================================
+// Sleek Bottom Sheet for Booking
+// ==========================================
+class _ProfessorBookingSheet extends StatefulWidget {
+  final ScheduleOwner owner;
+  final DateTime weekSunday;
+  final String attendeeName;
+  final String? attendeeUserId;
+  final VoidCallback onBookingComplete;
+
+  const _ProfessorBookingSheet({
+    required this.owner,
+    required this.weekSunday,
+    required this.attendeeName,
+    required this.attendeeUserId,
+    required this.onBookingComplete,
+  });
+
+  @override
+  State<_ProfessorBookingSheet> createState() => _ProfessorBookingSheetState();
+}
+
+class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
+  late ValueNotifier<int> _selectedDayIndex;
+  bool _isLoading = true;
+  final Set<String> _bookedSlotKeys = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDayIndex = ValueNotifier(0);
+    _loadAvailability();
+  }
+
+  Future<void> _loadAvailability() async {
+    await syncAvailabilityForOwner(widget.owner.id, widget.weekSunday);
+    
+    // Auto-select logic
+    int bestDay = DateTime.now().weekday % 7; 
+    for (int i = bestDay; i < 7; i++) {
+      if (_getEmptySlotsCountForDay(i) > 0) {
+        bestDay = i;
+        break;
+      }
+    }
+    
+    if (mounted) {
+      setState(() {
+        _selectedDayIndex.value = bestDay;
+        _isLoading = false;
+      });
+    }
+  }
+
+  int _getEmptySlotsCountForDay(int dayIdx) {
+    final dayDate = widget.weekSunday.add(Duration(days: dayIdx));
+    return getAvailabilityForOwner(widget.owner.id, widget.weekSunday)
+        .where((slot) =>
+            slot.startTime.year == dayDate.year &&
+            slot.startTime.month == dayDate.month &&
+            slot.startTime.day == dayDate.day)
+        .where((slot) => !_bookedSlotKeys.contains(_slotKey(widget.owner, slot)))
+        .length;
+  }
+
+  String _slotKey(ScheduleOwner owner, AvailabilitySlot slot) =>
+      '${owner.id}|${slot.id}|${slot.startTime.toIso8601String()}';
+
+  String fmtTime(DateTime dt) =>
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+  Future<bool> _showSlotConfirmation(BuildContext context, AvailabilitySlot slot) {
+    final dateStr = '${slot.startTime.day}/${slot.startTime.month}/${slot.startTime.year}';
+    final timeStr = fmtTime(slot.startTime);
+    final endStr = fmtTime(slot.startTime.add(Duration(minutes: slot.durationMinutes)));
+    final locationStr = slot.location ?? '—';
+
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => _BookSlotDialog(
+        slot: slot,
+        owner: widget.owner,
+        dateStr: dateStr,
+        timeStr: timeStr,
+        endStr: endStr,
+        locationStr: locationStr,
+        onConfirmed: (note) {}, 
+      ),
+    ).then((v) => v == true);
+  }
+
+  // Clever UI Typography: Merges Days, Dates, and Slots into one clean row
+  Widget _buildCleverCalendar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(7, (dayIdx) {
+          final dayDate = widget.weekSunday.add(Duration(days: dayIdx));
+          final count = _getEmptySlotsCountForDay(dayIdx);
+          
+          return ValueListenableBuilder<int>(
+            valueListenable: _selectedDayIndex,
+            builder: (context, selectedIdx, _) {
+              final isSelected = selectedIdx == dayIdx;
+              final hasSlots = count > 0;
+
+              return GestureDetector(
+                onTap: () => _selectedDayIndex.value = dayIdx,
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? SyncUpTheme.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        dayShortNamesSunFirst[dayIdx].toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected ? Colors.white.withValues(alpha: 0.8) : SyncUpTheme.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${dayDate.day}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: isSelected ? FontWeight.w800 : (hasSlots ? FontWeight.w700 : FontWeight.w400),
+                          color: isSelected ? Colors.white : (hasSlots ? SyncUpTheme.textPrimary : SyncUpTheme.border),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        hasSlots ? '$count open' : 'Full',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected ? Colors.white : (hasSlots ? SyncUpTheme.primary : SyncUpTheme.border),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height * 0.85;
+
+    return SizedBox(
+      height: height,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: SyncUpTheme.primary.withValues(alpha: 0.1),
+                  child: Text(
+                    widget.owner.name.isNotEmpty ? widget.owner.name[0].toUpperCase() : '?',
+                    style: const TextStyle(color: SyncUpTheme.primary, fontSize: 20, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.owner.name,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: SyncUpTheme.textPrimary,
+                        ),
+                      ),
+                      if (widget.owner.department != null)
+                        Text(
+                          widget.owner.department!,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: SyncUpTheme.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          if (_isLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else ...[
+            
+            _buildCleverCalendar(),
+            const Divider(height: 24),
+
+            // Slots List
+            Expanded(
+              child: ValueListenableBuilder<int>(
+                valueListenable: _selectedDayIndex,
+                builder: (context, dayIdx, _) {
+                  final dayDate = widget.weekSunday.add(Duration(days: dayIdx));
+                  final slots = getAvailabilityForOwner(widget.owner.id, widget.weekSunday)
+                      .where((s) =>
+                          s.startTime.year == dayDate.year &&
+                          s.startTime.month == dayDate.month &&
+                          s.startTime.day == dayDate.day)
+                      .where((s) => !_bookedSlotKeys.contains(_slotKey(widget.owner, s)))
+                      .toList()
+                    ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+                  if (slots.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.event_busy, size: 40, color: SyncUpTheme.border),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No available slots on this day.',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: SyncUpTheme.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    itemCount: slots.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      final s = slots[i];
+                      final end = s.startTime.add(Duration(minutes: s.durationMinutes));
+                      final timeLabel = '${fmtTime(s.startTime)} – ${fmtTime(end)}';
+                      
+                      final subtitleParts = <String>[
+                        if (s.title.trim().isNotEmpty) s.title.trim(),
+                        if ((s.location ?? '').trim().isNotEmpty) (s.location!).trim(),
+                        if ((s.meetingLink ?? '').trim().isNotEmpty) 'Online',
+                      ];
+
+                      return InkWell(
+                        onTap: () async {
+                          final key = _slotKey(widget.owner, s);
+                          final ok = await _showSlotConfirmation(context, s);
+                          if (!mounted || !ok) return;
+
+                          setState(() => _bookedSlotKeys.add(key));
+
+                          try {
+                            await LiveBackendCache.instance.bookSlot(
+                              ownerId: widget.owner.id,
+                              slotId: s.id,
+                              weekStart: widget.weekSunday,
+                              participantName: widget.attendeeName,
+                              participantUserId: widget.attendeeUserId,
+                            );
+                            if (mounted) {
+                              widget.onBookingComplete();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Booking Confirmed!')),
+                              );
+                              Navigator.pop(context); // Close the sheet automatically
+                            }
+                          } catch (_) {
+                            if (mounted) {
+                              setState(() => _bookedSlotKeys.remove(key));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Failed to book slot.')),
+                              );
+                            }
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: SyncUpTheme.border.withValues(alpha: 0.5)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      timeLabel,
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: SyncUpTheme.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (subtitleParts.isNotEmpty)
+                                      Text(
+                                        subtitleParts.join(' · '),
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: SyncUpTheme.textSecondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: SyncUpTheme.primary,
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                                child: const Text(
+                                  'Book',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _StudentMeetingsPage extends StatefulWidget {
-  const _StudentMeetingsPage({
-    required this.bookings,
-    required this.onCancelBookings,
-    required this.onFindMeeting,
-  });
-
-  final List<Meeting> bookings;
-  final Future<void> Function(List<Meeting> bookings) onCancelBookings;
-  final VoidCallback onFindMeeting;
-
-  @override
-  State<_StudentMeetingsPage> createState() => _StudentMeetingsPageState();
-}
-
-class _StudentMeetingsPageState extends State<_StudentMeetingsPage> {
-  bool _manageMode = false;
-  final Set<String> _selectedIds = <String>{};
-
-  @override
-  Widget build(BuildContext context) {
-    String fmtTime(DateTime dt) =>
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-
-    final sorted = [...widget.bookings]..sort((a, b) => a.startTime.compareTo(b.startTime));
-    final validIds = sorted.map((m) => m.id).toSet();
-    _selectedIds.removeWhere((id) => !validIds.contains(id));
-    final selectedMeetings = sorted.where((m) => _selectedIds.contains(m.id)).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-          decoration: BoxDecoration(
-            color: SyncUpTheme.surface,
-            border: Border(bottom: BorderSide(color: SyncUpTheme.border)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'My meetings',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: SyncUpTheme.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      sorted.isEmpty
-                          ? 'No bookings yet'
-                          : '${sorted.length} booking${sorted.length == 1 ? '' : 's'}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: SyncUpTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: widget.onFindMeeting,
-                    icon: const Icon(Icons.search, size: 18),
-                    label: const Text('Find meeting'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _manageMode = !_manageMode;
-                        if (!_manageMode) _selectedIds.clear();
-                      });
-                    },
-                    icon: Icon(_manageMode ? Icons.check : Icons.tune, size: 18),
-                    label: Text(_manageMode ? 'Done' : 'Manage'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        if (_manageMode && _selectedIds.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: Material(
-              color: SyncUpTheme.zenGreenLight,
-              borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Row(
-                  children: [
-                    Text(
-                      '${_selectedIds.length} selected',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: SyncUpTheme.textPrimary,
-                          ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: selectedMeetings.isEmpty
-                          ? null
-                          : () async {
-                              await widget.onCancelBookings(selectedMeetings);
-                              if (mounted) {
-                                setState(() => _selectedIds.clear());
-                              }
-                            },
-                      child: const Text('Cancel selected'),
-                    ),
-                    IconButton(
-                      tooltip: 'Clear selection',
-                      onPressed: () => setState(() => _selectedIds.clear()),
-                      icon: const Icon(Icons.close, size: 18),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        Expanded(
-          child: sorted.isEmpty
-              ? Center(
-                  child: Text(
-                    'You have no meetings booked yet.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: SyncUpTheme.textSecondary,
-                    ),
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: sorted.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) {
-                    final booking = sorted[i];
-                    final end = booking.startTime.add(
-                      Duration(minutes: booking.durationMinutes),
-                    );
-                    final title = (booking.topic ?? '').trim().isNotEmpty
-                        ? booking.topic!.trim()
-                        : 'Booked session';
-                    final subtitleParts = <String>[
-                      '${dayShortNamesSunFirst[booking.startTime.weekday % 7]}',
-                      if ((booking.location ?? '').trim().isNotEmpty)
-                        booking.location!.trim(),
-                      '${booking.durationMinutes} min',
-                    ];
-                    return Material(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        leading: _manageMode
-                            ? Checkbox(
-                                value: _selectedIds.contains(booking.id),
-                                onChanged: (_) {
-                                  setState(() {
-                                    if (_selectedIds.contains(booking.id)) {
-                                      _selectedIds.remove(booking.id);
-                                    } else {
-                                      _selectedIds.add(booking.id);
-                                    }
-                                  });
-                                },
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                              )
-                            : Icon(
-                                Icons.event_available,
-                                color: SyncUpTheme.primary,
-                              ),
-                        title: Text(
-                          '${fmtTime(booking.startTime)} - ${fmtTime(end)}',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: SyncUpTheme.textPrimary,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '$title · ${subtitleParts.join(' · ')}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: SyncUpTheme.textSecondary,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-}
+// ==========================================
+// Dialogs & Helpers 
+// ==========================================
 
 class _InfoChip extends StatelessWidget {
   final IconData icon;
@@ -1560,9 +1121,7 @@ class _InfoChip extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: SyncUpTheme.textPrimary),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: SyncUpTheme.textPrimary),
           ),
         ),
       ],
@@ -1611,245 +1170,149 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
   @override
   Widget build(BuildContext context) {
     final slot = widget.slot;
-    final owner = widget.owner;
     final locationStr = widget.locationStr;
-    final maxDialogHeight = MediaQuery.sizeOf(context).height * 0.85;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 360, maxHeight: maxDialogHeight),
+        constraints: const BoxConstraints(maxWidth: 360),
         child: Container(
           decoration: BoxDecoration(
             color: SyncUpTheme.surface,
-            borderRadius: BorderRadius.circular(SyncUpTheme.radiusSm),
-            boxShadow: SyncUpTheme.modalShadow,
+            borderRadius: BorderRadius.circular(16),
           ),
           child: SingleChildScrollView(
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(SyncUpTheme.space12),
-                decoration: BoxDecoration(
-                  color: SyncUpTheme.primaryLight.withValues(alpha: 0.5),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(SyncUpTheme.radiusSm),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: SyncUpTheme.primaryLight.withValues(alpha: 0.3),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.event_available, color: SyncUpTheme.primary, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Confirm Booking',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: SyncUpTheme.textPrimary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: SyncUpTheme.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(
-                          SyncUpTheme.radiusSm,
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: SyncUpTheme.background,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: SyncUpTheme.border),
                         ),
-                      ),
-                      child: Icon(
-                        Icons.event_available,
-                        color: SyncUpTheme.primary,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Book this slot',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(
-                              color: SyncUpTheme.textPrimary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Confirm your booking',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: SyncUpTheme.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(SyncUpTheme.space16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: SyncUpTheme.background,
-                        borderRadius: BorderRadius.circular(
-                          SyncUpTheme.radiusMd,
-                        ),
-                        border: Border.all(color: SyncUpTheme.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.schedule,
-                            size: 20,
-                            color: SyncUpTheme.primary,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${widget.timeStr} – ${widget.endStr}',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: SyncUpTheme.textPrimary,
+                        child: Row(
+                          children: [
+                            Icon(Icons.schedule, size: 20, color: SyncUpTheme.primary),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${widget.timeStr} – ${widget.endStr}',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: SyncUpTheme.textPrimary,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  '${widget.dateStr} • ${slot.durationMinutes} min',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.labelSmall?.copyWith(
-                                    color: SyncUpTheme.textSecondary,
+                                  Text(
+                                    '${widget.dateStr} • ${slot.durationMinutes} min',
+                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(color: SyncUpTheme.textSecondary),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _InfoChip(icon: Icons.title, label: slot.title),
-                    if (locationStr != '—') ...[
-                      const SizedBox(height: 8),
-                      _InfoChip(
-                        icon: Icons.location_on_outlined,
-                        label: locationStr,
-                      ),
-                    ],
-                    if ((slot.meetingLink ?? '').trim().isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      _InfoChip(
-                        icon: Icons.link_outlined,
-                        label: slot.meetingLink!.trim(),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: SyncUpTheme.primaryLight.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(
-                          SyncUpTheme.radiusXs,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: SyncUpTheme.primary,
-                            child: Text(
-                              owner.name.isNotEmpty
-                                  ? owner.name[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                                ],
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'With ${owner.name}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodySmall?.copyWith(
-                                color: SyncUpTheme.textPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _noteController,
-                      decoration: InputDecoration(
-                        labelText: 'Note (optional)',
-                        hintText: 'Add a note for this booking...',
-                        prefixIcon: Icon(
-                          Icons.note,
-                          size: 20,
-                          color: SyncUpTheme.textSecondary,
-                        ),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(
-                            SyncUpTheme.radiusXs,
-                          ),
+                          ],
                         ),
                       ),
-                      maxLines: 2,
-                      textInputAction: TextInputAction.done,
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      _InfoChip(icon: Icons.title, label: slot.title),
+                      if (locationStr != '—') ...[
+                        const SizedBox(height: 12),
+                        _InfoChip(icon: Icons.location_on_outlined, label: locationStr),
+                      ],
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: _noteController,
+                        decoration: InputDecoration(
+                          labelText: 'Note (optional)',
+                          prefixIcon: Icon(Icons.note, size: 20, color: SyncUpTheme.textSecondary),
+                          filled: true,
+                          fillColor: SyncUpTheme.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text('Cancel', style: TextStyle(color: SyncUpTheme.textSecondary, fontWeight: FontWeight.bold)),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          final note = _noteController.text.trim();
-                          widget.onConfirmed(note);
-                          Navigator.pop(context, true);
-                        },
-                        icon: const Icon(Icons.check, size: 18),
-                        label: const Text('Confirm'),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: FilledButton(
+                          onPressed: () {
+                            widget.onConfirmed(_noteController.text.trim());
+                            Navigator.pop(context, true);
+                          },
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                          ),
+                          child: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
             ),
           ),
         ),
@@ -1857,3 +1320,17 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
     );
   }
 }
+
+// ==========================================
+// Date & Time Helpers
+// ==========================================
+
+DateTime startOfWeekSunday(DateTime date) {
+  final int daysToSubtract = date.weekday % 7;
+  final DateTime sunday = date.subtract(Duration(days: daysToSubtract));
+  return DateTime(sunday.year, sunday.month, sunday.day);
+}
+
+const List<String> dayShortNamesSunFirst = [
+  'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
+];

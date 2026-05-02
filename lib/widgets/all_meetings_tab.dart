@@ -72,8 +72,7 @@ class AllMeetingsTab extends StatefulWidget {
   final ValueNotifier<int> selectedDayIndex;
   final ValueListenable<DateTime>? liveClock;
   final Future<void> Function(Meeting meeting, String status)? onMeetingStatus;
-  /// `true` = bottom "Add slot" (forward from last end).
-  final void Function(bool addFromBottom) onAddSlot;
+  final void Function() onAddSlot;
   final void Function(Set<String> meetingIds, String apologyMessage) onBulkPostpone;
   /// Remove newly added (empty) slots by id (ids start with `extra-`).
   final void Function(Set<String> meetingIds) onRemoveNewSlots;
@@ -241,7 +240,8 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
     if (ok != true || !mounted) return;
     widget.onRemoveNewSlots(ids);
     setState(() => _selectedIds.removeWhere(ids.contains));
-    ScaffoldMessenger.of(rootContext).showSnackBar(
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Removed ${ids.length} slot${ids.length == 1 ? '' : 's'}'),
         behavior: SnackBarBehavior.floating,
@@ -272,7 +272,8 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
     if (ok != true || !mounted) return;
     widget.onRemoveNewSlots({m.id});
     setState(() => _selectedIds.remove(m.id));
-    ScaffoldMessenger.of(rootContext).showSnackBar(
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Slot removed'),
         behavior: SnackBarBehavior.floating,
@@ -327,11 +328,11 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
     );
   }
 
-  Widget _addSlotButton(BuildContext context, {required bool fromBottom}) {
+  Widget _addSlotButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
-        onPressed: () => widget.onAddSlot(fromBottom),
+        onPressed: widget.onAddSlot,
         icon: const Icon(Icons.add_circle_outline, size: 20),
         label: const Text('Add slot'),
         style: FilledButton.styleFrom(
@@ -615,7 +616,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                         const SizedBox(height: 16),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: outerPadding * 2),
-                          child: _addSlotButton(context, fromBottom: true),
+                          child: _addSlotButton(context),
                         ),
                       ],
                     ),
@@ -706,7 +707,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                   outerPadding,
                   outerPadding,
                 ),
-                child: _addSlotButton(context, fromBottom: true),
+                child: _addSlotButton(context),
               ),
             );
           },

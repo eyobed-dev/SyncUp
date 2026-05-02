@@ -23,7 +23,6 @@ List<_PriorHistoryEntry> _mergePriorHistory(List<Meeting> seeds) {
   return out;
 }
 
-/// Left accent colors for list cards (matches slot design).
 const List<Color> listCardAccentColors = [
   Color(0xFF0F9FA8), // Blue-teal
   Color(0xFF0E7490), // Deep teal-blue
@@ -32,6 +31,53 @@ const List<Color> listCardAccentColors = [
   Color(0xFF06B6D4), // Bright cyan
   Color(0xFF22D3EE), // Light cyan
 ];
+
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double dashWidth;
+  final double dashSpace;
+  final Radius radius;
+
+  _DashedBorderPainter({
+    required this.color,
+    this.strokeWidth = 1.2,
+    this.dashWidth = 5,
+    this.dashSpace = 3,
+    this.radius = const Radius.circular(8),
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        radius,
+      ));
+
+    final dashPath = Path();
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        dashPath.addPath(
+          metric.extractPath(distance, distance + dashWidth),
+          Offset.zero,
+        );
+        distance += dashWidth + dashSpace;
+      }
+    }
+    canvas.drawPath(dashPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) =>
+      color != oldDelegate.color || radius != oldDelegate.radius;
+}
 
 /// Single meeting row widget for meetings lists.
 class MeetingListCard extends StatelessWidget {
@@ -1151,7 +1197,7 @@ class MeetingListCard extends StatelessWidget {
             );
     final railColor =
         isOpenSlot ? Colors.transparent : SyncUpTheme.primary.withValues(alpha: 0.9);
-    final radius = BorderRadius.circular(1);
+    final radius = BorderRadius.circular(8);
     final hasLeading = leading != null;
     final hasTrailing = trailing != null;
 
@@ -1178,15 +1224,22 @@ class MeetingListCard extends StatelessWidget {
             border:
                 isCurrent
                     ? Border.all(color: highlight, width: 2)
-                    : Border.all(
-                      color:
-                          isOpenSlot
-                              ? SyncUpTheme.border.withValues(alpha: 0.08)
-                              : SyncUpTheme.primary.withValues(alpha: 0.18),
-                    ),
+                    : (isOpenSlot
+                        ? null
+                        : Border.all(
+                            color: SyncUpTheme.primary.withValues(alpha: 0.18),
+                          )),
+            borderRadius: radius,
           ),
-          child: Stack(
-            children: [
+          child: CustomPaint(
+            painter: isOpenSlot
+                ? _DashedBorderPainter(
+                    color: SyncUpTheme.primary.withValues(alpha: 0.3),
+                    radius: const Radius.circular(8),
+                  )
+                : null,
+            child: Stack(
+              children: [
               if (isCurrent)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -1255,11 +1308,14 @@ class MeetingListCard extends StatelessWidget {
                             if (isOngoing)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 4),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 5,
-                                      height: 5,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 5,
+                                        height: 5,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color:
@@ -1311,14 +1367,18 @@ class MeetingListCard extends StatelessWidget {
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
+                                  ), // Row
+                                ), // FittedBox
+                              ), // Padding
                             Text(
                               m.listTitleLabel(includeTopic: false),
-                              style: const TextStyle(
-                                color: Color(0xFF0F172A),
+                              style: TextStyle(
+                                color: isOpenSlot
+                                    ? SyncUpTheme.textSecondary
+                                    : const Color(0xFF0F172A),
                                 fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                fontWeight:
+                                    isOpenSlot ? FontWeight.w500 : FontWeight.w600,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -1526,15 +1586,16 @@ class MeetingListCard extends StatelessWidget {
                         ],
                       ),
                     ],
-                    ),
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
           ),
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  ),
+),
+);
+}
 }
