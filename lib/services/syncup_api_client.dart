@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/app_user_session.dart';
@@ -8,15 +9,24 @@ import '../models/meeting.dart';
 import '../models/schedule_owner.dart';
 
 class SyncUpApiClient {
-  SyncUpApiClient({String? baseUrl})
-    : _baseUrl =
-          baseUrl ??
-          const String.fromEnvironment(
-            'SYNCUP_API_URL',
-            defaultValue: 'http://localhost:18080',
-          );
+  SyncUpApiClient({String? baseUrl}) : _baseUrl = _resolveBaseUrl(baseUrl);
 
   final String _baseUrl;
+
+  static String _resolveBaseUrl(String? explicitBaseUrl) {
+    final explicit = (explicitBaseUrl ?? '').trim();
+    if (explicit.isNotEmpty) return explicit;
+
+    final fromEnv = const String.fromEnvironment(
+      'SYNCUP_API_URL',
+      defaultValue: '',
+    ).trim();
+    if (fromEnv.isNotEmpty) return fromEnv;
+
+    // For Flutter web deployments, default to the current host/origin.
+    if (kIsWeb) return Uri.base.origin;
+    return 'http://localhost:18080';
+  }
 
   Uri _uri(String path, [Map<String, String>? query]) {
     final base = Uri.parse(_baseUrl);
