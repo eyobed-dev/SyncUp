@@ -13,7 +13,7 @@ class SyncUpApiClient {
           baseUrl ??
           const String.fromEnvironment(
             'SYNCUP_API_URL',
-            defaultValue: 'http://localhost:8080',
+            defaultValue: 'http://localhost:18080',
           );
 
   final String _baseUrl;
