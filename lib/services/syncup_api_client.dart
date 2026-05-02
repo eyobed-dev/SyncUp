@@ -24,8 +24,8 @@ class SyncUpApiClient {
     if (fromEnv.isNotEmpty) return fromEnv;
 
     // For Flutter web deployments, default to the current host/origin.
-    //if (kIsWeb) return Uri.base.origin;
-    return 'http://localhost:8080';
+    if (kIsWeb) return Uri.base.origin;
+    return 'http://161.97.70.30:18080';
   }
 
   Uri _uri(String path, [Map<String, String>? query]) {
