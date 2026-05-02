@@ -614,6 +614,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
           ? _StudentMeetingsPage(
               bookings: _myBookings,
               onCancelBookings: _cancelStudentBookings,
+              onFindMeeting: _startFindingMeeting,
             )
           : Stack(
         children: [
@@ -1342,10 +1343,12 @@ class _StudentMeetingsPage extends StatefulWidget {
   const _StudentMeetingsPage({
     required this.bookings,
     required this.onCancelBookings,
+    required this.onFindMeeting,
   });
 
   final List<Meeting> bookings;
   final Future<void> Function(List<Meeting> bookings) onCancelBookings;
+  final VoidCallback onFindMeeting;
 
   @override
   State<_StudentMeetingsPage> createState() => _StudentMeetingsPageState();
@@ -1400,15 +1403,26 @@ class _StudentMeetingsPageState extends State<_StudentMeetingsPage> {
                 ),
               ),
               const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _manageMode = !_manageMode;
-                    if (!_manageMode) _selectedIds.clear();
-                  });
-                },
-                icon: Icon(_manageMode ? Icons.check : Icons.tune, size: 18),
-                label: Text(_manageMode ? 'Done' : 'Manage'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: widget.onFindMeeting,
+                    icon: const Icon(Icons.search, size: 18),
+                    label: const Text('Find meeting'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _manageMode = !_manageMode;
+                        if (!_manageMode) _selectedIds.clear();
+                      });
+                    },
+                    icon: Icon(_manageMode ? Icons.check : Icons.tune, size: 18),
+                    label: Text(_manageMode ? 'Done' : 'Manage'),
+                  ),
+                ],
               ),
             ],
           ),
