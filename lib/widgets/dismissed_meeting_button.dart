@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/meeting.dart';
 import '../theme/sync_up_theme.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Compact bar shown when the current meeting card is dismissed.
 /// Shows progress bar, animations, and jumping bell when about to end.
@@ -118,14 +119,14 @@ class _DismissedMeetingButtonState extends State<DismissedMeetingButton>
   Widget build(BuildContext context) {
     final meeting = widget.meeting;
     final showOngoing = _isOngoing || _justEnded;
-    final accentColor = _aboutToEnd ? const Color(0xFFDC2626) : SyncUpTheme.primary;
+    final accentColor = _aboutToEnd ? const Color(0xFFDC2626) : context.colors.primary;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       child: Material(
         color: _aboutToEnd
             ? const Color(0xFFDC2626).withValues(alpha: 0.08)
-            : SyncUpTheme.primaryLight,
+            : context.colors.primaryLight,
         borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
         child: InkWell(
           onTap: widget.onTap,
@@ -214,7 +215,7 @@ class _DismissedMeetingButtonState extends State<DismissedMeetingButton>
                                 Text(
                                   meeting.displayLabel,
                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: SyncUpTheme.textPrimary,
+                                        color: context.colors.textPrimary,
                                         fontWeight: FontWeight.w500,
                                       ),
                                   maxLines: 1,
@@ -281,7 +282,7 @@ class _DismissedMeetingButtonState extends State<DismissedMeetingButton>
                                     icon: Icon(
                                       Icons.close,
                                       size: 18,
-                                      color: SyncUpTheme.textSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                     style: IconButton.styleFrom(
                                       padding: const EdgeInsets.all(4),
@@ -308,9 +309,9 @@ class _DismissedMeetingButtonState extends State<DismissedMeetingButton>
                                 borderRadius: BorderRadius.circular(2),
                                 child: LinearProgressIndicator(
                                   value: progress,
-                                  backgroundColor: SyncUpTheme.divider,
+                                  backgroundColor: context.colors.divider,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    aboutToEnd ? const Color(0xFFDC2626) : SyncUpTheme.primary,
+                                    aboutToEnd ? const Color(0xFFDC2626) : context.colors.primary,
                                   ),
                                   minHeight: 2,
                                 ),

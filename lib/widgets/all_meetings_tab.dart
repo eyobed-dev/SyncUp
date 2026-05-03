@@ -8,6 +8,7 @@ import '../utils/responsive.dart';
 import '../utils/week_calendar.dart';
 import 'meeting_list_card.dart';
 import 'week_day_selector.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
   return Column(
@@ -17,7 +18,7 @@ Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
         'Students (${meetings.length})',
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
-              color: SyncUpTheme.textPrimary,
+              color: context.colors.textPrimary,
             ),
       ),
       const SizedBox(height: 10),
@@ -25,9 +26,9 @@ Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
         constraints: const BoxConstraints(maxHeight: 260),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: SyncUpTheme.zenGreenLight,
+          color: context.colors.zenGreenLight,
           borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-          border: Border.all(color: SyncUpTheme.border),
+          border: Border.all(color: context.colors.border),
         ),
         child: ListView.separated(
           shrinkWrap: meetings.length <= 5,
@@ -42,7 +43,7 @@ Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.person, size: 22, color: SyncUpTheme.primary),
+                Icon(Icons.person, size: 22, color: context.colors.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -143,7 +144,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                 'Select day',
                 style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: SyncUpTheme.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
               ),
               const SizedBox(height: 10),
@@ -392,7 +393,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                   valueListenable: widget.selectedDayIndex,
                   builder: (context, dayIndex, _) {
                     return Material(
-                      color: Colors.white,
+                      color: context.colors.surface,
                       borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
@@ -404,7 +405,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                               Icon(
                                 Icons.calendar_today_outlined,
                                 size: 18,
-                                color: SyncUpTheme.textSecondary,
+                                color: context.colors.textSecondary,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
@@ -412,14 +413,14 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                                   _selectedDayLabel(widget.weekStart, dayIndex),
                                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                         fontWeight: FontWeight.w700,
-                                        color: SyncUpTheme.textPrimary,
+                                        color: context.colors.textPrimary,
                                       ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.expand_more, color: SyncUpTheme.textSecondary),
+                              Icon(Icons.expand_more, color: context.colors.textSecondary),
                             ],
                           ),
                         ),
@@ -441,15 +442,15 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                       constraints: const BoxConstraints(minWidth: 44),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.colors.surface,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: SyncUpTheme.border),
+                        border: Border.all(color: context.colors.border),
                       ),
                       child: Text(
                         label,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: SyncUpTheme.textSecondary,
+                              color: context.colors.textSecondary,
                               fontWeight: FontWeight.w800,
                             ),
                       ),
@@ -470,8 +471,8 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  side: BorderSide(color: SyncUpTheme.border),
-                  foregroundColor: SyncUpTheme.textPrimary,
+                  side: BorderSide(color: context.colors.border),
+                  foregroundColor: context.colors.textPrimary,
                 ),
               ),
             ],
@@ -482,7 +483,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: outerPadding, vertical: 8),
             child: Material(
-              color: SyncUpTheme.zenGreenLight,
+              color: context.colors.zenGreenLight,
               borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -495,9 +496,9 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.colors.surface,
                         borderRadius: BorderRadius.circular(SyncUpTheme.radiusPill),
-                        border: Border.all(color: SyncUpTheme.border),
+                        border: Border.all(color: context.colors.border),
                       ),
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
@@ -509,7 +510,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                                 fontWeight: FontWeight.w800,
                                 fontSize: 14,
                                 height: 1,
-                                color: SyncUpTheme.textPrimary,
+                                color: context.colors.textPrimary,
                               ),
                         ),
                       ),
@@ -604,13 +605,13 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                         Icon(
                           Icons.event_available,
                           size: 48,
-                          color: SyncUpTheme.zenGreen.withValues(alpha: 0.5),
+                          color: context.colors.zenGreen.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'No sessions this day',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: SyncUpTheme.zenGreen.withValues(alpha: 0.8),
+                                color: context.colors.zenGreen.withValues(alpha: 0.8),
                               ),
                         ),
                         const SizedBox(height: 16),
@@ -640,7 +641,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
                           borderRadius: BorderRadius.circular(2),
                           border: selected
                               ? Border.all(
-                                  color: SyncUpTheme.primary.withValues(alpha: 0.55),
+                                  color: context.colors.primary.withValues(alpha: 0.55),
                                   width: 2,
                                 )
                               : null,
@@ -782,14 +783,14 @@ class _BulkEmailDialogState extends State<_BulkEmailDialog> {
                 'Email selected',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: SyncUpTheme.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
               ),
               const SizedBox(height: 6),
               Text(
                 '${widget.selected.length} student(s) will be emailed.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: SyncUpTheme.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
               ),
               const SizedBox(height: 12),
@@ -937,21 +938,21 @@ class _BulkPostponeDialogState extends State<_BulkPostponeDialog> {
                 'Postpone $n session${n == 1 ? '' : 's'}?',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: SyncUpTheme.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
               ),
               const SizedBox(height: 8),
               Text(
                 'An apology email will be sent to each participant below (demo).',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: SyncUpTheme.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Mail-merge fields: {student}, {date}, {time}, {room}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: SyncUpTheme.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
               ),
               const SizedBox(height: 12),

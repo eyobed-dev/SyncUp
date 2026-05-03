@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../utils/week_calendar.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Horizontal Mon–Sun strip for the current week (same as List tab).
 class WeekDaySelector extends StatelessWidget {
@@ -47,12 +48,12 @@ class WeekDaySelector extends StatelessWidget {
                       child: Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: selected ? SyncUpTheme.zenGreenLight : Colors.transparent,
+                          color: selected ? context.colors.zenGreenLight : Colors.transparent,
                           borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
                           border: Border.all(
-                            color: selected ? SyncUpTheme.zenGreen : SyncUpTheme.border,
+                            color: selected ? context.colors.zenGreen : context.colors.border,
                           ),
-                          boxShadow: selected ? SyncUpTheme.cardShadow : null,
+                          boxShadow: selected ? context.colors.cardShadow : null,
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -61,7 +62,7 @@ class WeekDaySelector extends StatelessWidget {
                               dayShortNamesSunFirst[i],
                               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                     fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                                    color: selected ? SyncUpTheme.textPrimary : SyncUpTheme.textSecondary,
+                                    color: selected ? context.colors.textPrimary : context.colors.textSecondary,
                                   ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -70,7 +71,7 @@ class WeekDaySelector extends StatelessWidget {
                               '${day.day}',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: selected ? SyncUpTheme.textPrimary : SyncUpTheme.textSecondary,
+                                    color: selected ? context.colors.textPrimary : context.colors.textSecondary,
                                   ),
                             ),
                           ],

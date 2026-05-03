@@ -9,6 +9,7 @@ import '../widgets/user_profile_drawer.dart';
 import '../widgets/find_schedule_slots_view.dart';
 import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 class AddScheduleScreen extends StatefulWidget {
   const AddScheduleScreen({
@@ -264,7 +265,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
               'Remove "${slot.title}" at $timeStr?',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: SyncUpTheme.textPrimary),
+              ).textTheme.bodyMedium?.copyWith(color: context.colors.textPrimary),
             ),
             actions: [
               TextButton(
@@ -318,13 +319,13 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                     padding: const EdgeInsets.only(right: 12),
                     child: CircleAvatar(
                       radius: 16,
-                      backgroundColor: SyncUpTheme.primary,
+                      backgroundColor: context.colors.primary,
                       child: Text(
                         widget.displayName.trim().isNotEmpty
                             ? widget.displayName.trim()[0].toUpperCase()
                             : '?',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: context.colors.surface,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -356,12 +357,12 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
         children: [
           TabBar(
             controller: _tabController,
-            labelColor: SyncUpTheme.primary,
-            unselectedLabelColor: SyncUpTheme.textSecondary,
-            indicatorColor: SyncUpTheme.primary,
+            labelColor: context.colors.primary,
+            unselectedLabelColor: context.colors.textSecondary,
+            indicatorColor: context.colors.primary,
             labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              color: SyncUpTheme.textPrimary,
+              color: context.colors.textPrimary,
             ),
             tabs: [
               Tab(text: 'Add'),
@@ -378,7 +379,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: SyncUpTheme.primary.withValues(alpha: 0.2),
+                          color: context.colors.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(
                             SyncUpTheme.radiusPill,
                           ),
@@ -388,7 +389,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                           style: Theme.of(
                             context,
                           ).textTheme.labelSmall?.copyWith(
-                            color: SyncUpTheme.primary,
+                            color: context.colors.primary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -416,7 +417,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                           style: Theme.of(
                             context,
                           ).textTheme.titleMedium?.copyWith(
-                            color: SyncUpTheme.textPrimary,
+                            color: context.colors.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -424,7 +425,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                         Text(
                           'Create availability slots for others to book',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: SyncUpTheme.textSecondary),
+                              ?.copyWith(color: context.colors.textSecondary),
                         ),
                         if (_addedSlots.isNotEmpty) ...[
                           const SizedBox(height: 12),
@@ -451,12 +452,12 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                         Container(
                           padding: const EdgeInsets.all(SyncUpTheme.space12),
                           decoration: BoxDecoration(
-                            color: SyncUpTheme.surface,
+                            color: context.colors.surface,
                             borderRadius: BorderRadius.circular(
                               SyncUpTheme.radiusMd,
                             ),
-                            border: Border.all(color: SyncUpTheme.border),
-                            boxShadow: SyncUpTheme.cardShadow,
+                            border: Border.all(color: context.colors.border),
+                            boxShadow: context.colors.cardShadow,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -627,7 +628,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                                         .textTheme
                                         .bodyMedium
                                         ?.copyWith(
-                                          color: SyncUpTheme.textPrimary,
+                                          color: context.colors.textPrimary,
                                           fontWeight: FontWeight.w600,
                                         ),
                                   ),
@@ -726,7 +727,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                             style: Theme.of(
                               context,
                             ).textTheme.titleMedium?.copyWith(
-                              color: SyncUpTheme.textPrimary,
+                              color: context.colors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -735,7 +736,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                             Text(
                               '${_addedSlots.length} total',
                               style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(color: SyncUpTheme.textSecondary),
+                                  ?.copyWith(color: context.colors.textSecondary),
                             ),
                         ],
                       ),
@@ -763,9 +764,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                       TabBar(
                         controller: _addedSlotsTabController,
                         tabs: const [Tab(text: 'Calendar')],
-                        labelColor: SyncUpTheme.primary,
-                        unselectedLabelColor: SyncUpTheme.textSecondary,
-                        indicatorColor: SyncUpTheme.primary,
+                        labelColor: context.colors.primary,
+                        unselectedLabelColor: context.colors.textSecondary,
+                        indicatorColor: context.colors.primary,
                       ),
                       Expanded(
                         child: TabBarView(
@@ -799,7 +800,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                               Icon(
                                 Icons.event_available,
                                 size: 48,
-                                color: SyncUpTheme.textSecondary.withValues(
+                                color: context.colors.textSecondary.withValues(
                                   alpha: 0.5,
                                 ),
                               ),
@@ -809,7 +810,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodyMedium?.copyWith(
-                                  color: SyncUpTheme.textSecondary,
+                                  color: context.colors.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -818,7 +819,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodySmall?.copyWith(
-                                  color: SyncUpTheme.textSecondary,
+                                  color: context.colors.textSecondary,
                                 ),
                               ),
                             ],
@@ -918,10 +919,10 @@ class _AddScheduleSummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(SyncUpTheme.space10),
       decoration: BoxDecoration(
-        color: SyncUpTheme.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-        border: Border.all(color: SyncUpTheme.border),
-        boxShadow: SyncUpTheme.cardShadow,
+        border: Border.all(color: context.colors.border),
+        boxShadow: context.colors.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -929,13 +930,13 @@ class _AddScheduleSummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.event_available, size: 18, color: SyncUpTheme.primary),
+              Icon(Icons.event_available, size: 18, color: context.colors.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title.isEmpty ? 'Untitled' : title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: SyncUpTheme.textPrimary,
+                    color: context.colors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -949,13 +950,13 @@ class _AddScheduleSummaryCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: SyncUpTheme.primaryLight,
+                    color: context.colors.primaryLight,
                     borderRadius: BorderRadius.circular(SyncUpTheme.radiusPill),
                   ),
                   child: Text(
                     '$totalSlotsCount slots',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: SyncUpTheme.primary,
+                      color: context.colors.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -969,14 +970,14 @@ class _AddScheduleSummaryCard extends StatelessWidget {
                 Icon(
                   Icons.place_outlined,
                   size: 14,
-                  color: SyncUpTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     location,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: SyncUpTheme.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -992,7 +993,7 @@ class _AddScheduleSummaryCard extends StatelessWidget {
                 Icon(
                   Icons.link_outlined,
                   size: 14,
-                  color: SyncUpTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -1001,7 +1002,7 @@ class _AddScheduleSummaryCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: meetingLink.isEmpty
                           ? Colors.red.shade700
-                          : SyncUpTheme.textSecondary,
+                          : context.colors.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1058,12 +1059,12 @@ class _SummaryChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: SyncUpTheme.textSecondary),
+        Icon(icon, size: 14, color: context.colors.textSecondary),
         const SizedBox(width: 4),
         Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: SyncUpTheme.textPrimary,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1104,9 +1105,9 @@ class _ActiveSchedulesList extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: SyncUpTheme.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-        border: Border.all(color: SyncUpTheme.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1114,12 +1115,12 @@ class _ActiveSchedulesList extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.event_repeat, size: 16, color: SyncUpTheme.primary),
+              Icon(Icons.event_repeat, size: 16, color: context.colors.primary),
               const SizedBox(width: 6),
               Text(
                 'Active schedules',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: SyncUpTheme.textPrimary,
+                  color: context.colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1127,7 +1128,7 @@ class _ActiveSchedulesList extends StatelessWidget {
               Text(
                 '${slots.length} slots',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: SyncUpTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ],
@@ -1144,10 +1145,10 @@ class _ActiveSchedulesList extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: SyncUpTheme.primaryLight.withValues(alpha: 0.4),
+                      color: context.colors.primaryLight.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
                       border: Border.all(
-                        color: SyncUpTheme.primary.withValues(alpha: 0.2),
+                        color: context.colors.primary.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
@@ -1158,7 +1159,7 @@ class _ActiveSchedulesList extends StatelessWidget {
                           style: Theme.of(
                             context,
                           ).textTheme.labelMedium?.copyWith(
-                            color: SyncUpTheme.textPrimary,
+                            color: context.colors.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1168,13 +1169,13 @@ class _ActiveSchedulesList extends StatelessWidget {
                           Icon(
                             Icons.place,
                             size: 12,
-                            color: SyncUpTheme.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                           const SizedBox(width: 2),
                           Text(
                             item.location!,
                             style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(color: SyncUpTheme.textSecondary),
+                                ?.copyWith(color: context.colors.textSecondary),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1186,7 +1187,7 @@ class _ActiveSchedulesList extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: SyncUpTheme.primary.withValues(alpha: 0.15),
+                            color: context.colors.primary.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(
                               SyncUpTheme.radiusXs,
                             ),
@@ -1196,7 +1197,7 @@ class _ActiveSchedulesList extends StatelessWidget {
                             style: Theme.of(
                               context,
                             ).textTheme.labelSmall?.copyWith(
-                              color: SyncUpTheme.primary,
+                              color: context.colors.primary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -1233,12 +1234,12 @@ class _RepeatSelector extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.repeat, size: 16, color: SyncUpTheme.textSecondary),
+            Icon(Icons.repeat, size: 16, color: context.colors.textSecondary),
             const SizedBox(width: 6),
             Text(
               'Repeat',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: SyncUpTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ],
@@ -1261,12 +1262,12 @@ class _RepeatSelector extends StatelessWidget {
                     decoration: BoxDecoration(
                       color:
                           selected
-                              ? SyncUpTheme.primaryLight.withValues(alpha: 0.6)
-                              : SyncUpTheme.background,
+                              ? context.colors.primaryLight.withValues(alpha: 0.6)
+                              : context.colors.background,
                       borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
                       border: Border.all(
                         color:
-                            selected ? SyncUpTheme.primary : SyncUpTheme.border,
+                            selected ? context.colors.primary : context.colors.border,
                         width: selected ? 2 : 1,
                       ),
                     ),
@@ -1278,8 +1279,8 @@ class _RepeatSelector extends StatelessWidget {
                           size: 16,
                           color:
                               selected
-                                  ? SyncUpTheme.primary
-                                  : SyncUpTheme.textSecondary,
+                                  ? context.colors.primary
+                                  : context.colors.textSecondary,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -1289,8 +1290,8 @@ class _RepeatSelector extends StatelessWidget {
                           ).textTheme.labelMedium?.copyWith(
                             color:
                                 selected
-                                    ? SyncUpTheme.primary
-                                    : SyncUpTheme.textPrimary,
+                                    ? context.colors.primary
+                                    : context.colors.textPrimary,
                             fontWeight:
                                 selected ? FontWeight.w600 : FontWeight.w500,
                           ),
@@ -1325,12 +1326,12 @@ class _CancelUntilSelector extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.event_busy, size: 16, color: SyncUpTheme.textSecondary),
+            Icon(Icons.event_busy, size: 16, color: context.colors.textSecondary),
             const SizedBox(width: 6),
             Text(
               'Can cancel until',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: SyncUpTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ],
@@ -1339,17 +1340,17 @@ class _CancelUntilSelector extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: SyncUpTheme.background,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-            border: Border.all(color: SyncUpTheme.border),
+            border: Border.all(color: context.colors.border),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<int>(
               value: value,
               isExpanded: true,
-              icon: Icon(Icons.arrow_drop_down, color: SyncUpTheme.primary),
+              icon: Icon(Icons.arrow_drop_down, color: context.colors.primary),
               borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
-              dropdownColor: SyncUpTheme.surface,
+              dropdownColor: context.colors.surface,
               items:
                   options
                       .map(
@@ -1358,7 +1359,7 @@ class _CancelUntilSelector extends StatelessWidget {
                           child: Text(
                             o.label,
                             style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: SyncUpTheme.textPrimary),
+                                ?.copyWith(color: context.colors.textPrimary),
                           ),
                         ),
                       )
@@ -1402,7 +1403,7 @@ class _AddedSlotsWeekRow extends StatelessWidget {
     return 'Past ${weeksAgo} week${weeksAgo == 1 ? '' : 's'}';
   }
 
-  Color _weekBadgeColor(DateTime weekSunday) {
+  Color _weekBadgeColor(BuildContext context, DateTime weekSunday) {
     final now = DateTime.now();
     final thisWeekSunday = startOfWeekSunday(
       DateTime(now.year, now.month, now.day),
@@ -1412,9 +1413,9 @@ class _AddedSlotsWeekRow extends StatelessWidget {
       weekSunday.month,
       weekSunday.day,
     );
-    if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
+    if (displayedSunday == thisWeekSunday) return context.colors.primary;
     if (displayedSunday.isAfter(thisWeekSunday)) return Colors.blue.shade700;
-    return SyncUpTheme.textSecondary;
+    return context.colors.textSecondary;
   }
 
   @override
@@ -1439,7 +1440,7 @@ class _AddedSlotsWeekRow extends StatelessWidget {
     final sat = weekSunday.add(const Duration(days: 6));
     final weekLabel =
         '${months[weekSunday.month - 1]} ${weekSunday.day}–${sat.day} ${weekSunday.year}';
-    final badgeColor = _weekBadgeColor(weekSunday);
+    final badgeColor = _weekBadgeColor(context, weekSunday);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1459,7 +1460,7 @@ class _AddedSlotsWeekRow extends StatelessWidget {
                     weekLabel,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: SyncUpTheme.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1516,7 +1517,7 @@ class _CompactChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: SyncUpTheme.primaryLight.withValues(alpha: 0.5),
+      color: context.colors.primaryLight.withValues(alpha: 0.5),
       borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
       child: InkWell(
         onTap: onTap,
@@ -1525,13 +1526,13 @@ class _CompactChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             children: [
-              Icon(icon, size: 16, color: SyncUpTheme.primary),
+              Icon(icon, size: 16, color: context.colors.primary),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   label,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: SyncUpTheme.textPrimary,
+                    color: context.colors.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
@@ -1541,7 +1542,7 @@ class _CompactChip extends StatelessWidget {
               Icon(
                 Icons.chevron_right,
                 size: 16,
-                color: SyncUpTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ],
           ),
@@ -1584,7 +1585,7 @@ class _CompactStepper extends StatelessWidget {
           label,
           style: Theme.of(
             context,
-          ).textTheme.labelSmall?.copyWith(color: SyncUpTheme.textSecondary),
+          ).textTheme.labelSmall?.copyWith(color: context.colors.textSecondary),
         ),
         const SizedBox(height: 4),
         Row(
@@ -1602,7 +1603,7 @@ class _CompactStepper extends StatelessWidget {
                   displayValue,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: SyncUpTheme.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -1631,7 +1632,7 @@ class _StepperBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
     return Material(
-      color: enabled ? SyncUpTheme.primary : SyncUpTheme.divider,
+      color: enabled ? context.colors.primary : context.colors.divider,
       borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
       child: InkWell(
         onTap: onPressed,
@@ -1642,7 +1643,7 @@ class _StepperBtn extends StatelessWidget {
           child: Icon(
             icon,
             size: 16,
-            color: enabled ? Colors.white : SyncUpTheme.textSecondary,
+            color: enabled ? context.colors.surface : context.colors.textSecondary,
           ),
         ),
       ),

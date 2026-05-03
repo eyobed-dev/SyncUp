@@ -4,6 +4,7 @@ import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../utils/week_calendar.dart';
 import 'week_day_selector.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Calendar-style list of added availability slots (like main screen Calendar tab).
 const List<Color> _cardAccentColors = [
@@ -52,9 +53,9 @@ class AddScheduleSlotsList extends StatelessWidget {
     final now = DateTime.now();
     final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
     final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
-    if (displayedSunday == thisWeekSunday) return SyncUpTheme.primary;
+    if (displayedSunday == thisWeekSunday) return context.colors.primary;
     if (displayedSunday.isAfter(thisWeekSunday)) return const Color(0xFF0E7490);
-    return SyncUpTheme.textSecondary;
+    return context.colors.textSecondary;
   }
 
   @override
@@ -90,7 +91,7 @@ class AddScheduleSlotsList extends StatelessWidget {
                           weekLabel,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: SyncUpTheme.textPrimary,
+                                color: context.colors.textPrimary,
                               ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -189,12 +190,12 @@ class _DaySlotsList extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.event_available, size: 48, color: SyncUpTheme.primary.withValues(alpha: 0.5)),
+            Icon(Icons.event_available, size: 48, color: context.colors.primary.withValues(alpha: 0.5)),
             const SizedBox(height: 8),
             Text(
               'No slots this day',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: SyncUpTheme.primary.withValues(alpha: 0.8),
+                    color: context.colors.primary.withValues(alpha: 0.8),
                   ),
             ),
           ],
@@ -218,7 +219,7 @@ class _DaySlotsList extends StatelessWidget {
         return Container(
           margin: EdgeInsets.only(bottom: padding),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
               BoxShadow(
@@ -250,7 +251,7 @@ class _DaySlotsList extends StatelessWidget {
                       child: Text(
                         slot.title.isNotEmpty ? slot.title[0].toUpperCase() : '?',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: context.colors.surface,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),

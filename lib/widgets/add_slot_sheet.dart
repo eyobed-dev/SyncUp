@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/meeting.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/week_calendar.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 // ─── Public entry point ───────────────────────────────────────────────────────
 
@@ -307,16 +308,16 @@ class _StepHeader extends StatelessWidget {
                     width: 22, height: 22,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: done || active ? SyncUpTheme.primary : SyncUpTheme.border,
+                      color: done || active ? context.colors.primary : context.colors.border,
                     ),
                     child: Center(
                       child: done
-                          ? const Icon(Icons.check, size: 13, color: Colors.white)
+                          ? Icon(Icons.check, size: 13, color: context.colors.surface)
                           : Text('${i + 1}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: active ? Colors.white : SyncUpTheme.textSecondary,
+                                color: active ? context.colors.surface : context.colors.textSecondary,
                               )),
                     ),
                   ),
@@ -326,7 +327,7 @@ class _StepHeader extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                          color: active ? SyncUpTheme.textPrimary : SyncUpTheme.textSecondary,
+                          color: active ? context.colors.textPrimary : context.colors.textSecondary,
                         )),
                   ),
                 ]),
@@ -334,8 +335,8 @@ class _StepHeader extends StatelessWidget {
                 LinearProgressIndicator(
                   value: done ? 1.0 : active ? 0.7 : 0.0,
                   minHeight: 2,
-                  backgroundColor: SyncUpTheme.border,
-                  color: SyncUpTheme.primary,
+                  backgroundColor: context.colors.border,
+                  color: context.colors.primary,
                 ),
               ],
             ),
@@ -392,7 +393,7 @@ class _ConfigureStep extends StatelessWidget {
         Text('Select Day',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: SyncUpTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 )),
         const SizedBox(height: 10),
         SizedBox(
@@ -413,12 +414,12 @@ class _ConfigureStep extends StatelessWidget {
                 labelStyle: TextStyle(
                   fontSize: 13,
                   fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                  color: sel ? Colors.white : SyncUpTheme.textPrimary,
+                  color: sel ? context.colors.surface : context.colors.textPrimary,
                 ),
-                selectedColor: SyncUpTheme.primary,
-                backgroundColor: SyncUpTheme.surface,
+                selectedColor: context.colors.primary,
+                backgroundColor: context.colors.surface,
                 side: BorderSide(
-                  color: sel ? SyncUpTheme.primary : SyncUpTheme.border,
+                  color: sel ? context.colors.primary : context.colors.border,
                 ),
               );
             },
@@ -428,27 +429,27 @@ class _ConfigureStep extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: SyncUpTheme.surface,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-            border: Border.all(color: SyncUpTheme.border),
+            border: Border.all(color: context.colors.border),
           ),
           child: ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Start time',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             subtitle: Text(slotTime.format(context),
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: SyncUpTheme.primary,
+                  color: context.colors.primary,
                   fontSize: 16,
                 )),
             trailing: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: SyncUpTheme.primary.withValues(alpha: 0.1),
+                color: context.colors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.access_time, color: SyncUpTheme.primary, size: 20),
+              child: Icon(Icons.access_time, color: context.colors.primary, size: 20),
             ),
             onTap: () async {
               final t = await showTimePicker(context: context, initialTime: slotTime);
@@ -460,7 +461,7 @@ class _ConfigureStep extends StatelessWidget {
         Text('Duration',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: SyncUpTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 )),
         const SizedBox(height: 10),
         Wrap(
@@ -478,12 +479,12 @@ class _ConfigureStep extends StatelessWidget {
               labelStyle: TextStyle(
                 fontSize: 13,
                 fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                color: sel ? Colors.white : SyncUpTheme.textPrimary,
+                color: sel ? context.colors.surface : context.colors.textPrimary,
               ),
-              selectedColor: SyncUpTheme.primary,
-              backgroundColor: SyncUpTheme.surface,
+              selectedColor: context.colors.primary,
+              backgroundColor: context.colors.surface,
               side: BorderSide(
-                color: sel ? SyncUpTheme.primary : SyncUpTheme.border,
+                color: sel ? context.colors.primary : context.colors.border,
               ),
             );
           }).toList(),
@@ -492,7 +493,7 @@ class _ConfigureStep extends StatelessWidget {
         Text('Break after slot',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: SyncUpTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 )),
         const SizedBox(height: 10),
         Wrap(
@@ -510,12 +511,12 @@ class _ConfigureStep extends StatelessWidget {
               labelStyle: TextStyle(
                 fontSize: 13,
                 fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                color: sel ? Colors.white : SyncUpTheme.textPrimary,
+                color: sel ? context.colors.surface : context.colors.textPrimary,
               ),
-              selectedColor: SyncUpTheme.primary,
-              backgroundColor: SyncUpTheme.surface,
+              selectedColor: context.colors.primary,
+              backgroundColor: context.colors.surface,
               side: BorderSide(
-                color: sel ? SyncUpTheme.primary : SyncUpTheme.border,
+                color: sel ? context.colors.primary : context.colors.border,
               ),
             );
           }).toList(),
@@ -538,10 +539,10 @@ class _ConfigureStep extends StatelessWidget {
               labelText: 'Meeting link',
               hintText: 'https://meet.google.com/...',
               filled: true,
-              fillColor: SyncUpTheme.surface,
+              fillColor: context.colors.surface,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                borderSide: BorderSide(color: SyncUpTheme.border),
+                borderSide: BorderSide(color: context.colors.border),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
@@ -581,11 +582,11 @@ class _BatchStep extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 24),
-          Icon(Icons.inbox_outlined, size: 48, color: SyncUpTheme.border),
+          Icon(Icons.inbox_outlined, size: 48, color: context.colors.border),
           const SizedBox(height: 12),
           Text('No slots in batch yet',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: SyncUpTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   )),
           const SizedBox(height: 24),
         ],
@@ -597,7 +598,7 @@ class _BatchStep extends StatelessWidget {
       children: [
         Text('${batch.length} slot${batch.length == 1 ? '' : 's'} queued',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: SyncUpTheme.textSecondary,
+                  color: context.colors.textSecondary,
                   fontWeight: FontWeight.w600,
                 )),
         const SizedBox(height: 10),
@@ -615,10 +616,10 @@ class _BatchStep extends StatelessWidget {
             decoration: BoxDecoration(
               color: clash
                   ? const Color(0xFFFEF2F2)
-                  : SyncUpTheme.primaryLight.withValues(alpha: 0.5),
+                  : context.colors.primaryLight.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
               border: Border.all(
-                color: clash ? const Color(0xFFFCA5A5) : SyncUpTheme.primaryLight,
+                color: clash ? const Color(0xFFFCA5A5) : context.colors.primaryLight,
               ),
             ),
             child: Row(children: [
@@ -628,7 +629,7 @@ class _BatchStep extends StatelessWidget {
                     '${dayShortNamesSunFirst[d.dayIndex]}  $timeLabel · ${d.durationMinutes} min',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: clash ? const Color(0xFFDC2626) : SyncUpTheme.textPrimary,
+                          color: clash ? const Color(0xFFDC2626) : context.colors.textPrimary,
                         ),
                   ),
                   if (d.breakAfterMinutes > 0 || d.isOnline)

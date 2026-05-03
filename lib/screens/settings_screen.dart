@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/syncup_logo.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
+import 'package:sync_up/main.dart';
 
 /// Preferences page with communication and tracking toggles.
 class SettingsScreen extends StatefulWidget {
@@ -50,11 +52,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             'Preferences',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: SyncUpTheme.textPrimary,
+                  color: context.colors.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
           ),
           const SizedBox(height: SyncUpTheme.space24),
+          AnimatedBuilder(
+            animation: themeController,
+            builder: (context, child) {
+              return ListTile(
+                title: const Text('Theme'),
+                trailing: SegmentedButton<ThemeMode>(
+                  segments: const [
+                    ButtonSegment(value: ThemeMode.system, label: Text('Auto')),
+                    ButtonSegment(value: ThemeMode.light, label: Text('Light')),
+                    ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+                  ],
+                  selected: {themeController.themeMode},
+                  onSelectionChanged: (Set<ThemeMode> newSelection) {
+                    themeController.setThemeMode(newSelection.first);
+                  },
+                ),
+              );
+            },
+          ),
+          const Divider(),
           SwitchListTile(
             value: _allowAlertNotifications,
             onChanged: (v) => setState(() => _allowAlertNotifications = v),

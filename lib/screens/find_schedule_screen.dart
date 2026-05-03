@@ -12,6 +12,7 @@ import '../models/meeting.dart';
 import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import 'settings_screen.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 class FindScheduleScreen extends StatefulWidget {
   const FindScheduleScreen({
@@ -246,7 +247,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                 Text(
                   'After cancelling, this slot will become available again.',
                   style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                    color: SyncUpTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -265,7 +266,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text('Keep booking'),
+              child: Text('Keep booking'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -281,7 +282,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                 }
                 Navigator.of(ctx).pop(reason);
               },
-              child: const Text('Cancel booking'),
+              child: Text('Cancel booking'),
             ),
           ],
         );
@@ -333,7 +334,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: SyncUpTheme.surface,
+      backgroundColor: context.colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -358,7 +359,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: SyncUpTheme.background,
+          backgroundColor: context.colors.background,
           appBar: AppBar(
             title: SyncUpLogo(size: 28, compact: compact),
             backgroundColor: Colors.transparent,
@@ -372,13 +373,13 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                     padding: const EdgeInsets.only(right: 16),
                     child: CircleAvatar(
                       radius: 18,
-                      backgroundColor: SyncUpTheme.primary,
+                      backgroundColor: context.colors.primary,
                       child: Text(
                         widget.profileDisplayName.trim().isNotEmpty
                             ? widget.profileDisplayName.trim()[0].toUpperCase()
                             : '?',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: context.colors.surface,
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                         ),
@@ -428,11 +429,11 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                           key: _searchFieldKey,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.colors.surface,
                               borderRadius: BorderRadius.circular(100),
                               boxShadow: [
                                 BoxShadow(
-                                  color: SyncUpTheme.textSecondary.withValues(alpha: 0.1),
+                                  color: context.colors.textSecondary.withValues(alpha: 0.1),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -443,20 +444,20 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                               focusNode: _searchFocusNode,
                               decoration: InputDecoration(
                                 hintText: 'Search for a professor...',
-                                hintStyle: TextStyle(color: SyncUpTheme.textSecondary.withValues(alpha: 0.7)),
+                                hintStyle: TextStyle(color: context.colors.textSecondary.withValues(alpha: 0.7)),
                                 prefixIcon: Padding(
                                   padding: const EdgeInsets.only(left: 8.0),
                                   child: Icon(
                                     Icons.search,
                                     size: 22,
-                                    color: SyncUpTheme.primary,
+                                    color: context.colors.primary,
                                   ),
                                 ),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                               ),
                               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: SyncUpTheme.textPrimary,
+                                color: context.colors.textPrimary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -485,7 +486,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                               Text(
                                 'My Meetings',
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: SyncUpTheme.textPrimary,
+                                  color: context.colors.textPrimary,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -493,7 +494,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                 Text(
                                   '${_myBookings.length} upcoming',
                                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: SyncUpTheme.primary,
+                                    color: context.colors.primary,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -506,12 +507,12 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.calendar_today_outlined, size: 48, color: SyncUpTheme.border),
+                                      Icon(Icons.calendar_today_outlined, size: 48, color: context.colors.border),
                                       const SizedBox(height: 16),
                                       Text(
                                         'You have no upcoming meetings.',
                                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                          color: SyncUpTheme.textSecondary,
+                                          color: context.colors.textSecondary,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -555,11 +556,11 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                           color: const Color(0xFFDC2626),
                                           borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
                                         ),
-                                        child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+                                        child: Icon(Icons.delete_outline, color: context.colors.surface, size: 28),
                                       ),
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: context.colors.surface,
                                           borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
                                           boxShadow: [
                                             BoxShadow(
@@ -568,7 +569,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                               offset: const Offset(0, 2),
                                             ),
                                           ],
-                                          border: Border.all(color: SyncUpTheme.border.withValues(alpha: 0.5)),
+                                          border: Border.all(color: context.colors.border.withValues(alpha: 0.5)),
                                         ),
                                         child: Stack(
                                           children: [
@@ -577,16 +578,16 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                               leading: Container(
                                                 padding: const EdgeInsets.all(10),
                                                 decoration: BoxDecoration(
-                                                  color: SyncUpTheme.primaryLight.withValues(alpha: 0.3),
+                                                  color: context.colors.primaryLight.withValues(alpha: 0.3),
                                                   shape: BoxShape.circle,
                                                 ),
-                                                child: Icon(Icons.event_available, color: SyncUpTheme.primary, size: 20),
+                                                child: Icon(Icons.event_available, color: context.colors.primary, size: 20),
                                               ),
                                               title: Text(
                                                 '${fmtTime(booking.startTime)} - ${fmtTime(end)}',
                                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                                   fontWeight: FontWeight.w800,
-                                                  color: SyncUpTheme.textPrimary,
+                                                  color: context.colors.textPrimary,
                                                 ),
                                               ),
                                               subtitle: Padding(
@@ -594,14 +595,14 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                                 child: Text(
                                                   '$title\n${subtitleParts.join(' · ')}',
                                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                    color: SyncUpTheme.textSecondary,
+                                                    color: context.colors.textSecondary,
                                                     height: 1.4,
                                                   ),
                                                 ),
                                               ),
                                               isThreeLine: true,
                                               trailing: compact 
-                                                  ? Icon(Icons.swipe_left_outlined, color: SyncUpTheme.border)
+                                                  ? Icon(Icons.swipe_left_outlined, color: context.colors.border)
                                                   : null,
                                             ),
                                             if (!compact)
@@ -613,7 +614,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                                   icon: Icon(
                                                     Icons.close, 
                                                     size: 18, 
-                                                    color: SyncUpTheme.textSecondary.withValues(alpha: 0.5)
+                                                    color: context.colors.textSecondary.withValues(alpha: 0.5)
                                                   ),
                                                   tooltip: 'Cancel Booking',
                                                   onPressed: () => _cancelSingleBooking(booking),
@@ -657,7 +658,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                         width: searchFieldWidth,
                         constraints: const BoxConstraints(maxHeight: 320),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.colors.surface,
                           borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
                           boxShadow: [
                             BoxShadow(
@@ -672,7 +673,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                           child: ListView.separated(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             itemCount: _filteredOwners.length,
-                            separatorBuilder: (context, index) => Divider(height: 1, color: SyncUpTheme.border.withValues(alpha: 0.3)),
+                            separatorBuilder: (context, index) => Divider(height: 1, color: context.colors.border.withValues(alpha: 0.3)),
                             itemBuilder: (context, i) {
                               final owner = _filteredOwners[i];
                               return InkWell(
@@ -683,11 +684,11 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                     children: [
                                       CircleAvatar(
                                         radius: 18,
-                                        backgroundColor: SyncUpTheme.primary.withValues(alpha: 0.1),
+                                        backgroundColor: context.colors.primary.withValues(alpha: 0.1),
                                         child: Text(
                                           owner.name.isNotEmpty ? owner.name[0].toUpperCase() : '?',
-                                          style: const TextStyle(
-                                            color: SyncUpTheme.primary,
+                                          style: TextStyle(
+                                            color: context.colors.primary,
                                             fontWeight: FontWeight.w800,
                                           ),
                                         ),
@@ -701,14 +702,14 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                               owner.name,
                                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                                 fontWeight: FontWeight.w700,
-                                                color: SyncUpTheme.textPrimary,
+                                                color: context.colors.textPrimary,
                                               ),
                                             ),
                                             if (owner.role != null)
                                               Text(
                                                 owner.role!,
                                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                  color: SyncUpTheme.textSecondary,
+                                                  color: context.colors.textSecondary,
                                                 ),
                                               ),
                                           ],
@@ -849,7 +850,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                   curve: Curves.easeOutCubic,
                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? SyncUpTheme.primary : Colors.transparent,
+                    color: isSelected ? context.colors.primary : Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -860,7 +861,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: isSelected ? Colors.white.withValues(alpha: 0.8) : SyncUpTheme.textSecondary,
+                          color: isSelected ? context.colors.surface.withValues(alpha: 0.8) : context.colors.textSecondary,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -870,7 +871,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: isSelected ? FontWeight.w800 : (hasSlots ? FontWeight.w700 : FontWeight.w400),
-                          color: isSelected ? Colors.white : (hasSlots ? SyncUpTheme.textPrimary : SyncUpTheme.border),
+                          color: isSelected ? context.colors.surface : (hasSlots ? context.colors.textPrimary : context.colors.border),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -879,7 +880,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: isSelected ? Colors.white : (hasSlots ? SyncUpTheme.primary : SyncUpTheme.border),
+                          color: isSelected ? context.colors.surface : (hasSlots ? context.colors.primary : context.colors.border),
                         ),
                       ),
                     ],
@@ -909,10 +910,10 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
               children: [
                 CircleAvatar(
                   radius: 26,
-                  backgroundColor: SyncUpTheme.primary.withValues(alpha: 0.1),
+                  backgroundColor: context.colors.primary.withValues(alpha: 0.1),
                   child: Text(
                     widget.owner.name.isNotEmpty ? widget.owner.name[0].toUpperCase() : '?',
-                    style: const TextStyle(color: SyncUpTheme.primary, fontSize: 20, fontWeight: FontWeight.w800),
+                    style: TextStyle(color: context.colors.primary, fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -924,14 +925,14 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                         widget.owner.name,
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: SyncUpTheme.textPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                       if (widget.owner.department != null)
                         Text(
                           widget.owner.department!,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: SyncUpTheme.textSecondary,
+                            color: context.colors.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -969,12 +970,12 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.event_busy, size: 40, color: SyncUpTheme.border),
+                          Icon(Icons.event_busy, size: 40, color: context.colors.border),
                           const SizedBox(height: 16),
                           Text(
                             'No available slots on this day.',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: SyncUpTheme.textSecondary,
+                              color: context.colors.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1034,9 +1035,9 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.colors.surface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: SyncUpTheme.border.withValues(alpha: 0.5)),
+                            border: Border.all(color: context.colors.border.withValues(alpha: 0.5)),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.02),
@@ -1055,7 +1056,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                                       timeLabel,
                                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                         fontWeight: FontWeight.w800,
-                                        color: SyncUpTheme.textPrimary,
+                                        color: context.colors.textPrimary,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -1063,7 +1064,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                                       Text(
                                         subtitleParts.join(' · '),
                                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: SyncUpTheme.textSecondary,
+                                          color: context.colors.textSecondary,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -1073,13 +1074,13 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: SyncUpTheme.primary,
+                                  color: context.colors.primary,
                                   borderRadius: BorderRadius.circular(100),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'Book',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: context.colors.surface,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -1116,12 +1117,12 @@ class _InfoChip extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: SyncUpTheme.textSecondary),
+        Icon(icon, size: 18, color: context.colors.textSecondary),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: SyncUpTheme.textPrimary),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.colors.textPrimary),
           ),
         ),
       ],
@@ -1178,7 +1179,7 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
         constraints: const BoxConstraints(maxWidth: 360),
         child: Container(
           decoration: BoxDecoration(
-            color: SyncUpTheme.surface,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: SingleChildScrollView(
@@ -1189,18 +1190,18 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: SyncUpTheme.primaryLight.withValues(alpha: 0.3),
+                    color: context.colors.primaryLight.withValues(alpha: 0.3),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: context.colors.surface,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.event_available, color: SyncUpTheme.primary, size: 24),
+                        child: Icon(Icons.event_available, color: context.colors.primary, size: 24),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -1210,7 +1211,7 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                             Text(
                               'Confirm Booking',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: SyncUpTheme.textPrimary,
+                                color: context.colors.textPrimary,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -1228,13 +1229,13 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          color: SyncUpTheme.background,
+                          color: context.colors.background,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: SyncUpTheme.border),
+                          border: Border.all(color: context.colors.border),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.schedule, size: 20, color: SyncUpTheme.primary),
+                            Icon(Icons.schedule, size: 20, color: context.colors.primary),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -1244,12 +1245,12 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                                     '${widget.timeStr} – ${widget.endStr}',
                                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                       fontWeight: FontWeight.w800,
-                                      color: SyncUpTheme.textPrimary,
+                                      color: context.colors.textPrimary,
                                     ),
                                   ),
                                   Text(
                                     '${widget.dateStr} • ${slot.durationMinutes} min',
-                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(color: SyncUpTheme.textSecondary),
+                                    style: Theme.of(context).textTheme.labelMedium?.copyWith(color: context.colors.textSecondary),
                                   ),
                                 ],
                               ),
@@ -1268,9 +1269,9 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                         controller: _noteController,
                         decoration: InputDecoration(
                           labelText: 'Note (optional)',
-                          prefixIcon: Icon(Icons.note, size: 20, color: SyncUpTheme.textSecondary),
+                          prefixIcon: Icon(Icons.note, size: 20, color: context.colors.textSecondary),
                           filled: true,
-                          fillColor: SyncUpTheme.background,
+                          fillColor: context.colors.background,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -1291,7 +1292,7 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: Text('Cancel', style: TextStyle(color: SyncUpTheme.textSecondary, fontWeight: FontWeight.bold)),
+                          child: Text('Cancel', style: TextStyle(color: context.colors.textSecondary, fontWeight: FontWeight.bold)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1306,7 +1307,7 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                           ),
-                          child: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],

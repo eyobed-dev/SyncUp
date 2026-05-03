@@ -6,6 +6,7 @@ import '../models/meeting.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../utils/week_calendar.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Tetris-style view: Y-axis = configurable slots (8:00–22:00), X-axis = days.
 /// Meeting blocks stack vertically by time; height = duration.
@@ -23,7 +24,7 @@ const List<int> slotDurationOptions = [
 const List<int> _pinchDurations = [15, 30, 45, 60];
 
 /// Hue for current day column - Agendrix zen green tint
-final Color _currentDayHue = SyncUpTheme.primary.withValues(alpha: 0.06);
+// Moved _currentDayHue into build methods
 
 /// Left accent colors for white cards (one per meeting for variety)
 final List<Color> _blockColors = [
@@ -234,9 +235,10 @@ class _SlotsViewState extends State<SlotsView> {
                 child: Row(
                   children: [
                     ...List.generate(7, (i) {
+                      final currentDayHue = context.colors.primary.withValues(alpha: 0.06);
                       final cell = Container(
                         width: double.infinity,
-                        color: currentDayIndex == i ? _currentDayHue : null,
+                        color: currentDayIndex == i ? currentDayHue : null,
                         child: Center(
                           child: Text(
                             dayNames[i],
@@ -447,6 +449,7 @@ class _SlotsViewState extends State<SlotsView> {
     final indices = expandedDayIndex != null ? [expandedDayIndex] : List.generate(7, (i) => i);
     return Column(
       children: List.generate(totalRows, (rowIndex) {
+        final currentDayHue = context.colors.primary.withValues(alpha: 0.06);
         final minutesFromStart = rowIndex * slotDurationMinutes;
         final hour = _startHour + (minutesFromStart ~/ 60);
         final min = minutesFromStart % 60;
@@ -462,10 +465,10 @@ class _SlotsViewState extends State<SlotsView> {
                 final cell = Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: currentDayIndex == i ? _currentDayHue : null,
+                    color: currentDayIndex == i ? currentDayHue : null,
                     border: Border(
-                      right: BorderSide(color: SyncUpTheme.border),
-                      bottom: BorderSide(color: SyncUpTheme.border),
+                      right: BorderSide(color: context.colors.border),
+                      bottom: BorderSide(color: context.colors.border),
                     ),
                   ),
                 );
@@ -610,10 +613,10 @@ class _SlotsViewState extends State<SlotsView> {
           height: 2,
           child: Container(
             decoration: BoxDecoration(
-              color: SyncUpTheme.zenGreen,
+              color: context.colors.zenGreen,
               boxShadow: [
                 BoxShadow(
-                  color: SyncUpTheme.zenGreen.withValues(alpha: 0.4),
+                  color: context.colors.zenGreen.withValues(alpha: 0.4),
                   blurRadius: 2,
                   offset: const Offset(0, 0),
                 ),
@@ -728,7 +731,7 @@ class _MeetingBlockState extends State<_MeetingBlock> {
           width: w,
           height: h,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(1),
             boxShadow: [
               BoxShadow(
@@ -809,13 +812,13 @@ class _MeetingBlockState extends State<_MeetingBlock> {
                             SizedBox(height: contentH < 56 ? 0 : 1),
                             Row(
                               children: [
-                                Icon(Icons.location_on_outlined, size: 10, color: SyncUpTheme.textSecondary),
+                                Icon(Icons.location_on_outlined, size: 10, color: context.colors.textSecondary),
                                 const SizedBox(width: 2),
                                 Expanded(
                                   child: Text(
                                     meeting.location!,
                                     style: TextStyle(
-                                      color: SyncUpTheme.textSecondary,
+                                      color: context.colors.textSecondary,
                                       fontSize: 9,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -888,10 +891,10 @@ class _MeetingDetailModal extends StatelessWidget {
               width: modalWidth,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: SyncUpTheme.surface,
+                color: context.colors.surface,
                 borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                border: Border.all(color: SyncUpTheme.zenGreen.withValues(alpha: 0.15)),
-                boxShadow: SyncUpTheme.modalShadow,
+                border: Border.all(color: context.colors.zenGreen.withValues(alpha: 0.15)),
+                boxShadow: context.colors.modalShadow,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -901,13 +904,13 @@ class _MeetingDetailModal extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 20,
-                        backgroundColor: SyncUpTheme.zenGreen,
+                        backgroundColor: context.colors.zenGreen,
                         child: Text(
                           meeting.participantName.isNotEmpty
                               ? meeting.participantName[0].toUpperCase()
                               : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.colors.surface,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -922,7 +925,7 @@ class _MeetingDetailModal extends StatelessWidget {
                               meeting.participantName,
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: SyncUpTheme.textPrimary,
+                                    color: context.colors.textPrimary,
                                   ),
                             ),
                             if (meeting.discipline != null || meeting.topic != null) ...[
@@ -930,7 +933,7 @@ class _MeetingDetailModal extends StatelessWidget {
                               Text(
                                 [if (meeting.discipline != null) meeting.discipline, if (meeting.topic != null) meeting.topic].join(' – '),
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: SyncUpTheme.zenGreen,
+                                      color: context.colors.zenGreen,
                                       fontWeight: FontWeight.w500,
                                     ),
                               ),
@@ -939,7 +942,7 @@ class _MeetingDetailModal extends StatelessWidget {
                             Text(
                               '${_formatTime(meeting.startTime)} – ${_formatTime(meeting.endTime)} • ${meeting.durationMinutes} min',
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: SyncUpTheme.textSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                             ),
                           ],
@@ -951,13 +954,13 @@ class _MeetingDetailModal extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.location_on_outlined, size: 16, color: SyncUpTheme.textSecondary),
+                        Icon(Icons.location_on_outlined, size: 16, color: context.colors.textSecondary),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             meeting.location!,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: SyncUpTheme.textSecondary,
+                                  color: context.colors.textSecondary,
                                 ),
                           ),
                         ),
