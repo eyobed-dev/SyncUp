@@ -289,6 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final slotsToPersist = _toAvailabilitySlots(toAdd);
     if (slotsToPersist.isNotEmpty) {
+      final persistedIds = slotsToPersist.map((s) => s.id).toSet();
       LiveBackendCache.instance.upsertAvailabilitySlotsLocal(
         ownerId: widget.ownerId,
         slots: slotsToPersist,
@@ -299,14 +300,21 @@ class _HomeScreenState extends State<HomeScreen> {
           slots: slotsToPersist,
         );
         await syncAvailabilityForOwner(widget.ownerId, _weekStart);
-      } catch (_) {
+      } catch (error) {
         if (!mounted) return;
+        // Avoid showing local-only slots as persisted when backend save fails.
+        setState(() {
+          _extraMeetings.removeWhere((m) => persistedIds.contains(m.id));
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Saved locally, but backend sync failed.'),
+          SnackBar(
+            content: Text(
+              'Failed to save slots to backend: ${error.toString()}',
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
+        return;
       }
     }
 

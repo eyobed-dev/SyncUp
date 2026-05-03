@@ -3,6 +3,7 @@ import '../models/availability_slot.dart';
 import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../data/live_backend_cache.dart';
+import '../data/availability_data.dart';
 import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import '../widgets/find_schedule_slots_view.dart';
@@ -148,7 +149,6 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
           location: location,
           meetingLink: meetingLink,
         );
-        _addedSlots.add(slot);
         newlyAdded.add(slot);
         slotIndex++;
       }
@@ -169,11 +169,26 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
         ownerId: widget.ownerId,
         slots: newlyAdded,
       );
-    } catch (_) {
+      await syncAvailabilityForOwner(widget.ownerId, _slotsWeekStart);
+      if (!mounted) return;
+      setState(() {
+        _addedSlots.addAll(newlyAdded);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${newlyAdded.length} slot(s) saved to backend'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      // Re-sync from backend to clear optimistic local cache on failure.
+      try {
+        await syncAvailabilityForOwner(widget.ownerId, _slotsWeekStart);
+      } catch (_) {}
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Saved locally, but backend sync failed.'),
+        SnackBar(
+          content: Text('Failed to save slots to backend: ${error.toString()}'),
           behavior: SnackBarBehavior.floating,
         ),
       );
