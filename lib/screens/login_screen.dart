@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/app_user_session.dart';
 import '../services/syncup_api_client.dart';
-import '../theme/sync_up_theme.dart';
 import '../widgets/syncup_logo.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,6 +15,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final SyncUpApiClient _api = SyncUpApiClient();
+  static const _professorUsername = 'p';
+  static const _professorPassword = '1';
+  static const _studentUsername = 's';
+  static const _studentPassword = '1';
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _error;
@@ -26,6 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _fillCredentials({required String username, required String password}) {
+    setState(() {
+      _usernameController.text = username;
+      _passwordController.text = password;
+      _error = null;
+    });
   }
 
   Future<void> _continue() async {
@@ -83,6 +94,52 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Demo accounts',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Professor: $_professorUsername / $_professorPassword',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Student: $_studentUsername / $_studentPassword',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton(
+                          onPressed: _submitting
+                              ? null
+                              : () => _fillCredentials(
+                                    username: _professorUsername,
+                                    password: _professorPassword,
+                                  ),
+                          child: const Text('Use Professor'),
+                        ),
+                        OutlinedButton(
+                          onPressed: _submitting
+                              ? null
+                              : () => _fillCredentials(
+                                    username: _studentUsername,
+                                    password: _studentPassword,
+                                  ),
+                          child: const Text('Use Student'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     TextField(
