@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../data/current_meeting_minutes.dart';
 import '../data/sample_data.dart';
 import '../models/meeting.dart';
-import '../theme/sync_up_theme.dart';
 import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Single row in the merged “previous meetings” list.
@@ -1367,7 +1366,7 @@ class MeetingListCard extends StatelessWidget {
                               style: TextStyle(
                                 color: isOpenSlot
                                     ? context.colors.textSecondary
-                                    : const Color(0xFF0F172A),
+                                    : context.colors.textPrimary,
                                 fontSize: 13,
                                 fontWeight:
                                     isOpenSlot ? FontWeight.w500 : FontWeight.w600,
@@ -1378,8 +1377,8 @@ class MeetingListCard extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               '${_formatTime(startTime)} – ${_formatTime(endTime)}',
-                              style: const TextStyle(
-                                color: Color(0xFF0F172A),
+                              style: TextStyle(
+                                color: context.colors.textPrimary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.2,

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../utils/week_calendar.dart';
 import '../models/availability_slot.dart';
@@ -322,7 +321,7 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
                         timeStr,
                         maxLines: 1,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: const Color(0xFF475569),
+                              color: context.colors.textSecondary,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),

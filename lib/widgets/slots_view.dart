@@ -243,7 +243,7 @@ class _SlotsViewState extends State<SlotsView> {
                           child: Text(
                             dayNames[i],
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: const Color(0xFF334155),
+                                  color: context.colors.textSecondary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
@@ -496,7 +496,7 @@ class _SlotsViewState extends State<SlotsView> {
                         timeStr,
                         maxLines: 1,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: const Color(0xFF475569),
+                              color: context.colors.textSecondary,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -770,7 +770,7 @@ class _MeetingBlockState extends State<_MeetingBlock> {
                             Text(
                               '${_blockFormatTime(meeting.startTime)}–${_blockFormatTime(meeting.endTime)}',
                               style: TextStyle(
-                                color: const Color(0xFF0F172A),
+                                color: context.colors.textPrimary,
                                 fontSize: timeFontSize,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.2,
@@ -784,7 +784,7 @@ class _MeetingBlockState extends State<_MeetingBlock> {
                           Text(
                             meeting.participantName,
                             style: TextStyle(
-                              color: const Color(0xFF0F172A),
+                              color: context.colors.textPrimary,
                               fontSize: nameFontSize,
                               fontWeight: FontWeight.w700,
                             ),
@@ -800,7 +800,7 @@ class _MeetingBlockState extends State<_MeetingBlock> {
                                 if (showTopicInBlock) meeting.topic,
                               ].whereType<String>().join(' – '),
                               style: TextStyle(
-                                color: const Color(0xFF334155),
+                                color: context.colors.textSecondary,
                                 fontSize: detailFontSize,
                                 fontWeight: FontWeight.w600,
                               ),

@@ -52,7 +52,7 @@ Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
                           fontWeight: FontWeight.w600,
                           fontSize: 17,
                           height: 1.35,
-                          color: const Color(0xFF0F172A),
+                          color: context.colors.textPrimary,
                         ),
                   ),
                 ),
