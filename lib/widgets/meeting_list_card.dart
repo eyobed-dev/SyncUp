@@ -1160,8 +1160,10 @@ class MeetingListCard extends StatelessWidget {
     final isOngoing = !now.isBefore(startTime) && now.isBefore(endTime);
     final justEnded =
         now.isAfter(endTime) && now.difference(endTime).inMinutes <= 1;
-    final isCurrent = isOngoing || justEnded;
-    final isWarningWindow = isOngoing && endTime.difference(now).inMinutes <= 5;
+    // Open availability slots should never be treated as an in-progress meeting.
+    final isCurrent = !isOpenSlot && (isOngoing || justEnded);
+    final isWarningWindow =
+        !isOpenSlot && isOngoing && endTime.difference(now).inMinutes <= 5;
     final totalSeconds = m.durationMinutes * 60;
     final elapsedSeconds = now.difference(startTime).inSeconds.clamp(0, totalSeconds);
     final progress = totalSeconds <= 0 ? 0.0 : elapsedSeconds / totalSeconds;
@@ -1295,7 +1297,7 @@ class MeetingListCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (isOngoing)
+                            if (isOngoing && !isOpenSlot)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 4),
                                 child: FittedBox(
@@ -1442,61 +1444,6 @@ class MeetingListCard extends StatelessWidget {
                                           onMeetingStatus == null
                                               ? null
                                               : () => onMeetingStatus!(m, 'missed'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ] else if (canCancelMeeting(m)) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  OutlinedButton(
-                                    onPressed:
-                                        () =>
-                                            showCancelConfirmation(context, m),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: const Color(0xFFDC2626),
-                                      side: const BorderSide(
-                                        color: Color(0xFFDC2626),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      minimumSize: const Size(0, 28),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Cancel',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  OutlinedButton(
-                                    onPressed:
-                                        () => showPostponeConfirmation(
-                                          context,
-                                          m,
-                                        ),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: context.colors.primary,
-                                      side: BorderSide(
-                                        color: context.colors.primary,
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      minimumSize: const Size(0, 28),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Postpone',
-                                      style: TextStyle(fontSize: 12),
                                     ),
                                   ),
                                 ],
