@@ -11,6 +11,21 @@ import 'week_day_selector.dart';
 import 'package:sync_up/theme/sync_up_colors.dart';
 
 Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
+  String dayLabel(DateTime date) {
+    const weekdayShort = <String>[
+      'MON',
+      'TUE',
+      'WED',
+      'THU',
+      'FRI',
+      'SAT',
+      'SUN',
+    ];
+    final hh = date.hour.toString().padLeft(2, '0');
+    final mm = date.minute.toString().padLeft(2, '0');
+    return '${weekdayShort[date.weekday - 1]} ${date.day} • $hh:$mm';
+  }
+
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -38,7 +53,8 @@ Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
           itemCount: meetings.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, i) {
-            final name = meetings[i].participantName.trim();
+            final meeting = meetings[i];
+            final name = meeting.participantName.trim();
             final label = name.isEmpty ? '—' : name;
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,14 +62,27 @@ Widget _studentNamesBlock(BuildContext context, List<Meeting> meetings) {
                 Icon(Icons.person, size: 22, color: context.colors.primary),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 17,
-                          height: 1.35,
-                          color: context.colors.textPrimary,
-                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 17,
+                              height: 1.2,
+                              color: context.colors.textPrimary,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        dayLabel(meeting.startTime),
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: context.colors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
                   ),
                 ),
               ],

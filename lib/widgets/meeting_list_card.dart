@@ -1362,14 +1362,14 @@ class MeetingListCard extends StatelessWidget {
                                 ), // FittedBox
                               ), // Padding
                             Text(
-                              m.listTitleLabel(includeTopic: false),
+                              m.listTitleLabel(includeTopic: !omitTopicInListTitle),
                               style: TextStyle(
                                 color: isOpenSlot
                                     ? context.colors.textSecondary
                                     : context.colors.textPrimary,
-                                fontSize: 13,
+                                fontSize: 14,
                                 fontWeight:
-                                    isOpenSlot ? FontWeight.w500 : FontWeight.w600,
+                                    isOpenSlot ? FontWeight.w600 : FontWeight.w700,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
