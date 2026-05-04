@@ -136,13 +136,14 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
     }
 
     final newlyAdded = <AvailabilitySlot>[];
+    final batchNonce = DateTime.now().microsecondsSinceEpoch;
     var slotIndex = 0;
     for (final date in _datesToAdd) {
       final daySlots = _generatedSlotsForDate(date);
       for (var i = 0; i < daySlots.length; i++) {
         final start = daySlots[i];
         final slot = AvailabilitySlot(
-          id: 'add-${start.millisecondsSinceEpoch}-$slotIndex',
+          id: 'add-$batchNonce-${start.millisecondsSinceEpoch}-$slotIndex',
           startTime: start,
           durationMinutes: slotDuration,
           title: title,
