@@ -2,12 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/meeting.dart';
 import '../theme/sync_up_theme.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Card shown when a meeting is currently ongoing.
 /// Displays meeting info, a progress animation, and Missed/Late/Ontime buttons.
 class CurrentMeetingCard extends StatefulWidget {
   final Meeting meeting;
-  final Color accentColor;
+  final Color? accentColor;
   final Future<void> Function()? onLate;
   final Future<void> Function()? onPostponed;
   final Future<void> Function()? onCancelled;
@@ -16,7 +17,7 @@ class CurrentMeetingCard extends StatefulWidget {
   const CurrentMeetingCard({
     super.key,
     required this.meeting,
-    this.accentColor = SyncUpTheme.primary,
+    this.accentColor,
     this.onLate,
     this.onPostponed,
     this.onCancelled,
@@ -127,8 +128,10 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
         now.isAfter(meeting.endTime) &&
         now.difference(meeting.endTime).inMinutes <= 1;
 
+    final actualAccentColor = widget.accentColor ?? context.colors.primary;
+
     final borderColor =
-        _aboutToEnd ? const Color(0xFFDC2626) : widget.accentColor;
+        _aboutToEnd ? const Color(0xFFDC2626) : actualAccentColor;
 
     Future<void> selectAndCollapse(_MeetingStatusAction p) async {
       if (_isCollapsing) return;
@@ -161,19 +164,19 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
-        color: SyncUpTheme.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
         border: Border.all(
           color: borderColor.withValues(alpha: isOngoing ? 0.6 : 0.3),
           width: isOngoing ? 1.5 : 1,
         ),
         boxShadow: [
-          ...SyncUpTheme.cardShadow,
+          ...context.colors.cardShadow,
           if (isOngoing)
             BoxShadow(
               color: (_aboutToEnd
                       ? const Color(0xFFDC2626)
-                      : widget.accentColor)
+                      : actualAccentColor)
                   .withValues(alpha: 0.12),
               blurRadius: 12,
               spreadRadius: 0,
@@ -193,7 +196,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                     return CustomPaint(
                       painter: _ShimmerPainter(
                         progress: _shimmerAnimation.value,
-                        color: widget.accentColor,
+                        color: actualAccentColor,
                       ),
                     );
                   },
@@ -211,7 +214,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                         final barColor =
                             _aboutToEnd
                                 ? const Color(0xFFDC2626)
-                                : widget.accentColor;
+                                : actualAccentColor;
                         return Container(
                           width: 4,
                           decoration: BoxDecoration(
@@ -243,7 +246,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: widget.accentColor
+                                            color: actualAccentColor
                                                 .withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(
                                               6,
@@ -260,7 +263,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                                     height: 8,
                                                     decoration: BoxDecoration(
                                                       shape: BoxShape.circle,
-                                                      color: widget.accentColor
+                                                      color: actualAccentColor
                                                           .withValues(
                                                             alpha:
                                                                 _pulseAnimation
@@ -268,8 +271,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                                           ),
                                                       boxShadow: [
                                                         BoxShadow(
-                                                          color: widget
-                                                              .accentColor
+                                                          color: actualAccentColor
                                                               .withValues(
                                                                 alpha: 0.5,
                                                               ),
@@ -288,7 +290,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                                     .textTheme
                                                     .labelSmall
                                                     ?.copyWith(
-                                                      color: widget.accentColor,
+                                                      color: actualAccentColor,
                                                       fontWeight:
                                                           FontWeight.w600,
                                                       fontSize: 11,
@@ -305,7 +307,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: SyncUpTheme.textSecondary
+                                            color: context.colors.textSecondary
                                                 .withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(
                                               4,
@@ -316,7 +318,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                             style: Theme.of(
                                               context,
                                             ).textTheme.labelSmall?.copyWith(
-                                              color: SyncUpTheme.textSecondary,
+                                              color: context.colors.textSecondary,
                                               fontWeight: FontWeight.w600,
                                               fontSize: 10,
                                             ),
@@ -329,7 +331,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                         style: Theme.of(
                                           context,
                                         ).textTheme.bodySmall?.copyWith(
-                                          color: SyncUpTheme.textSecondary,
+                                          color: context.colors.textSecondary,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -342,7 +344,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                     icon: Icon(
                                       Icons.close,
                                       size: 20,
-                                      color: SyncUpTheme.textSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                     style: IconButton.styleFrom(
                                       padding: const EdgeInsets.all(4),
@@ -360,7 +362,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                               style: Theme.of(
                                 context,
                               ).textTheme.titleSmall?.copyWith(
-                                color: SyncUpTheme.textPrimary,
+                                color: context.colors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                               maxLines: 2,
@@ -373,7 +375,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                   Icon(
                                     Icons.location_on_outlined,
                                     size: 14,
-                                    color: SyncUpTheme.textSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                                   const SizedBox(width: 4),
                                   Expanded(
@@ -382,7 +384,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall?.copyWith(
-                                        color: SyncUpTheme.textSecondary,
+                                        color: context.colors.textSecondary,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -407,7 +409,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                     color:
                                         aboutToEnd
                                             ? const Color(0xFFDC2626)
-                                            : SyncUpTheme.textSecondary,
+                                            : context.colors.textSecondary,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
                                     fontFeatures: const [
@@ -425,14 +427,14 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                             child: LinearProgressIndicator(
                                               value: progress,
                                               backgroundColor:
-                                                  SyncUpTheme.divider,
+                                                  context.colors.divider,
                                               valueColor:
                                                   AlwaysStoppedAnimation<Color>(
                                                     aboutToEnd
                                                         ? const Color(
                                                           0xFFDC2626,
                                                         )
-                                                        : widget.accentColor,
+                                                        : actualAccentColor,
                                                   ),
                                               minHeight: 3,
                                             ),
@@ -499,10 +501,10 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                       borderRadius: BorderRadius.circular(2),
                                       child: LinearProgressIndicator(
                                         value: 1,
-                                        backgroundColor: SyncUpTheme.divider,
+                                        backgroundColor: context.colors.divider,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                              SyncUpTheme.textSecondary,
+                                              context.colors.textSecondary,
                                             ),
                                         minHeight: 3,
                                       ),
@@ -517,7 +519,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                       style: Theme.of(
                                         context,
                                       ).textTheme.labelSmall?.copyWith(
-                                        color: SyncUpTheme.textSecondary,
+                                        color: context.colors.textSecondary,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 12,
                                         fontFeatures: const [
@@ -558,7 +560,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                             foregroundColor:
                                 _selectedStatus ==
                                         _MeetingStatusAction.cancelled
-                                    ? Colors.white
+                                    ? context.colors.surface
                                     : red,
                             side: BorderSide(
                               color: red,
@@ -595,7 +597,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                             foregroundColor:
                                 _selectedStatus ==
                                         _MeetingStatusAction.postponed
-                                    ? Colors.white
+                                    ? context.colors.surface
                                     : blue,
                             side: BorderSide(
                               color: blue,
@@ -630,7 +632,7 @@ class _CurrentMeetingCardState extends State<CurrentMeetingCard>
                                     : Colors.transparent,
                             foregroundColor:
                                 _selectedStatus == _MeetingStatusAction.late
-                                    ? Colors.white
+                                    ? context.colors.surface
                                     : yellow,
                             side: BorderSide(
                               color: yellow,

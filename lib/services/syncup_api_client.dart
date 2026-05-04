@@ -23,6 +23,10 @@ class SyncUpApiClient {
     ).trim();
     if (fromEnv.isNotEmpty) return fromEnv;
 
+    if (kDebugMode) {
+      return 'http://127.0.0.1:8080';
+    }
+
     // For Flutter web deployments, default to the current host/origin.
     if (kIsWeb) return Uri.base.origin;
     return 'http://161.97.70.30:18080';

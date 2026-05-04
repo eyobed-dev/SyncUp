@@ -5,6 +5,7 @@ import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../utils/week_calendar.dart';
 import '../models/availability_slot.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Grid showing available slots for booking. Same layout as SlotsView.
 /// Only displays the owner's availability blocks (e.g. Consultation, Mentoring, training).
@@ -12,8 +13,6 @@ const double _defaultRowHeight = 36.0;
 const int _startHour = 8;
 const int _endHour = 22;
 const List<int> _pinchDurations = [15, 30, 45, 60];
-
-final Color _currentDayHue = SyncUpTheme.primary.withValues(alpha: 0.06);
 
 class FindScheduleSlotsView extends StatefulWidget {
   final DateTime weekStart;
@@ -122,7 +121,7 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
                         _formatExpandedDayTitle(weekSunday, widget.expandedDayIndex!),
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: SyncUpTheme.textPrimary,
+                              color: context.colors.textPrimary,
                             ),
                       ),
                     ),
@@ -159,13 +158,13 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
                       final cell = Container(
                         width: double.infinity,
                         color: currentDayIndex == i
-                            ? SyncUpTheme.primary.withValues(alpha: 0.06)
+                            ? context.colors.primary.withValues(alpha: 0.06)
                             : null,
                         child: Center(
                           child: Text(
                             dayNames[i],
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: SyncUpTheme.textPrimary,
+                                  color: context.colors.textPrimary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
@@ -289,13 +288,14 @@ class _FindScheduleSlotsViewState extends State<FindScheduleSlotsView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ...indices.map((i) {
+                final currentDayHue = context.colors.primary.withValues(alpha: 0.06);
                 final cell = Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: currentDayIndex == i ? _currentDayHue : null,
+                    color: currentDayIndex == i ? currentDayHue : null,
                     border: Border(
-                      right: BorderSide(color: SyncUpTheme.border),
-                      bottom: BorderSide(color: SyncUpTheme.border),
+                      right: BorderSide(color: context.colors.border),
+                      bottom: BorderSide(color: context.colors.border),
                     ),
                   ),
                 );
@@ -412,11 +412,11 @@ class _AvailabilityBlock extends StatelessWidget {
           width: blockWidth,
           height: blockHeight,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
               BoxShadow(
-                color: SyncUpTheme.primary.withValues(alpha: 0.12),
+                color: context.colors.primary.withValues(alpha: 0.12),
                 blurRadius: 4,
                 offset: const Offset(0, 1),
               ),
@@ -428,7 +428,7 @@ class _AvailabilityBlock extends StatelessWidget {
               Container(
                 width: barWidth,
                 decoration: BoxDecoration(
-                  color: SyncUpTheme.primary,
+                  color: context.colors.primary,
                   borderRadius: const BorderRadius.horizontal(
                     left: Radius.circular(2),
                   ),
@@ -450,7 +450,7 @@ class _AvailabilityBlock extends StatelessWidget {
                           Text(
                             slot.title,
                             style: TextStyle(
-                              color: SyncUpTheme.textPrimary,
+                              color: context.colors.textPrimary,
                               fontSize: contentH < 24 ? 9.0 : (contentH < 36 ? 10.0 : 11.0),
                               fontWeight: FontWeight.w700,
                             ),
@@ -463,7 +463,7 @@ class _AvailabilityBlock extends StatelessWidget {
                                   '${slot.location != null ? ' • ${slot.location}' : ''}'
                                   '${(slot.meetingLink ?? '').trim().isNotEmpty ? ' • online' : ''}',
                               style: TextStyle(
-                                color: SyncUpTheme.textSecondary,
+                                color: context.colors.textSecondary,
                                 fontSize: contentH < 40 ? 8.0 : 9.0,
                                 fontWeight: FontWeight.w500,
                               ),

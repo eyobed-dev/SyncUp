@@ -13,6 +13,7 @@ import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import '../utils/week_calendar.dart';
 import 'settings_screen.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -384,13 +385,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () => Scaffold.of(context).openEndDrawer(),
                     child: CircleAvatar(
                       radius: 16,
-                      backgroundColor: SyncUpTheme.primary,
+                      backgroundColor: context.colors.primary,
                       child: Text(
                         widget.displayName.trim().isNotEmpty
                             ? widget.displayName.trim()[0].toUpperCase()
                             : '?',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: context.colors.surface,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
@@ -422,8 +423,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: SyncUpTheme.surface,
-              border: Border(bottom: BorderSide(color: SyncUpTheme.border)),
+              color: context.colors.surface,
+              border: Border(bottom: BorderSide(color: context.colors.border)),
             ),
             child: Row(
               children: [
@@ -442,7 +443,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: Theme.of(
                               context,
                             ).textTheme.titleSmall?.copyWith(
-                              color: SyncUpTheme.textPrimary,
+                              color: context.colors.textPrimary,
                               fontWeight: FontWeight.w700,
                             ),
                             maxLines: 1,

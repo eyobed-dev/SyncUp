@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'sync_up_colors.dart';
 
 /// Modern compact design system for SyncUp.
 /// Blue-teal accents, tight spacing, clear visual hierarchy.
@@ -70,82 +71,82 @@ class SyncUpTheme {
       ];
 
   // ─── Typography (compact, modern) ──────────────────────────────────────
-  static TextTheme textTheme() {
+  static TextTheme textTheme(SyncUpColors colors) {
     final base = GoogleFonts.plusJakartaSansTextTheme();
     return TextTheme(
       displayLarge: base.displayLarge?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.5,
         fontSize: 28,
       ),
       displayMedium: base.displayMedium?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w700,
         fontSize: 24,
       ),
       displaySmall: base.displaySmall?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 20,
       ),
       headlineLarge: base.headlineLarge?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 20,
       ),
       headlineMedium: base.headlineMedium?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 18,
       ),
       headlineSmall: base.headlineSmall?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 16,
       ),
       titleLarge: base.titleLarge?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 18,
       ),
       titleMedium: base.titleMedium?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 16,
       ),
       titleSmall: base.titleSmall?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 14,
       ),
       bodyLarge: base.bodyLarge?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontSize: 16,
         height: 1.4,
       ),
       bodyMedium: base.bodyMedium?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontSize: 14,
         height: 1.4,
       ),
       bodySmall: base.bodySmall?.copyWith(
-        color: textSecondary,
+        color: colors.textSecondary,
         fontSize: 13,
         height: 1.35,
       ),
       labelLarge: base.labelLarge?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 14,
       ),
       labelMedium: base.labelMedium?.copyWith(
-        color: textPrimary,
+        color: colors.textPrimary,
         fontWeight: FontWeight.w500,
         fontSize: 12,
       ),
       labelSmall: base.labelSmall?.copyWith(
-        color: textSecondary,
+        color: colors.textSecondary,
         fontWeight: FontWeight.w500,
         fontSize: 11,
         letterSpacing: 0.3,
@@ -154,24 +155,27 @@ class SyncUpTheme {
   }
 
   /// Full ThemeData.
-  static ThemeData get theme {
+  static ThemeData _buildTheme(SyncUpColors colors, Brightness brightness) {
     return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
+      extensions: [colors],
       fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
-      colorScheme: ColorScheme.light(
-        primary: primary,
-        onPrimary: Colors.white,
-        primaryContainer: primaryLight,
-        onPrimaryContainer: textPrimary,
-        secondary: accent,
-        onSecondary: Colors.white,
-        surface: surface,
-        onSurface: textPrimary,
-        surfaceContainerHighest: const Color(0xFFEAF7F9),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: colors.primary,
+        brightness: brightness,
+        primary: colors.primary,
+        onPrimary: colors.surface,
+        primaryContainer: colors.primaryLight,
+        onPrimaryContainer: colors.textPrimary,
+        secondary: colors.accent,
+        onSecondary: colors.surface,
+        surface: colors.surface,
+        onSurface: colors.textPrimary,
         outline: border,
       ),
-      scaffoldBackgroundColor: background,
-      textTheme: textTheme(),
+      scaffoldBackgroundColor: colors.background,
+      textTheme: textTheme(colors),
 
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -179,18 +183,18 @@ class SyncUpTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         toolbarHeight: 52,
-        iconTheme: const IconThemeData(color: primary, size: 22),
+        iconTheme: IconThemeData(color: colors.primary, size: 22),
         titleTextStyle: GoogleFonts.plusJakartaSans(
-          color: textPrimary,
+          color: colors.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
       ),
 
       cardTheme: CardThemeData(
-        color: surface,
+        color: colors.surface,
         elevation: 0,
-        shadowColor: primary.withValues(alpha: 0.04),
+        shadowColor: colors.primary.withValues(alpha: 0.04),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
           side: BorderSide(color: border),
@@ -199,8 +203,8 @@ class SyncUpTheme {
 
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
+          backgroundColor: colors.primary,
+          foregroundColor: colors.surface,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space10),
           minimumSize: const Size(0, 40),
@@ -216,8 +220,8 @@ class SyncUpTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: primary,
-          side: const BorderSide(color: primary),
+          foregroundColor: colors.primary,
+          side: BorderSide(color: colors.primary),
           padding: const EdgeInsets.symmetric(horizontal: space20, vertical: space10),
           minimumSize: const Size(0, 40),
           shape: RoundedRectangleBorder(
@@ -232,7 +236,7 @@ class SyncUpTheme {
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: primary,
+          foregroundColor: colors.primary,
           padding: const EdgeInsets.symmetric(horizontal: space12, vertical: space8),
           textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 14,
@@ -243,7 +247,7 @@ class SyncUpTheme {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
+        fillColor: colors.surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: space12, vertical: space10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusXs),
@@ -254,16 +258,16 @@ class SyncUpTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusXs),
-          borderSide: const BorderSide(color: primary, width: 2),
+          borderSide: BorderSide(color: colors.primary, width: 2),
         ),
-        labelStyle: GoogleFonts.plusJakartaSans(color: textSecondary, fontSize: 13),
-        hintStyle: GoogleFonts.plusJakartaSans(color: textSecondary.withValues(alpha: 0.7), fontSize: 13),
+        labelStyle: GoogleFonts.plusJakartaSans(color: colors.textSecondary, fontSize: 13),
+        hintStyle: GoogleFonts.plusJakartaSans(color: colors.textSecondary.withValues(alpha: 0.7), fontSize: 13),
       ),
 
       tabBarTheme: TabBarThemeData(
-        labelColor: primary,
-        unselectedLabelColor: textSecondary,
-        indicatorColor: primary,
+        labelColor: colors.primary,
+        unselectedLabelColor: colors.textSecondary,
+        indicatorColor: colors.primary,
         indicatorSize: TabBarIndicatorSize.tab,
         labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600),
         unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500),
@@ -271,9 +275,9 @@ class SyncUpTheme {
       ),
 
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: primary,
-        unselectedItemColor: textSecondary,
+        backgroundColor: colors.surface,
+        selectedItemColor: colors.primary,
+        unselectedItemColor: colors.textSecondary,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
         selectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600),
@@ -281,16 +285,16 @@ class SyncUpTheme {
       ),
 
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: surface,
-        selectedIconTheme: const IconThemeData(color: primary, size: 22),
-        unselectedIconTheme: IconThemeData(color: textSecondary, size: 22),
-        selectedLabelTextStyle: GoogleFonts.plusJakartaSans(color: primary, fontWeight: FontWeight.w600, fontSize: 11),
-        unselectedLabelTextStyle: GoogleFonts.plusJakartaSans(color: textSecondary, fontSize: 11),
-        indicatorColor: primaryLight,
+        backgroundColor: colors.surface,
+        selectedIconTheme: IconThemeData(color: colors.primary, size: 22),
+        unselectedIconTheme: IconThemeData(color: colors.textSecondary, size: 22),
+        selectedLabelTextStyle: GoogleFonts.plusJakartaSans(color: colors.primary, fontWeight: FontWeight.w600, fontSize: 11),
+        unselectedLabelTextStyle: GoogleFonts.plusJakartaSans(color: colors.textSecondary, fontSize: 11),
+        indicatorColor: colors.primaryLight,
       ),
 
-      dividerTheme: const DividerThemeData(
-        color: divider,
+      dividerTheme: DividerThemeData(
+        color: colors.divider,
         thickness: 1,
         space: 1,
       ),
@@ -302,7 +306,7 @@ class SyncUpTheme {
       ),
 
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: surface,
+        backgroundColor: colors.surface,
         elevation: 0,
         modalElevation: 12,
         shape: const RoundedRectangleBorder(
@@ -320,30 +324,33 @@ class SyncUpTheme {
           borderRadius: BorderRadius.circular(radiusXs),
         ),
         titleTextStyle: GoogleFonts.plusJakartaSans(
-          color: textPrimary,
+          color: colors.textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
         subtitleTextStyle: GoogleFonts.plusJakartaSans(
-          color: textSecondary,
+          color: colors.textSecondary,
           fontSize: 13,
         ),
       ),
 
       chipTheme: ChipThemeData(
-        backgroundColor: primaryLight,
-        selectedColor: primary.withValues(alpha: 0.2),
-        labelStyle: GoogleFonts.plusJakartaSans(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
+        backgroundColor: colors.primaryLight,
+        selectedColor: colors.primary.withValues(alpha: 0.2),
+        labelStyle: GoogleFonts.plusJakartaSans(color: colors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
         padding: const EdgeInsets.symmetric(horizontal: space10, vertical: space6),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusPill),
         ),
       ),
 
-      iconTheme: const IconThemeData(
-        color: primary,
+      iconTheme: IconThemeData(
+        color: colors.primary,
         size: 22,
       ),
     );
   }
+
+  static ThemeData get theme => _buildTheme(SyncUpColors.light, Brightness.light);
+  static ThemeData get darkTheme => _buildTheme(SyncUpColors.dark, Brightness.dark);
 }

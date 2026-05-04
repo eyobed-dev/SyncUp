@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/sync_up_theme.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Shared SyncUp wordmark logo used across the app.
 class SyncUpLogo extends StatelessWidget {
@@ -29,7 +30,7 @@ class SyncUpLogo extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: fontSize,
                   fontWeight: FontWeight.w800,
-                  color: SyncUpTheme.textPrimary,
+                  color: context.colors.textPrimary,
                   letterSpacing: -0.45,
                 ),
               ),
@@ -38,7 +39,7 @@ class SyncUpLogo extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: fontSize,
                   fontWeight: FontWeight.w700,
-                  color: SyncUpTheme.primary,
+                  color: context.colors.primary,
                   letterSpacing: -0.35,
                 ),
               ),
@@ -51,7 +52,7 @@ class SyncUpLogo extends StatelessWidget {
             height: 2.2,
             margin: const EdgeInsets.only(top: 3),
             decoration: BoxDecoration(
-              color: SyncUpTheme.primary.withValues(alpha: 0.45),
+              color: context.colors.primary.withValues(alpha: 0.45),
               borderRadius: BorderRadius.circular(2),
             ),
           ),

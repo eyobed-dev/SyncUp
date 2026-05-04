@@ -4,6 +4,7 @@ import '../data/current_meeting_minutes.dart';
 import '../data/sample_data.dart';
 import '../models/meeting.dart';
 import '../theme/sync_up_theme.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Single row in the merged “previous meetings” list.
 class _PriorHistoryEntry {
@@ -260,7 +261,7 @@ class MeetingListCard extends StatelessWidget {
     }
   }
 
-  static Color _statusColor(String status) {
+  static Color _statusColor(BuildContext context, String status) {
     switch (status.trim().toLowerCase()) {
       case 'on_time':
       case 'on time':
@@ -275,7 +276,7 @@ class MeetingListCard extends StatelessWidget {
       case 'missed':
         return const Color(0xFF7C2D12);
       default:
-        return SyncUpTheme.textSecondary;
+        return context.colors.textSecondary;
     }
   }
 
@@ -297,7 +298,7 @@ class MeetingListCard extends StatelessWidget {
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         backgroundColor: isSelected ? color : Colors.transparent,
-        foregroundColor: isSelected ? Colors.white : color,
+        foregroundColor: isSelected ? context.colors.surface : color,
         side: BorderSide(color: color, width: isSelected ? 0 : 1),
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
         minimumSize: const Size(0, 26),
@@ -318,7 +319,7 @@ class MeetingListCard extends StatelessWidget {
   }
 
   static Widget _statusBanner(BuildContext context, String status) {
-    final color = _statusColor(status);
+    final color = _statusColor(context, status);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -348,11 +349,11 @@ class MeetingListCard extends StatelessWidget {
       fontWeight: FontWeight.w700,
     );
     final bodyStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: SyncUpTheme.textSecondary,
+      color: context.colors.textSecondary,
     );
     final minutesStyleHeading = theme.textTheme.labelSmall?.copyWith(
       fontWeight: FontWeight.w800,
-      color: SyncUpTheme.textSecondary,
+      color: context.colors.textSecondary,
       letterSpacing: 0.4,
     );
     final seedPriorSessions = priorSessionsForBooking(m);
@@ -467,7 +468,7 @@ class MeetingListCard extends StatelessWidget {
                               m.participantName,
                               style: theme.textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: SyncUpTheme.textPrimary,
+                                color: context.colors.textPrimary,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -482,10 +483,10 @@ class MeetingListCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Material(
-                        color: SyncUpTheme.surface,
+                        color: context.colors.surface,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(color: SyncUpTheme.border),
+                          side: BorderSide(color: context.colors.border),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
@@ -511,7 +512,7 @@ class MeetingListCard extends StatelessWidget {
                                     Text(
                                       '$totalMeetings total',
                                       style: theme.textTheme.labelSmall?.copyWith(
-                                        color: SyncUpTheme.textSecondary,
+                                        color: context.colors.textSecondary,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -528,7 +529,7 @@ class MeetingListCard extends StatelessWidget {
                                   Text(
                                     'Attended: $attendedCount · Postponed: $postponedCount · Late: $lateCount',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: SyncUpTheme.textPrimary,
+                                      color: context.colors.textPrimary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -536,14 +537,14 @@ class MeetingListCard extends StatelessWidget {
                                   Text(
                                     'On track / unmarked: $punctualOrUnmarked',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: SyncUpTheme.textSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     profileSummary,
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: SyncUpTheme.textSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -577,10 +578,10 @@ class MeetingListCard extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: context.colors.surface,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: SyncUpTheme.border,
+                                      color: context.colors.border,
                                     ),
                                   ),
                                   child: Column(
@@ -598,7 +599,7 @@ class MeetingListCard extends StatelessWidget {
                                           Text(
                                             'Discipline: ${m.discipline!.trim()}',
                                             style: theme.textTheme.bodyMedium?.copyWith(
-                                              color: SyncUpTheme.textPrimary,
+                                              color: context.colors.textPrimary,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
@@ -608,7 +609,7 @@ class MeetingListCard extends StatelessWidget {
                                           Text(
                                             'Topic: ${m.topic!.trim()}',
                                             style: theme.textTheme.bodyMedium?.copyWith(
-                                              color: SyncUpTheme.textPrimary,
+                                              color: context.colors.textPrimary,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
@@ -685,10 +686,10 @@ class MeetingListCard extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: SyncUpTheme.surface,
+                                    color: context.colors.surface,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: SyncUpTheme.border,
+                                      color: context.colors.border,
                                     ),
                                   ),
                                   child: Text(
@@ -699,10 +700,10 @@ class MeetingListCard extends StatelessWidget {
                               ],
                               const SizedBox(height: 16),
                               Material(
-                                color: SyncUpTheme.surface,
+                                color: context.colors.surface,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(color: SyncUpTheme.border),
+                                  side: BorderSide(color: context.colors.border),
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: Column(
@@ -750,7 +751,7 @@ class MeetingListCard extends StatelessWidget {
                                                 child: Icon(
                                                   Icons.expand_more,
                                                   color:
-                                                      SyncUpTheme.textSecondary,
+                                                      context.colors.textSecondary,
                                                 ),
                                               ),
                                       onTap:
@@ -823,8 +824,7 @@ class MeetingListCard extends StatelessWidget {
                                                                       FontWeight
                                                                           .w800,
                                                                   color:
-                                                                      SyncUpTheme
-                                                                          .textPrimary,
+                                                                      context.colors.textPrimary,
                                                                 ),
                                                           ),
                                                           const SizedBox(
@@ -840,8 +840,7 @@ class MeetingListCard extends StatelessWidget {
                                                                 .labelSmall
                                                                 ?.copyWith(
                                                                   color:
-                                                                      SyncUpTheme
-                                                                          .textSecondary,
+                                                                      context.colors.textSecondary,
                                                                   fontWeight:
                                                                       FontWeight
                                                                           .w600,
@@ -919,14 +918,11 @@ class MeetingListCard extends StatelessWidget {
                                                                           .w600,
                                                               color:
                                                                   sel
-                                                                      ? SyncUpTheme
-                                                                          .primary
-                                                                      : SyncUpTheme
-                                                                          .textSecondary,
+                                                                      ? context.colors.primary
+                                                                      : context.colors.textSecondary,
                                                             ),
                                                             selectedColor:
-                                                                SyncUpTheme
-                                                                    .primary
+                                                                context.colors.primary
                                                                     .withValues(
                                                                       alpha:
                                                                           0.12,
@@ -934,10 +930,8 @@ class MeetingListCard extends StatelessWidget {
                                                             side: BorderSide(
                                                               color:
                                                                   sel
-                                                                      ? SyncUpTheme
-                                                                          .primary
-                                                                      : SyncUpTheme
-                                                                          .border,
+                                                                      ? context.colors.primary
+                                                                      : context.colors.border,
                                                             ),
                                                             onSelected:
                                                                 (
@@ -960,14 +954,13 @@ class MeetingListCard extends StatelessWidget {
                                                           12,
                                                         ),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.white,
+                                                      color: context.colors.surface,
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                             10,
                                                           ),
                                                       border: Border.all(
-                                                        color: SyncUpTheme
-                                                            .border
+                                                        color: context.colors.border
                                                             .withValues(
                                                               alpha: 0.6,
                                                             ),
@@ -1001,8 +994,7 @@ class MeetingListCard extends StatelessWidget {
                                                                       FontWeight
                                                                           .w600,
                                                                   color:
-                                                                      SyncUpTheme
-                                                                          .textPrimary,
+                                                                      context.colors.textPrimary,
                                                                 ),
                                                           ),
                                                         ],
@@ -1048,8 +1040,7 @@ class MeetingListCard extends StatelessWidget {
                                                                       FontWeight
                                                                           .w800,
                                                                   color:
-                                                                      SyncUpTheme
-                                                                          .textSecondary,
+                                                                      context.colors.textSecondary,
                                                                   letterSpacing:
                                                                       0.4,
                                                                 ),
@@ -1087,8 +1078,7 @@ class MeetingListCard extends StatelessWidget {
                                                                       FontWeight
                                                                           .w800,
                                                                   color:
-                                                                      SyncUpTheme
-                                                                          .textSecondary,
+                                                                      context.colors.textSecondary,
                                                                   letterSpacing:
                                                                       0.4,
                                                                 ),
@@ -1179,9 +1169,9 @@ class MeetingListCard extends StatelessWidget {
     final remaining = endTime.difference(now);
     final remainingLabel =
         '${remaining.inMinutes.clamp(0, 999)}:${(remaining.inSeconds % 60).clamp(0, 59).toString().padLeft(2, '0')}';
-    final highlight = SyncUpTheme.primary.withValues(alpha: 0.55);
+    final highlight = context.colors.primary.withValues(alpha: 0.55);
     final pulseOn = now.second.isEven;
-    final surface = Colors.white;
+    final surface = context.colors.surface;
     final bookedGradient =
         isOpenSlot
             ? null
@@ -1189,14 +1179,14 @@ class MeetingListCard extends StatelessWidget {
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
               colors: [
-                SyncUpTheme.primaryLight.withValues(alpha: isOngoing ? 0.45 : 0.35),
-                SyncUpTheme.primaryLight.withValues(alpha: isOngoing ? 0.2 : 0.14),
-                Colors.white,
+                context.colors.primaryLight.withValues(alpha: isOngoing ? 0.45 : 0.35),
+                context.colors.primaryLight.withValues(alpha: isOngoing ? 0.2 : 0.14),
+                surface,
               ],
               stops: const [0, 0.55, 1],
             );
     final railColor =
-        isOpenSlot ? Colors.transparent : SyncUpTheme.primary.withValues(alpha: 0.9);
+        isOpenSlot ? Colors.transparent : context.colors.primary.withValues(alpha: 0.9);
     final radius = BorderRadius.circular(8);
     final hasLeading = leading != null;
     final hasTrailing = trailing != null;
@@ -1208,8 +1198,8 @@ class MeetingListCard extends StatelessWidget {
           BoxShadow(
             color:
                 isCurrent
-                    ? SyncUpTheme.primary.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.08),
+                    ? context.colors.primary.withValues(alpha: 0.08)
+                    : context.colors.border.withValues(alpha: 0.5),
             blurRadius: isCurrent ? 8 : 4,
             offset: const Offset(0, 1),
           ),
@@ -1227,14 +1217,14 @@ class MeetingListCard extends StatelessWidget {
                     : (isOpenSlot
                         ? null
                         : Border.all(
-                            color: SyncUpTheme.primary.withValues(alpha: 0.18),
+                            color: context.colors.primary.withValues(alpha: 0.18),
                           )),
             borderRadius: radius,
           ),
           child: CustomPaint(
             painter: isOpenSlot
                 ? _DashedBorderPainter(
-                    color: SyncUpTheme.primary.withValues(alpha: 0.3),
+                    color: context.colors.primary.withValues(alpha: 0.3),
                     radius: const Radius.circular(8),
                   )
                 : null,
@@ -1251,7 +1241,7 @@ class MeetingListCard extends StatelessWidget {
                           end: Alignment.centerRight,
                           colors: [
                             Colors.transparent,
-                            SyncUpTheme.primary.withValues(alpha: 0.06),
+                            context.colors.primary.withValues(alpha: 0.06),
                             Colors.transparent,
                           ],
                           stops: pulseOn
@@ -1282,21 +1272,21 @@ class MeetingListCard extends StatelessWidget {
                       if (isOpenSlot)
                         CircleAvatar(
                           radius: 14,
-                          backgroundColor: SyncUpTheme.primary.withValues(alpha: 0.1),
+                          backgroundColor: context.colors.primary.withValues(alpha: 0.1),
                           child: Icon(
                             Icons.event_available,
                             size: 16,
-                            color: SyncUpTheme.primary,
+                            color: context.colors.primary,
                           ),
                         )
                       else
                         CircleAvatar(
                           radius: 14,
-                          backgroundColor: SyncUpTheme.primary.withValues(alpha: 0.15),
+                          backgroundColor: context.colors.primary.withValues(alpha: 0.15),
                           child: Icon(
                             Icons.person,
                             size: 16,
-                            color: SyncUpTheme.primary,
+                            color: context.colors.primary,
                           ),
                         ),
                       const SizedBox(width: 10),
@@ -1320,8 +1310,8 @@ class MeetingListCard extends StatelessWidget {
                                         shape: BoxShape.circle,
                                         color:
                                             isOngoing
-                                                ? SyncUpTheme.primary
-                                                : SyncUpTheme.textSecondary,
+                                                ? context.colors.primary
+                                                : context.colors.textSecondary,
                                       ),
                                     ),
                                     const SizedBox(width: 4),
@@ -1331,7 +1321,7 @@ class MeetingListCard extends StatelessWidget {
                                         context,
                                       ).textTheme.labelSmall?.copyWith(
                                         color:
-                                            SyncUpTheme.primary,
+                                            context.colors.primary,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 10,
                                       ),
@@ -1343,14 +1333,14 @@ class MeetingListCard extends StatelessWidget {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: SyncUpTheme.primary.withValues(
+                                        color: context.colors.primary.withValues(
                                           alpha: 0.12,
                                         ),
                                         borderRadius: BorderRadius.circular(
                                           999,
                                         ),
                                         border: Border.all(
-                                          color: SyncUpTheme.primary
+                                          color: context.colors.primary
                                               .withValues(alpha: 0.35),
                                         ),
                                       ),
@@ -1359,7 +1349,7 @@ class MeetingListCard extends StatelessWidget {
                                         style: Theme.of(
                                           context,
                                         ).textTheme.labelSmall?.copyWith(
-                                          color: SyncUpTheme.primary,
+                                          color: context.colors.primary,
                                           fontWeight: FontWeight.w800,
                                           fontSize: 10,
                                           letterSpacing: 0.6,
@@ -1374,7 +1364,7 @@ class MeetingListCard extends StatelessWidget {
                               m.listTitleLabel(includeTopic: false),
                               style: TextStyle(
                                 color: isOpenSlot
-                                    ? SyncUpTheme.textSecondary
+                                    ? context.colors.textSecondary
                                     : const Color(0xFF0F172A),
                                 fontSize: 13,
                                 fontWeight:
@@ -1491,9 +1481,9 @@ class MeetingListCard extends StatelessWidget {
                                           m,
                                         ),
                                     style: OutlinedButton.styleFrom(
-                                      foregroundColor: SyncUpTheme.primary,
-                                      side: const BorderSide(
-                                        color: SyncUpTheme.primary,
+                                      foregroundColor: context.colors.primary,
+                                      side: BorderSide(
+                                        color: context.colors.primary,
                                       ),
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 10,
@@ -1531,11 +1521,11 @@ class MeetingListCard extends StatelessWidget {
                                     child: LinearProgressIndicator(
                                       value: isOngoing ? progress : 1,
                                       minHeight: 3,
-                                      backgroundColor: SyncUpTheme.divider,
+                                      backgroundColor: context.colors.divider,
                                       valueColor: AlwaysStoppedAnimation<Color>(
                                         isWarningWindow
                                             ? const Color(0xFFDC2626)
-                                            : SyncUpTheme.primary,
+                                            : context.colors.primary,
                                       ),
                                     ),
                                   ),
@@ -1548,7 +1538,7 @@ class MeetingListCard extends StatelessWidget {
                                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                           color: isWarningWindow
                                               ? const Color(0xFFDC2626)
-                                              : SyncUpTheme.textSecondary,
+                                              : context.colors.textSecondary,
                                           fontWeight: FontWeight.w700,
                                           fontSize: 10,
                                         ),

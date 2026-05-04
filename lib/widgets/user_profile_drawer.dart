@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/sync_up_theme.dart';
+import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// End drawer showing user profile details.
 class UserProfileDrawer extends StatelessWidget {
@@ -39,16 +40,16 @@ class UserProfileDrawer extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(SyncUpTheme.space24),
-              color: SyncUpTheme.primaryLight,
+              color: context.colors.primaryLight,
               child: Column(
                 children: [
                   CircleAvatar(
                     radius: 48,
-                    backgroundColor: SyncUpTheme.primary,
+                    backgroundColor: context.colors.primary,
                     child: Text(
                       displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.colors.surface,
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
                       ),
@@ -58,7 +59,7 @@ class UserProfileDrawer extends StatelessWidget {
                   Text(
                     displayName,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: SyncUpTheme.textPrimary,
+                          color: context.colors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                   ),
@@ -66,7 +67,7 @@ class UserProfileDrawer extends StatelessWidget {
                   Text(
                     profileEmail,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: SyncUpTheme.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                   ),
                   if ((phone ?? '').trim().isNotEmpty) ...[
@@ -74,12 +75,12 @@ class UserProfileDrawer extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.phone_outlined, size: 14, color: SyncUpTheme.textSecondary),
+                        Icon(Icons.phone_outlined, size: 14, color: context.colors.textSecondary),
                         const SizedBox(width: 6),
                         Text(
                           phone!.trim(),
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: SyncUpTheme.textSecondary,
+                                color: context.colors.textSecondary,
                               ),
                         ),
                       ],
@@ -90,7 +91,7 @@ class UserProfileDrawer extends StatelessWidget {
                     Text(
                       'ID: ${userId!.trim()}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: SyncUpTheme.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                     ),
                   ],
@@ -101,13 +102,13 @@ class UserProfileDrawer extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: SyncUpTheme.primary.withValues(alpha: 0.15),
+                      color: context.colors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(SyncUpTheme.radiusPill),
                     ),
                     child: Text(
                       roleLabel,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: SyncUpTheme.primary,
+                            color: context.colors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                     ),
@@ -120,11 +121,11 @@ class UserProfileDrawer extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
                   ListTile(
-                    leading: Icon(Icons.settings_outlined, color: SyncUpTheme.textSecondary),
+                    leading: Icon(Icons.settings_outlined, color: context.colors.textSecondary),
                     title: Text(
                       'Preferences',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: SyncUpTheme.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                     ),
                     onTap: () {
@@ -133,11 +134,11 @@ class UserProfileDrawer extends StatelessWidget {
                     },
                   ),
                   ListTile(
-                    leading: Icon(Icons.help_outline, color: SyncUpTheme.textSecondary),
+                    leading: Icon(Icons.help_outline, color: context.colors.textSecondary),
                     title: Text(
                       'Help',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: SyncUpTheme.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                     ),
                     onTap: () async {
@@ -162,7 +163,7 @@ class UserProfileDrawer extends StatelessWidget {
                   ),
                   const Divider(),
                   ListTile(
-                    leading: Icon(Icons.logout, color: SyncUpTheme.textSecondary),
+                    leading: Icon(Icons.logout, color: context.colors.textSecondary),
                     title: Text(
                       'Sign out',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
