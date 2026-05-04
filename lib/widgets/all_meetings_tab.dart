@@ -229,7 +229,7 @@ class _AllMeetingsTabState extends State<AllMeetingsTab> {
   }
 
   bool _isEmptySlot(Meeting m) =>
-      m.participantName.trim().toLowerCase() == 'open slot';
+      m.isOpenSlot;
 
   Set<String> get _selectedEmptySlotIds => widget.meetings
       .where((m) => _selectedIds.contains(m.id))

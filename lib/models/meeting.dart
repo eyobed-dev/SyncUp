@@ -82,13 +82,25 @@ class Meeting {
   /// Legacy alias for topic
   String? get subject => topic;
 
+  /// True only for genuinely unbooked slots.
+  /// A slot named "Open slot" but already linked to a student is treated as booked.
+  bool get isOpenSlot {
+    final isNamedOpenSlot = participantName.trim().toLowerCase() == 'open slot';
+    final hasStudent = (studentId ?? '').trim().isNotEmpty;
+    return isNamedOpenSlot && !hasStudent;
+  }
+
   DateTime get endTime => startTime.add(Duration(minutes: durationMinutes));
 
   /// Full display string: "Name - Discipline - Topic"
   String get displayLabel {
     final parts = <String>[participantName];
     if (discipline != null && discipline!.isNotEmpty) parts.add(discipline!);
-    if (topic != null && topic!.isNotEmpty) parts.add(topic!);
+    final normalizedTopic = topic?.trim();
+    final isOpenTopic = normalizedTopic?.toLowerCase() == 'open slot';
+    if (normalizedTopic != null && normalizedTopic.isNotEmpty && !isOpenTopic) {
+      parts.add(normalizedTopic);
+    }
     return parts.join(' – ');
   }
 
@@ -97,7 +109,14 @@ class Meeting {
   String listTitleLabel({bool includeTopic = true}) {
     final parts = <String>[participantName];
     if (discipline != null && discipline!.isNotEmpty) parts.add(discipline!);
-    if (includeTopic && topic != null && topic!.isNotEmpty) parts.add(topic!);
+    final normalizedTopic = topic?.trim();
+    final isOpenTopic = normalizedTopic?.toLowerCase() == 'open slot';
+    if (includeTopic &&
+        normalizedTopic != null &&
+        normalizedTopic.isNotEmpty &&
+        !isOpenTopic) {
+      parts.add(normalizedTopic);
+    }
     return parts.join(' – ');
   }
 

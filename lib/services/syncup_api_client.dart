@@ -17,10 +17,8 @@ class SyncUpApiClient {
     final explicit = (explicitBaseUrl ?? '').trim();
     if (explicit.isNotEmpty) return explicit;
 
-    final fromEnv = const String.fromEnvironment(
-      'SYNCUP_API_URL',
-      defaultValue: '',
-    ).trim();
+    final fromEnv =
+        const String.fromEnvironment('SYNCUP_API_URL', defaultValue: '').trim();
     if (fromEnv.isNotEmpty) return fromEnv;
 
     if (kDebugMode) {
@@ -47,10 +45,7 @@ class SyncUpApiClient {
     final resp = await http.post(
       _uri('/api/v1/auth/login'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'username': username.trim(),
-        'password': password,
-      }),
+      body: jsonEncode({'username': username.trim(), 'password': password}),
     );
     if (resp.statusCode != 200) {
       throw Exception('Login failed (${resp.statusCode}): ${resp.body}');
@@ -110,7 +105,7 @@ class SyncUpApiClient {
       final m = s as Map<String, dynamic>;
       return AvailabilitySlot(
         id: m['id'] as String,
-        startTime: DateTime.parse(m['startTime'] as String),
+        startTime: DateTime.parse(m['startTime'] as String).toLocal(),
         durationMinutes: (m['durationMinutes'] as num).toInt(),
         title: m['title'] as String,
         location: m['location'] as String?,
@@ -152,7 +147,7 @@ class SyncUpApiClient {
         id: m['id'] as String,
         participantName: m['participantName'] as String,
         studentId: m['studentId'] as String?,
-        startTime: DateTime.parse(m['startTime'] as String),
+        startTime: DateTime.parse(m['startTime'] as String).toLocal(),
         durationMinutes: (m['durationMinutes'] as num).toInt(),
         discipline: m['discipline'] as String?,
         topic: m['topic'] as String?,
@@ -187,7 +182,7 @@ class SyncUpApiClient {
         id: m['id'] as String,
         participantName: m['participantName'] as String,
         studentId: m['studentId'] as String?,
-        startTime: DateTime.parse(m['startTime'] as String),
+        startTime: DateTime.parse(m['startTime'] as String).toLocal(),
         durationMinutes: (m['durationMinutes'] as num).toInt(),
         discipline: m['discipline'] as String?,
         topic: m['topic'] as String?,
@@ -250,7 +245,9 @@ class SyncUpApiClient {
       body: jsonEncode(payload),
     );
     if (resp.statusCode != 200) {
-      throw Exception('Failed to cancel booking (${resp.statusCode}): ${resp.body}');
+      throw Exception(
+        'Failed to cancel booking (${resp.statusCode}): ${resp.body}',
+      );
     }
   }
 

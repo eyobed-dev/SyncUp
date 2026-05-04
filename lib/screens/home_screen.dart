@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../models/availability_slot.dart';
 import '../models/meeting.dart';
@@ -160,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required String slotId,
     required DateTime startTime,
     required int durationMinutes,
+    required String title,
     String? location,
   }) {
     final dateKey =
@@ -169,6 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
       participantName: 'Open slot',
       startTime: startTime,
       durationMinutes: durationMinutes,
+      topic: title.trim().isEmpty ? null : title.trim(),
       location: (location ?? '').trim().isEmpty ? 'Room LL4' : location!.trim(),
     );
   }
@@ -213,6 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
             slotId: s.id,
             startTime: s.startTime,
             durationMinutes: s.durationMinutes,
+            title: s.title,
             location: s.location,
           ),
         )
@@ -268,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
             id: m.id,
             startTime: m.startTime,
             durationMinutes: m.durationMinutes,
-            title: 'Open slot',
+            title: (m.topic ?? '').trim().isEmpty ? 'Consultation' : m.topic!.trim(),
             location: location,
             meetingLink: meetingLink,
           );
@@ -367,6 +369,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String get _weekLabel => '$_monthLabel $_weekRange ${_weekSunday.year}';
 
+  bool get _isCurrentWeek {
+    final todayWeek = startOfWeekSunday(DateTime.now());
+    return _weekSunday == todayWeek;
+  }
+
+  void _goToToday() {
+    final now = DateTime.now();
+    final todayWeek = startOfWeekSunday(now);
+    _selectedDayIndex.value = now.weekday % 7;
+    if (_weekSunday == todayWeek) return;
+    setState(() {
+      _weekStart = todayWeek;
+    });
+    _syncWeekData();
+  }
+
 
 
   @override
@@ -432,6 +450,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.chevron_left),
                   onPressed: _prevWeek,
                   tooltip: 'Previous week',
+                ),
+                TextButton.icon(
+                  onPressed: _goToToday,
+                  icon: Icon(
+                    Icons.today_outlined,
+                    size: 16,
+                    color: _isCurrentWeek
+                        ? context.colors.primary
+                        : context.colors.surface,
+                  ),
+                  label: Text(
+                    'Today',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: _isCurrentWeek
+                          ? context.colors.primary
+                          : context.colors.surface,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 34),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    backgroundColor: _isCurrentWeek
+                        ? context.colors.primaryLight.withValues(alpha: 0.4)
+                        : context.colors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
                 ),
                 Expanded(
                   child: Center(

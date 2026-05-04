@@ -168,7 +168,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     }
 
     bool isMine(Meeting m) {
-      if (m.participantName.trim().toLowerCase() == 'open slot') return false;
+      if (m.isOpenSlot) return false;
 
       final myUserId = (widget.attendeeUserId ?? '').trim();
       final myName = widget.attendeeName.trim().toLowerCase();

@@ -692,7 +692,7 @@ class _MeetingBlockState extends State<_MeetingBlock> {
   Widget build(BuildContext context) {
     final meeting = widget.meeting;
     final accentColor = widget.blockColor;
-    final isOpenSlot = meeting.participantName.trim().toLowerCase() == 'open slot';
+    final isOpenSlot = meeting.isOpenSlot;
     final h = widget.blockHeight;
     final w = widget.blockWidth;
     const barWidth = 4.0;

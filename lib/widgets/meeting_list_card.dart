@@ -389,7 +389,7 @@ class MeetingListCard extends StatelessWidget {
         postponedCount == 0 && lateCount == 0
             ? 'Consistent meeting cadence with no delay or postponement flags.'
             : 'Mostly consistent record with $lateCount late and $postponedCount postponed meeting(s).';
-    final isOpenSlot = m.participantName.trim().toLowerCase() == 'open slot';
+    final isOpenSlot = m.isOpenSlot;
     final existing = CurrentMeetingMinutesStore.get(m);
     final minutesController = TextEditingController(
       text: existing?.minutes ?? '',
@@ -1154,7 +1154,7 @@ class MeetingListCard extends StatelessWidget {
     final m = meeting;
     final startTime = m.startTime.toLocal();
     final endTime = m.endTime.toLocal();
-    final isOpenSlot = m.participantName.trim().toLowerCase() == 'open slot';
+    final isOpenSlot = m.isOpenSlot;
     final now = DateTime.now();
     final isOngoing = !now.isBefore(startTime) && now.isBefore(endTime);
     final justEnded =

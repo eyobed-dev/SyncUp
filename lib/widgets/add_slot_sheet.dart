@@ -40,6 +40,7 @@ class _SlotDraft {
   final int durationMinutes;
   final int dayIndex;
   final int breakAfterMinutes;
+  final String title;
   final bool isOnline;
   final String meetingLink;
 
@@ -48,6 +49,7 @@ class _SlotDraft {
     required this.durationMinutes,
     required this.dayIndex,
     required this.breakAfterMinutes,
+    required this.title,
     required this.isOnline,
     required this.meetingLink,
   });
@@ -82,6 +84,7 @@ class _AddSlotSheetState extends State<_AddSlotSheet> {
   late int _duration;
   late TimeOfDay _slotTime;
   int _breakAfter = 0;
+  String _slotTitle = '';
   bool _isOnline = false;
   String _meetingLink = '';
 
@@ -99,6 +102,7 @@ class _AddSlotSheetState extends State<_AddSlotSheet> {
         ? widget.slotDurationMinutes
         : 30;
     _slotTime = _defaultTime(_dayIndex, _duration);
+    _slotTitle = _suggestedTitleForDay(_dayIndex);
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -150,6 +154,31 @@ class _AddSlotSheetState extends State<_AddSlotSheet> {
     return DateTime(day.year, day.month, day.day, d.time.hour, d.time.minute);
   }
 
+  String _suggestedTitleForDay(int dayIndex) {
+    String normalized(String? raw) => (raw ?? '').trim();
+    bool validTitle(String value) => value.isNotEmpty && value.toLowerCase() != 'open slot';
+
+    final day = _weekSunday.add(Duration(days: dayIndex));
+    final dayMeetings = widget.existingMeetings.where((m) {
+      final md = DateTime(m.startTime.year, m.startTime.month, m.startTime.day);
+      return md == DateTime(day.year, day.month, day.day);
+    }).toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    for (final m in dayMeetings.reversed) {
+      final t = normalized(m.topic);
+      if (validTitle(t)) return t;
+    }
+
+    final allMeetings = [...widget.existingMeetings]
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    for (final m in allMeetings.reversed) {
+      final t = normalized(m.topic);
+      if (validTitle(t)) return t;
+    }
+    return '';
+  }
+
   Meeting _meetingFromDraft(_SlotDraft d) {
     final start = _draftStart(d);
     final link = d.meetingLink.trim();
@@ -158,6 +187,7 @@ class _AddSlotSheetState extends State<_AddSlotSheet> {
       participantName: 'Open slot',
       startTime: start,
       durationMinutes: d.durationMinutes,
+      topic: d.title.trim().isEmpty ? null : d.title.trim(),
       location: d.isOnline ? (link.isEmpty ? 'Online' : 'Online • $link') : 'Room LL4',
     );
   }
@@ -170,6 +200,14 @@ class _AddSlotSheetState extends State<_AddSlotSheet> {
   // ─── Actions ────────────────────────────────────────────────────────────────
 
   void _addToBatch() {
+    final normalizedTitle = _slotTitle.trim();
+    if (normalizedTitle.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please enter a slot title.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
     if (_isOnline && _meetingLink.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Please enter a meeting link for online slots.'),
@@ -182,6 +220,7 @@ class _AddSlotSheetState extends State<_AddSlotSheet> {
       durationMinutes: _duration,
       dayIndex: _dayIndex,
       breakAfterMinutes: _breakAfter,
+      title: normalizedTitle,
       isOnline: _isOnline,
       meetingLink: _meetingLink.trim(),
     );
@@ -240,15 +279,21 @@ class _AddSlotSheetState extends State<_AddSlotSheet> {
                           slotTime: _slotTime,
                           duration: _duration,
                           breakAfter: _breakAfter,
+                          slotTitle: _slotTitle,
+                          titlePlaceholder: _suggestedTitleForDay(_dayIndex),
                           isOnline: _isOnline,
                           meetingLink: _meetingLink,
                           weekSunday: _weekSunday,
                           durations: _durations,
                           breaks: _breaks,
-                          onDayChanged: (v) => setState(() => _dayIndex = v),
+                          onDayChanged: (v) => setState(() {
+                            _dayIndex = v;
+                            _slotTitle = _suggestedTitleForDay(v);
+                          }),
                           onTimeChanged: (t) => setState(() => _slotTime = t),
                           onDurationChanged: (d) => setState(() => _duration = d),
                           onBreakChanged: (b) => setState(() => _breakAfter = b),
+                          onTitleChanged: (t) => setState(() => _slotTitle = t),
                           onOnlineChanged: (v) => setState(() => _isOnline = v),
                           onLinkChanged: (l) => setState(() => _meetingLink = l),
                         )
@@ -354,6 +399,8 @@ class _ConfigureStep extends StatelessWidget {
   final TimeOfDay slotTime;
   final int duration;
   final int breakAfter;
+  final String slotTitle;
+  final String titlePlaceholder;
   final bool isOnline;
   final String meetingLink;
   final DateTime weekSunday;
@@ -363,6 +410,7 @@ class _ConfigureStep extends StatelessWidget {
   final ValueChanged<TimeOfDay> onTimeChanged;
   final ValueChanged<int> onDurationChanged;
   final ValueChanged<int> onBreakChanged;
+  final ValueChanged<String> onTitleChanged;
   final ValueChanged<bool> onOnlineChanged;
   final ValueChanged<String> onLinkChanged;
 
@@ -372,6 +420,8 @@ class _ConfigureStep extends StatelessWidget {
     required this.slotTime,
     required this.duration,
     required this.breakAfter,
+    required this.slotTitle,
+    required this.titlePlaceholder,
     required this.isOnline,
     required this.meetingLink,
     required this.weekSunday,
@@ -381,6 +431,7 @@ class _ConfigureStep extends StatelessWidget {
     required this.onTimeChanged,
     required this.onDurationChanged,
     required this.onBreakChanged,
+    required this.onTitleChanged,
     required this.onOnlineChanged,
     required this.onLinkChanged,
   });
@@ -521,6 +572,24 @@ class _ConfigureStep extends StatelessWidget {
             );
           }).toList(),
         ),
+        const SizedBox(height: 20),
+        TextFormField(
+          key: ValueKey('slot-title-$dayIndex'),
+          initialValue: slotTitle,
+          style: const TextStyle(fontSize: 14),
+          decoration: InputDecoration(
+            labelText: 'Slot title',
+            hintText: titlePlaceholder.isNotEmpty ? titlePlaceholder : 'e.g. Consultation',
+            filled: true,
+            fillColor: context.colors.surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+              borderSide: BorderSide(color: context.colors.border),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          onChanged: onTitleChanged,
+        ),
         const SizedBox(height: 12),
         Row(children: [
           const Icon(Icons.videocam_outlined, size: 18),
@@ -631,6 +700,16 @@ class _BatchStep extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: clash ? const Color(0xFFDC2626) : context.colors.textPrimary,
                         ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      d.title.trim(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: context.colors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
                   ),
                   if (d.breakAfterMinutes > 0 || d.isOnline)
                     Padding(
