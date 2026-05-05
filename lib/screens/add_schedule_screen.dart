@@ -264,9 +264,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
             title: const Text('Remove slot'),
             content: Text(
               'Remove "${slot.title}" at $timeStr?',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: context.colors.textPrimary),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: context.colors.textPrimary,
+              ),
             ),
             actions: [
               TextButton(
@@ -340,9 +340,10 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
       endDrawer: UserProfileDrawer(
         displayName: widget.displayName,
         username: widget.username,
-        email: widget.username.trim().toLowerCase().contains('@')
-            ? widget.username.trim().toLowerCase()
-            : '${widget.username.trim().toLowerCase()}@fit.cvut.cz',
+        email:
+            widget.username.trim().toLowerCase().contains('@')
+                ? widget.username.trim().toLowerCase()
+                : '${widget.username.trim().toLowerCase()}@fit.cvut.cz',
         roleLabel: widget.roleLabel,
         userId: widget.userId,
         onSettingsTap:
@@ -625,13 +626,12 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                                   const SizedBox(width: 8),
                                   Text(
                                     'Online meeting',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: context.colors.textPrimary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.copyWith(
+                                      color: context.colors.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                   const Spacer(),
                                   Switch(
@@ -658,7 +658,8 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                                   validator: (v) {
                                     if (!_isOnline) return null;
                                     final value = (v ?? '').trim();
-                                    if (value.isEmpty) return 'Required for online meetings';
+                                    if (value.isEmpty)
+                                      return 'Required for online meetings';
                                     final uri = Uri.tryParse(value);
                                     if (uri == null ||
                                         !uri.hasScheme ||
@@ -736,8 +737,11 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                           if (_addedSlots.isNotEmpty)
                             Text(
                               '${_addedSlots.length} total',
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(color: context.colors.textSecondary),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelSmall?.copyWith(
+                                color: context.colors.textSecondary,
+                              ),
                             ),
                         ],
                       ),
@@ -931,7 +935,11 @@ class _AddScheduleSummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.event_available, size: 18, color: context.colors.primary),
+              Icon(
+                Icons.event_available,
+                size: 18,
+                color: context.colors.primary,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1001,9 +1009,10 @@ class _AddScheduleSummaryCard extends StatelessWidget {
                   child: Text(
                     meetingLink.isEmpty ? 'Meeting link required' : meetingLink,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: meetingLink.isEmpty
-                          ? Colors.red.shade700
-                          : context.colors.textSecondary,
+                      color:
+                          meetingLink.isEmpty
+                              ? Colors.red.shade700
+                              : context.colors.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1188,7 +1197,9 @@ class _ActiveSchedulesList extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: context.colors.primary.withValues(alpha: 0.15),
+                            color: context.colors.primary.withValues(
+                              alpha: 0.15,
+                            ),
                             borderRadius: BorderRadius.circular(
                               SyncUpTheme.radiusXs,
                             ),
@@ -1263,12 +1274,16 @@ class _RepeatSelector extends StatelessWidget {
                     decoration: BoxDecoration(
                       color:
                           selected
-                              ? context.colors.primaryLight.withValues(alpha: 0.6)
+                              ? context.colors.primaryLight.withValues(
+                                alpha: 0.6,
+                              )
                               : context.colors.background,
                       borderRadius: BorderRadius.circular(SyncUpTheme.radiusXs),
                       border: Border.all(
                         color:
-                            selected ? context.colors.primary : context.colors.border,
+                            selected
+                                ? context.colors.primary
+                                : context.colors.border,
                         width: selected ? 2 : 1,
                       ),
                     ),
@@ -1327,7 +1342,11 @@ class _CancelUntilSelector extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.event_busy, size: 16, color: context.colors.textSecondary),
+            Icon(
+              Icons.event_busy,
+              size: 16,
+              color: context.colors.textSecondary,
+            ),
             const SizedBox(width: 6),
             Text(
               'Can cancel until',
@@ -1644,7 +1663,8 @@ class _StepperBtn extends StatelessWidget {
           child: Icon(
             icon,
             size: 16,
-            color: enabled ? context.colors.surface : context.colors.textSecondary,
+            color:
+                enabled ? context.colors.surface : context.colors.textSecondary,
           ),
         ),
       ),
