@@ -59,6 +59,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
   late TabController _addedSlotsTabController;
   int? _addedSlotsExpandedDayIndex;
   int _addedSlotsSlotDuration = 15;
+  bool _isLoadingAddedSlots = false;
 
   @override
   void initState() {
@@ -68,6 +69,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
     _titleController.addListener(_onFormChanged);
     _locationController.addListener(_onFormChanged);
     _meetingLinkController.addListener(_onFormChanged);
+    _loadAddedSlotsForWeek(_slotsWeekStart);
   }
 
   void _onFormChanged() => setState(() {});
@@ -174,7 +176,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
       await syncAvailabilityForOwner(widget.ownerId, _slotsWeekStart);
       if (!mounted) return;
       setState(() {
-        _addedSlots.addAll(newlyAdded);
+        _addedSlots
+          ..clear()
+          ..addAll(getAvailabilityForOwner(widget.ownerId, _slotsWeekStart));
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -226,6 +230,41 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _loadAddedSlotsForWeek(DateTime weekStart) async {
+    setState(() => _isLoadingAddedSlots = true);
+    try {
+      await syncAvailabilityForOwner(widget.ownerId, weekStart);
+      if (!mounted) return;
+      final fetched = getAvailabilityForOwner(widget.ownerId, weekStart).toList()
+        ..sort((a, b) => a.startTime.compareTo(b.startTime));
+      setState(() {
+        _slotsWeekStart = startOfWeekSunday(weekStart);
+        _addedSlots
+          ..clear()
+          ..addAll(fetched);
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load added slots for this week'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingAddedSlots = false);
+      }
+    }
+  }
+
+  void _shiftAddedSlotsWeek(int deltaDays) {
+    final nextWeek = _slotsWeekStart.add(Duration(days: deltaDays));
+    setState(() => _addedSlotsExpandedDayIndex = null);
+    _loadAddedSlotsForWeek(nextWeek);
   }
 
   int get _slotDurationMinutes {
@@ -746,91 +785,76 @@ class _AddScheduleScreenState extends State<AddScheduleScreen>
                         ],
                       ),
                     ),
-                    if (_addedSlots.isNotEmpty) ...[
-                      _AddedSlotsWeekRow(
-                        weekStart: _slotsWeekStart,
-                        onPrev: () {
-                          setState(() {
-                            _slotsWeekStart = _slotsWeekStart.subtract(
-                              const Duration(days: 7),
-                            );
-                            _addedSlotsExpandedDayIndex = null;
-                          });
-                        },
-                        onNext: () {
-                          setState(() {
-                            _slotsWeekStart = _slotsWeekStart.add(
-                              const Duration(days: 7),
-                            );
-                            _addedSlotsExpandedDayIndex = null;
-                          });
-                        },
-                      ),
-                      TabBar(
-                        controller: _addedSlotsTabController,
-                        tabs: const [Tab(text: 'Calendar')],
-                        labelColor: context.colors.primary,
-                        unselectedLabelColor: context.colors.textSecondary,
-                        indicatorColor: context.colors.primary,
-                      ),
-                      Expanded(
-                        child: TabBarView(
-                          controller: _addedSlotsTabController,
-                          children: [
-                            FindScheduleSlotsView(
-                              weekStart: _slotsWeekStart,
-                              slotDurationMinutes: _addedSlotsSlotDuration,
-                              availabilitySlots: _addedSlots,
-                              expandedDayIndex: _addedSlotsExpandedDayIndex,
-                              onDayTap:
-                                  (i) => setState(
-                                    () => _addedSlotsExpandedDayIndex = i,
+                    _AddedSlotsWeekRow(
+                      weekStart: _slotsWeekStart,
+                      onPrev: () => _shiftAddedSlotsWeek(-7),
+                      onNext: () => _shiftAddedSlotsWeek(7),
+                    ),
+                    TabBar(
+                      controller: _addedSlotsTabController,
+                      tabs: const [Tab(text: 'Calendar')],
+                      labelColor: context.colors.primary,
+                      unselectedLabelColor: context.colors.textSecondary,
+                      indicatorColor: context.colors.primary,
+                    ),
+                    Expanded(
+                      child: _isLoadingAddedSlots
+                          ? const Center(child: CircularProgressIndicator())
+                          : (_addedSlots.isNotEmpty
+                              ? TabBarView(
+                                  controller: _addedSlotsTabController,
+                                  children: [
+                                    FindScheduleSlotsView(
+                                      weekStart: _slotsWeekStart,
+                                      slotDurationMinutes: _addedSlotsSlotDuration,
+                                      availabilitySlots: _addedSlots,
+                                      expandedDayIndex: _addedSlotsExpandedDayIndex,
+                                      onDayTap:
+                                          (i) => setState(
+                                            () => _addedSlotsExpandedDayIndex = i,
+                                          ),
+                                      onBack:
+                                          () => setState(
+                                            () => _addedSlotsExpandedDayIndex = null,
+                                          ),
+                                      onSlotSelected:
+                                          (slot) => _confirmRemoveSlot(slot),
+                                    ),
+                                  ],
+                                )
+                              : Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.event_available,
+                                        size: 48,
+                                        color: context.colors.textSecondary.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'No slots in this week',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium?.copyWith(
+                                          color: context.colors.textSecondary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Use week arrows to view past or upcoming slots',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.copyWith(
+                                          color: context.colors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                              onBack:
-                                  () => setState(
-                                    () => _addedSlotsExpandedDayIndex = null,
-                                  ),
-                              onSlotSelected:
-                                  (slot) => _confirmRemoveSlot(slot),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else
-                      Expanded(
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.event_available,
-                                size: 48,
-                                color: context.colors.textSecondary.withValues(
-                                  alpha: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No slots yet',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium?.copyWith(
-                                  color: context.colors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Add slots in the Add tab',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(
-                                  color: context.colors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                                )),
+                    ),
                   ],
                 ),
               ],

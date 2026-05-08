@@ -3,6 +3,8 @@
 class Meeting {
   final String id;
   final String participantName;
+  final String? ownerId;
+  final String? ownerName;
 
   /// Roster id when known (links recurring bookings to backend `sessions`).
   final String? studentId;
@@ -24,6 +26,7 @@ class Meeting {
 
   /// Decisions / deliberations text for past sessions when present.
   final String? deliberations;
+  final List<SharedDocument> sharedDocuments;
 
   /// Status submitted for this meeting occurrence.
   /// Expected values: happened, late, postponed, cancelled.
@@ -32,6 +35,8 @@ class Meeting {
   const Meeting({
     required this.id,
     required this.participantName,
+    this.ownerId,
+    this.ownerName,
     this.studentId,
     this.photoUrl,
     required this.startTime,
@@ -41,12 +46,15 @@ class Meeting {
     this.location,
     this.minutes,
     this.deliberations,
+    this.sharedDocuments = const [],
     this.meetingStatus,
   });
 
   Meeting copyWith({
     String? id,
     String? participantName,
+    String? ownerId,
+    String? ownerName,
     String? studentId,
     String? photoUrl,
     DateTime? startTime,
@@ -56,11 +64,14 @@ class Meeting {
     String? location,
     String? minutes,
     String? deliberations,
+    List<SharedDocument>? sharedDocuments,
     String? meetingStatus,
   }) {
     return Meeting(
       id: id ?? this.id,
       participantName: participantName ?? this.participantName,
+      ownerId: ownerId ?? this.ownerId,
+      ownerName: ownerName ?? this.ownerName,
       studentId: studentId ?? this.studentId,
       photoUrl: photoUrl ?? this.photoUrl,
       startTime: startTime ?? this.startTime,
@@ -70,6 +81,7 @@ class Meeting {
       location: location ?? this.location,
       minutes: minutes ?? this.minutes,
       deliberations: deliberations ?? this.deliberations,
+      sharedDocuments: sharedDocuments ?? this.sharedDocuments,
       meetingStatus: meetingStatus ?? this.meetingStatus,
     );
   }
@@ -134,4 +146,14 @@ class Meeting {
     }
     return first;
   }
+}
+
+class SharedDocument {
+  final String title;
+  final String url;
+
+  const SharedDocument({
+    required this.title,
+    required this.url,
+  });
 }

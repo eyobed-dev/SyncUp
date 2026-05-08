@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/current_meeting_minutes.dart';
+import '../data/live_backend_cache.dart';
 import '../data/sample_data.dart';
 import '../models/meeting.dart';
 import 'package:sync_up/theme/sync_up_colors.dart';
@@ -337,6 +339,31 @@ class MeetingListCard extends StatelessWidget {
     );
   }
 
+  static Future<void> _openSharedDocument(
+    BuildContext context,
+    SharedDocument document,
+  ) async {
+    final uri = Uri.tryParse(document.url);
+    if (uri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid document link'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open document link'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   static Future<void> showMeetingDetails(
     BuildContext context,
     Meeting m,
@@ -391,11 +418,17 @@ class MeetingListCard extends StatelessWidget {
             : 'Mostly consistent record with $lateCount late and $postponedCount postponed meeting(s).';
     final isOpenSlot = m.isOpenSlot;
     final existing = CurrentMeetingMinutesStore.get(m);
+    final initialMinutes = (m.minutes ?? '').trim().isNotEmpty
+        ? m.minutes!.trim()
+        : (existing?.minutes ?? '');
+    final initialDeliberations = (m.deliberations ?? '').trim().isNotEmpty
+        ? m.deliberations!.trim()
+        : (existing?.deliberations ?? '');
     final minutesController = TextEditingController(
-      text: existing?.minutes ?? '',
+      text: initialMinutes,
     );
     final deliberationsController = TextEditingController(
-      text: existing?.deliberations ?? '',
+      text: initialDeliberations,
     );
 
     await showDialog<void>(
@@ -406,26 +439,51 @@ class MeetingListCard extends StatelessWidget {
         var priorHistoryIndex = 0;
         var summaryExpanded = false;
 
-        void saveMinutes({required bool showToast}) {
-          final minutes = minutesController.text.trim();
-          final delib = deliberationsController.text.trim();
-          CurrentMeetingMinutesStore.put(
-            m,
-            minutes: minutes,
-            deliberations: delib,
-          );
-          if (showToast && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Minutes saved.'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        }
-
         return StatefulBuilder(
           builder: (ctx, setLocalState) {
+            Future<bool> saveMinutes({required bool showToast}) async {
+              if (isSending) return false;
+              setLocalState(() => isSending = true);
+              final minutes = minutesController.text.trim();
+              final delib = deliberationsController.text.trim();
+              try {
+                await LiveBackendCache.instance.saveMeetingMinutes(
+                  meeting: m,
+                  minutes: minutes,
+                  deliberations: delib,
+                );
+                CurrentMeetingMinutesStore.put(
+                  m,
+                  minutes: minutes,
+                  deliberations: delib,
+                );
+                await syncPriorSessionsForBooking(m);
+                if (showToast && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Minutes saved.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+                return true;
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to save minutes'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+                return false;
+              } finally {
+                if (ctx.mounted) {
+                  setLocalState(() => isSending = false);
+                }
+              }
+            }
+
             Future<void> doEmail() async {
               if (isSending) return;
               setLocalState(() => isSending = true);
@@ -615,6 +673,49 @@ class MeetingListCard extends StatelessWidget {
                                         ],
                                         const SizedBox(height: 10),
                                       ],
+                                      Text(
+                                        'Shared documents',
+                                        style: minutesStyleHeading,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      if (m.sharedDocuments.isEmpty)
+                                        Text(
+                                          'No documents shared by the student.',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: context.colors.textSecondary,
+                                          ),
+                                        )
+                                      else
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children:
+                                              m.sharedDocuments.map((doc) {
+                                                final label =
+                                                    doc.title.trim().isNotEmpty
+                                                        ? doc.title.trim()
+                                                        : doc.url.trim();
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(bottom: 6),
+                                                  child: OutlinedButton.icon(
+                                                    onPressed:
+                                                        () => _openSharedDocument(ctx, doc),
+                                                    icon: const Icon(
+                                                      Icons.link_outlined,
+                                                      size: 16,
+                                                    ),
+                                                    label: Align(
+                                                      alignment: Alignment.centerLeft,
+                                                      child: Text(
+                                                        label,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }).toList(),
+                                        ),
+                                      const SizedBox(height: 10),
                                       TextField(
                                         controller: minutesController,
                                         enabled: !isSending,
@@ -646,9 +747,11 @@ class MeetingListCard extends StatelessWidget {
                                             onPressed:
                                                 isSending
                                                     ? null
-                                                    : () => saveMinutes(
-                                                      showToast: true,
-                                                    ),
+                                                    : () async {
+                                                      await saveMinutes(
+                                                        showToast: true,
+                                                      );
+                                                    },
                                             icon: const Icon(
                                               Icons.save_outlined,
                                               size: 18,
@@ -661,10 +764,12 @@ class MeetingListCard extends StatelessWidget {
                                                 isSending
                                                     ? null
                                                     : () async {
-                                                      saveMinutes(
+                                                      final saved = await saveMinutes(
                                                         showToast: false,
                                                       );
-                                                      await doEmail();
+                                                      if (saved) {
+                                                        await doEmail();
+                                                      }
                                                     },
                                             icon: const Icon(
                                               Icons.send_outlined,

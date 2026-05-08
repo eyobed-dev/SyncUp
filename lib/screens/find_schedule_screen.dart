@@ -324,6 +324,95 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
     }
   }
 
+  Future<void> _showPriorMinutesForBooking(Meeting booking) async {
+    try {
+      await syncPriorSessionsForBooking(booking);
+      if (!mounted) return;
+      final prior = priorSessionsForBooking(booking)
+          .where((s) =>
+              s.startTime.isBefore(DateTime.now()) &&
+              (((s.minutes ?? '').trim().isNotEmpty) ||
+                  ((s.deliberations ?? '').trim().isNotEmpty)))
+          .toList()
+        ..sort((a, b) => b.startTime.compareTo(a.startTime));
+
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            title: Text(
+              booking.ownerName?.trim().isNotEmpty == true
+                  ? 'Previous minutes with ${booking.ownerName}'
+                  : 'Previous minutes',
+            ),
+            content: SizedBox(
+              width: 520,
+              child: prior.isEmpty
+                  ? const Text('No previous minutes found for this professor.')
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: prior.length,
+                      separatorBuilder: (_, __) => const Divider(height: 20),
+                      itemBuilder: (context, i) {
+                        final session = prior[i];
+                        final dateLabel =
+                            '${session.startTime.day}/${session.startTime.month}/${session.startTime.year}';
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              dateLabel,
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            if ((session.minutes ?? '').trim().isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                'Minutes',
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text((session.minutes ?? '').trim()),
+                            ],
+                            if ((session.deliberations ?? '').trim().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Decisions',
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text((session.deliberations ?? '').trim()),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to load previous minutes'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   void _onProfessorSelected(ScheduleOwner owner) {
     _searchFocusNode.unfocus();
     _searchController.clear();
@@ -537,6 +626,8 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                         : 'Booked session';
                                         
                                     final subtitleParts = <String>[
+                                      if ((booking.ownerName ?? '').trim().isNotEmpty)
+                                        booking.ownerName!.trim(),
                                       '${dayShortNamesSunFirst[booking.startTime.weekday % 7]}',
                                       if ((booking.location ?? '').trim().isNotEmpty)
                                         booking.location!.trim(),
@@ -601,23 +692,48 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                                 ),
                                               ),
                                               isThreeLine: true,
-                                              trailing: compact 
-                                                  ? Icon(Icons.swipe_left_outlined, color: context.colors.border)
+                                              trailing: compact
+                                                  ? IconButton(
+                                                      icon: Icon(
+                                                        Icons.history_outlined,
+                                                        color: context.colors.primary,
+                                                      ),
+                                                      tooltip: 'Previous minutes',
+                                                      onPressed: () =>
+                                                          _showPriorMinutesForBooking(booking),
+                                                    )
                                                   : null,
                                             ),
                                             if (!compact)
                                               Positioned(
                                                 top: 4,
                                                 right: 4,
-                                                child: IconButton(
-                                                  visualDensity: VisualDensity.compact,
-                                                  icon: Icon(
-                                                    Icons.close, 
-                                                    size: 18, 
-                                                    color: context.colors.textSecondary.withValues(alpha: 0.5)
-                                                  ),
-                                                  tooltip: 'Cancel Booking',
-                                                  onPressed: () => _cancelSingleBooking(booking),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      visualDensity: VisualDensity.compact,
+                                                      icon: Icon(
+                                                        Icons.history_outlined,
+                                                        size: 18,
+                                                        color: context.colors.primary,
+                                                      ),
+                                                      tooltip: 'Previous minutes',
+                                                      onPressed: () =>
+                                                          _showPriorMinutesForBooking(booking),
+                                                    ),
+                                                    IconButton(
+                                                      visualDensity: VisualDensity.compact,
+                                                      icon: Icon(
+                                                        Icons.close,
+                                                        size: 18,
+                                                        color: context.colors.textSecondary
+                                                            .withValues(alpha: 0.5),
+                                                      ),
+                                                      tooltip: 'Cancel Booking',
+                                                      onPressed: () => _cancelSingleBooking(booking),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                           ],
@@ -805,12 +921,16 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
   String fmtTime(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
-  Future<bool> _showSlotConfirmation(BuildContext context, AvailabilitySlot slot) {
+  Future<({String note, List<SharedDocument> sharedDocuments})?> _showSlotConfirmation(
+    BuildContext context,
+    AvailabilitySlot slot,
+  ) {
     final dateStr = '${slot.startTime.day}/${slot.startTime.month}/${slot.startTime.year}';
     final timeStr = fmtTime(slot.startTime);
     final endStr = fmtTime(slot.startTime.add(Duration(minutes: slot.durationMinutes)));
     final locationStr = slot.location ?? '—';
 
+    ({String note, List<SharedDocument> sharedDocuments})? result;
     return showDialog<bool>(
       context: context,
       barrierDismissible: true,
@@ -821,9 +941,11 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
         timeStr: timeStr,
         endStr: endStr,
         locationStr: locationStr,
-        onConfirmed: (note) {}, 
+        onConfirmed: (note, sharedDocuments) {
+          result = (note: note, sharedDocuments: sharedDocuments);
+        },
       ),
-    ).then((v) => v == true);
+    ).then((v) => v == true ? result : null);
   }
 
   // Clever UI Typography: Merges Days, Dates, and Slots into one clean row
@@ -1002,8 +1124,8 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                       return InkWell(
                         onTap: () async {
                           final key = _slotKey(widget.owner, s);
-                          final ok = await _showSlotConfirmation(context, s);
-                          if (!mounted || !ok) return;
+                          final bookingInput = await _showSlotConfirmation(context, s);
+                          if (!mounted || bookingInput == null) return;
 
                           setState(() => _bookedSlotKeys.add(key));
 
@@ -1014,6 +1136,8 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                               weekStart: widget.weekSunday,
                               participantName: widget.attendeeName,
                               participantUserId: widget.attendeeUserId,
+                              note: bookingInput.note,
+                              sharedDocuments: bookingInput.sharedDocuments,
                             );
                             if (mounted) {
                               widget.onBookingComplete();
@@ -1147,7 +1271,7 @@ class _BookSlotDialog extends StatefulWidget {
   final String timeStr;
   final String endStr;
   final String locationStr;
-  final void Function(String note) onConfirmed;
+  final void Function(String note, List<SharedDocument> sharedDocuments) onConfirmed;
 
   @override
   State<_BookSlotDialog> createState() => _BookSlotDialogState();
@@ -1155,16 +1279,19 @@ class _BookSlotDialog extends StatefulWidget {
 
 class _BookSlotDialogState extends State<_BookSlotDialog> {
   late final TextEditingController _noteController;
+  late final TextEditingController _sharedDocsController;
 
   @override
   void initState() {
     super.initState();
     _noteController = TextEditingController();
+    _sharedDocsController = TextEditingController();
   }
 
   @override
   void dispose() {
     _noteController.dispose();
+    _sharedDocsController.dispose();
     super.dispose();
   }
 
@@ -1279,6 +1406,26 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                         ),
                         maxLines: 2,
                       ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _sharedDocsController,
+                        decoration: InputDecoration(
+                          labelText: 'Shared document links (one URL per line)',
+                          prefixIcon: Icon(
+                            Icons.attach_file_outlined,
+                            size: 20,
+                            color: context.colors.textSecondary,
+                          ),
+                          filled: true,
+                          fillColor: context.colors.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        minLines: 2,
+                        maxLines: 4,
+                      ),
                     ],
                   ),
                 ),
@@ -1300,7 +1447,26 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                         flex: 2,
                         child: FilledButton(
                           onPressed: () {
-                            widget.onConfirmed(_noteController.text.trim());
+                            final docs = _sharedDocsController.text
+                                .split('\n')
+                                .map((line) => line.trim())
+                                .where((line) => line.isNotEmpty)
+                                .map((url) {
+                                  final uri = Uri.tryParse(url);
+                                  if (uri == null) {
+                                    return SharedDocument(title: '', url: url);
+                                  }
+                                  final segments = uri.pathSegments;
+                                  final fileName = segments.isNotEmpty
+                                      ? segments.last
+                                      : uri.host;
+                                  return SharedDocument(
+                                    title: fileName.trim(),
+                                    url: url,
+                                  );
+                                })
+                                .toList();
+                            widget.onConfirmed(_noteController.text.trim(), docs);
                             Navigator.pop(context, true);
                           },
                           style: FilledButton.styleFrom(

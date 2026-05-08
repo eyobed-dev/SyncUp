@@ -38,6 +38,20 @@ class SyncUpApiClient {
     );
   }
 
+  List<SharedDocument> _parseSharedDocuments(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map((doc) {
+          final title = (doc['title'] as String? ?? '').trim();
+          final url = (doc['url'] as String? ?? '').trim();
+          if (url.isEmpty) return null;
+          return SharedDocument(title: title, url: url);
+        })
+        .whereType<SharedDocument>()
+        .toList();
+  }
+
   Future<AppUserSession> login({
     required String username,
     required String password,
@@ -146,6 +160,8 @@ class SyncUpApiClient {
       return Meeting(
         id: m['id'] as String,
         participantName: m['participantName'] as String,
+        ownerId: m['ownerId'] as String?,
+        ownerName: m['ownerName'] as String?,
         studentId: m['studentId'] as String?,
         startTime: DateTime.parse(m['startTime'] as String).toLocal(),
         durationMinutes: (m['durationMinutes'] as num).toInt(),
@@ -154,6 +170,7 @@ class SyncUpApiClient {
         location: m['location'] as String?,
         minutes: m['minutes'] as String?,
         deliberations: m['deliberations'] as String?,
+        sharedDocuments: _parseSharedDocuments(m['sharedDocuments']),
         meetingStatus: m['meetingStatus'] as String?,
       );
     }).toList();
@@ -162,6 +179,7 @@ class SyncUpApiClient {
   Future<List<Meeting>> fetchPriorSessions({
     String? studentId,
     String? participantName,
+    String? ownerId,
   }) async {
     final query = <String, String>{};
     if (studentId != null && studentId.trim().isNotEmpty) {
@@ -169,6 +187,9 @@ class SyncUpApiClient {
     }
     if (participantName != null && participantName.trim().isNotEmpty) {
       query['participantName'] = participantName.trim();
+    }
+    if (ownerId != null && ownerId.trim().isNotEmpty) {
+      query['ownerId'] = ownerId.trim();
     }
     final resp = await http.get(_uri('/api/v1/sessions/prior', query));
     if (resp.statusCode != 200) {
@@ -181,6 +202,7 @@ class SyncUpApiClient {
       return Meeting(
         id: m['id'] as String,
         participantName: m['participantName'] as String,
+        ownerId: m['ownerId'] as String?,
         studentId: m['studentId'] as String?,
         startTime: DateTime.parse(m['startTime'] as String).toLocal(),
         durationMinutes: (m['durationMinutes'] as num).toInt(),
@@ -189,6 +211,7 @@ class SyncUpApiClient {
         location: m['location'] as String?,
         minutes: m['minutes'] as String?,
         deliberations: m['deliberations'] as String?,
+        sharedDocuments: _parseSharedDocuments(m['sharedDocuments']),
         meetingStatus: m['meetingStatus'] as String?,
       );
     }).toList();
@@ -202,6 +225,7 @@ class SyncUpApiClient {
     String? participantUserId,
     String? participantEmail,
     String? note,
+    List<SharedDocument> sharedDocuments = const [],
   }) async {
     final dateOnly =
         DateTime.utc(
@@ -217,6 +241,10 @@ class SyncUpApiClient {
       'participantUserId': participantUserId ?? '',
       'participantEmail': participantEmail ?? '',
       'note': note ?? '',
+      'sharedDocuments':
+          sharedDocuments
+              .map((d) => {'title': d.title, 'url': d.url})
+              .toList(),
     };
     final resp = await http.post(
       _uri('/api/v1/bookings'),
@@ -308,6 +336,41 @@ class SyncUpApiClient {
     if (resp.statusCode != 200 && resp.statusCode != 201) {
       throw Exception(
         'Failed to update meeting status (${resp.statusCode}): ${resp.body}',
+      );
+    }
+  }
+
+  Future<void> saveMeetingMinutes({
+    required Meeting meeting,
+    required String minutes,
+    required String deliberations,
+  }) async {
+    final payload = {
+      'meetingId': meeting.id,
+      'ownerId': meeting.ownerId ?? '',
+      'startTime': meeting.startTime.toUtc().toIso8601String(),
+      'participantName': meeting.participantName,
+      'studentId': meeting.studentId ?? '',
+      'durationMinutes': meeting.durationMinutes,
+      'discipline': meeting.discipline ?? '',
+      'topic': meeting.topic ?? '',
+      'location': meeting.location ?? '',
+      'meetingStatus': meeting.meetingStatus ?? '',
+      'minutes': minutes,
+      'deliberations': deliberations,
+      'sharedDocuments':
+          meeting.sharedDocuments
+              .map((d) => {'title': d.title, 'url': d.url})
+              .toList(),
+    };
+    final resp = await http.post(
+      _uri('/api/v1/meetings/minutes'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(payload),
+    );
+    if (resp.statusCode != 200 && resp.statusCode != 201) {
+      throw Exception(
+        'Failed to save meeting minutes (${resp.statusCode}): ${resp.body}',
       );
     }
   }

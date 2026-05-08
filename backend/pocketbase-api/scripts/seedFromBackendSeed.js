@@ -98,6 +98,7 @@ async function ensureSession(session) {
   } catch {
     return pb.collection("sessions").create({
       session_id: String(session.id),
+      owner_external_id: session.ownerExternalId || "p1",
       participant_name: session.participantName,
       student_id: session.studentId || "",
       start_time: session.startTime,
@@ -107,6 +108,9 @@ async function ensureSession(session) {
       location: session.location || "",
       minutes: session.minutes || "",
       deliberations: session.deliberations || "",
+      shared_documents: Array.isArray(session.sharedDocuments)
+        ? JSON.stringify(session.sharedDocuments)
+        : "[]",
       meeting_status: session.meetingStatus || "",
     });
   }

@@ -98,6 +98,46 @@ function makeMeetingEventKey(meetingId, startTime) {
   return `${meetingId}|${new Date(startTime).toISOString()}`;
 }
 
+function makeSessionLookupKey({ ownerExternalId, studentId, participantName, startTime }) {
+  const owner = String(ownerExternalId || "").trim();
+  const sid = String(studentId || "").trim();
+  const pname = String(participantName || "").trim().toLowerCase();
+  const iso = new Date(startTime).toISOString();
+  return `${owner || "-"}|${sid || "-"}|${pname || "-"}|${iso}`;
+}
+
+function parseSharedDocuments(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") {
+          const trimmed = item.trim();
+          return trimmed ? { title: "", url: trimmed } : null;
+        }
+        if (item && typeof item === "object") {
+          const title = String(item.title || "").trim();
+          const url = String(item.url || "").trim();
+          return url ? { title, url } : null;
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parseSharedDocuments(parsed);
+  } catch (_) {
+    return [];
+  }
+}
+
+function stringifySharedDocuments(value) {
+  return JSON.stringify(parseSharedDocuments(value));
+}
+
 async function getOwnerByExternalId(ownerExternalId) {
   const escaped = ownerExternalId.replace(/"/g, '\\"');
   return pb
@@ -352,6 +392,7 @@ app.post("/api/v1/bookings", async (req, res) => {
       participantUserId,
       participantEmail,
       note,
+      sharedDocuments,
     } = req.body ?? {};
 
     if (!ownerId || (!templateId && !slotId) || !weekStart || !participantName) {
@@ -432,6 +473,7 @@ app.post("/api/v1/bookings", async (req, res) => {
       participant_name: String(participantName).trim(),
       participant_email: participantEmail ? String(participantEmail).trim() : "",
       note: note ? String(note).trim() : "",
+      shared_documents: stringifySharedDocuments(sharedDocuments),
       status: "confirmed",
       start_time: startTime.toISOString(),
       duration_minutes: Number(
@@ -468,6 +510,7 @@ app.post("/api/v1/bookings", async (req, res) => {
         participantName: created.participant_name,
         participantEmail: created.participant_email || null,
         note: created.note || null,
+        sharedDocuments: parseSharedDocuments(created.shared_documents),
       },
     });
   } catch (error) {
@@ -702,6 +745,12 @@ app.get("/api/v1/meetings", async (req, res) => {
         filter: `owner_external_id="${escapedOwner}"`,
       }),
     );
+    const owners = await withAdminAuth(() =>
+      pb.collection("schedule_owners").getFullList(),
+    );
+    const ownerNameByExternalId = new Map(
+      owners.map((o) => [o.external_id, o.name]),
+    );
     const appUserRows = await withAdminAuth(() => pb.collection("app_users").getFullList());
     const { byId: disciplineByUserId, byName: disciplineByDisplayName } =
       buildUserDisciplineMaps(appUserRows);
@@ -724,12 +773,27 @@ app.get("/api/v1/meetings", async (req, res) => {
           ` && meeting_start_time < "${weekEndIso}"`,
       }),
     );
+    const sessionRows = await withAdminAuth(() =>
+      pb.collection("sessions").getFullList({
+        filter: `start_time >= "${weekStartIso}" && start_time < "${weekEndIso}"`,
+      }),
+    );
     const statusByKey = new Map(
       statusRows.map((r) => [
         makeMeetingEventKey(r.meeting_id, r.meeting_start_time),
         r.status,
       ]),
     );
+    const sessionByLookupKey = new Map();
+    for (const row of sessionRows) {
+      const key = makeSessionLookupKey({
+        ownerExternalId: row.owner_external_id,
+        studentId: row.student_id,
+        participantName: row.participant_name,
+        startTime: row.start_time,
+      });
+      sessionByLookupKey.set(key, row);
+    }
     const monday = mondayFromWeekStart(weekStart);
     const meetings = ownerMeetingRows.map((row) => {
       const start = new Date(
@@ -744,10 +808,20 @@ app.get("/api/v1/meetings", async (req, res) => {
         ),
       );
       const key = makeMeetingEventKey(row.meeting_id, start.toISOString());
+      const matchedSession = sessionByLookupKey.get(
+        makeSessionLookupKey({
+          ownerExternalId: ownerId,
+          studentId: row.student_id,
+          participantName: row.participant_name,
+          startTime: start.toISOString(),
+        }),
+      );
       return {
         id: row.meeting_id,
         participantName: row.participant_name,
         studentId: row.student_id || null,
+        ownerId,
+        ownerName: ownerNameByExternalId.get(ownerId) || null,
         startTime: start.toISOString(),
         durationMinutes: Number(row.duration_minutes),
         discipline: resolveStudentDiscipline({
@@ -759,26 +833,47 @@ app.get("/api/v1/meetings", async (req, res) => {
         }),
         topic: row.topic || null,
         location: row.location || null,
-        meetingStatus: statusByKey.get(key) || null,
+        minutes: matchedSession?.minutes || null,
+        deliberations: matchedSession?.deliberations || null,
+        sharedDocuments: parseSharedDocuments(matchedSession?.shared_documents),
+        meetingStatus: statusByKey.get(key) || matchedSession?.meeting_status || null,
       };
     });
-    const ownerBookedMeetings = ownerBookingRows.map((row) => ({
-      id: `booking-${row.id}`,
-      participantName: row.participant_name || "Student",
-      studentId: row.participant_user_id || null,
-      startTime: new Date(row.start_time).toISOString(),
-      durationMinutes: Number(row.duration_minutes),
-      discipline: resolveStudentDiscipline({
-        disciplineByUserId,
-        disciplineByDisplayName,
-        studentId: row.participant_user_id,
-        participantName: row.participant_name,
-        fallbackDiscipline: "Booked meeting",
-      }),
-      topic: row.title || null,
-      location: row.location || null,
-      meetingStatus: null,
-    }));
+    const ownerBookedMeetings = ownerBookingRows.map((row) => {
+      const matchedSession = sessionByLookupKey.get(
+        makeSessionLookupKey({
+          ownerExternalId: row.owner_external_id,
+          studentId: row.participant_user_id,
+          participantName: row.participant_name,
+          startTime: row.start_time,
+        }),
+      );
+      return {
+        id: `booking-${row.id}`,
+        participantName: row.participant_name || "Student",
+        studentId: row.participant_user_id || null,
+        ownerId: row.owner_external_id || null,
+        ownerName: ownerNameByExternalId.get(row.owner_external_id) || null,
+        startTime: new Date(row.start_time).toISOString(),
+        durationMinutes: Number(row.duration_minutes),
+        discipline: resolveStudentDiscipline({
+          disciplineByUserId,
+          disciplineByDisplayName,
+          studentId: row.participant_user_id,
+          participantName: row.participant_name,
+          fallbackDiscipline: "Booked meeting",
+        }),
+        topic: row.title || null,
+        location: row.location || null,
+        minutes: matchedSession?.minutes || null,
+        deliberations: matchedSession?.deliberations || null,
+        sharedDocuments:
+          parseSharedDocuments(matchedSession?.shared_documents).length > 0
+            ? parseSharedDocuments(matchedSession?.shared_documents)
+            : parseSharedDocuments(row.shared_documents),
+        meetingStatus: matchedSession?.meeting_status || null,
+      };
+    });
     meetings.push(...ownerBookedMeetings);
 
     if (participantName || participantUserId) {
@@ -797,17 +892,21 @@ app.get("/api/v1/meetings", async (req, res) => {
             ` && status = "confirmed"`,
         }),
       );
-      const owners = await withAdminAuth(() =>
-        pb.collection("schedule_owners").getFullList(),
-      );
-      const ownerNameByExternalId = new Map(
-        owners.map((o) => [o.external_id, o.name]),
-      );
-
-      const attendeeMeetings = bookingRows.map((row) => ({
+      const attendeeMeetings = bookingRows.map((row) => {
+        const matchedSession = sessionByLookupKey.get(
+          makeSessionLookupKey({
+            ownerExternalId: row.owner_external_id,
+            studentId: row.participant_user_id,
+            participantName: row.participant_name,
+            startTime: row.start_time,
+          }),
+        );
+        return {
           id: `booking-${row.id}`,
           participantName: row.participant_name || participantName || "Student",
           studentId: row.participant_user_id || null,
+          ownerId: row.owner_external_id || null,
+          ownerName: ownerNameByExternalId.get(row.owner_external_id) || null,
           startTime: new Date(row.start_time).toISOString(),
           durationMinutes: Number(row.duration_minutes),
           discipline: resolveStudentDiscipline({
@@ -822,8 +921,15 @@ app.get("/api/v1/meetings", async (req, res) => {
           }),
           topic: row.title || null,
           location: row.location || null,
-          meetingStatus: null,
-        }));
+          minutes: matchedSession?.minutes || null,
+          deliberations: matchedSession?.deliberations || null,
+          sharedDocuments:
+            parseSharedDocuments(matchedSession?.shared_documents).length > 0
+              ? parseSharedDocuments(matchedSession?.shared_documents)
+              : parseSharedDocuments(row.shared_documents),
+          meetingStatus: matchedSession?.meeting_status || null,
+        };
+      });
       meetings.push(...attendeeMeetings);
     }
     meetings.sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -844,6 +950,7 @@ app.get("/api/v1/sessions/prior", async (req, res) => {
   try {
     const studentId = String(req.query.studentId || "").trim();
     const participantName = String(req.query.participantName || "").trim();
+    const ownerId = String(req.query.ownerId || "").trim();
     if (!studentId && !participantName) {
       return res
         .status(400)
@@ -854,6 +961,9 @@ app.get("/api/v1/sessions/prior", async (req, res) => {
       filter = `student_id="${studentId.replace(/"/g, '\\"')}"`;
     } else {
       filter = `participant_name="${participantName.replace(/"/g, '\\"')}"`;
+    }
+    if (ownerId) {
+      filter += ` && owner_external_id="${ownerId.replace(/"/g, '\\"')}"`;
     }
     const rows = await withAdminAuth(() =>
       pb.collection("sessions").getFullList({
@@ -869,6 +979,9 @@ app.get("/api/v1/sessions/prior", async (req, res) => {
           (studentId
             ? `student_id="${studentId.replace(/"/g, '\\"')}"`
             : `participant_name="${participantName.replace(/"/g, '\\"')}"`) +
+          (ownerId
+            ? ` && owner_external_id="${ownerId.replace(/"/g, '\\"')}"`
+            : "") +
           ` && meeting_start_time < "${new Date().toISOString()}"`,
       }),
     );
@@ -876,6 +989,7 @@ app.get("/api/v1/sessions/prior", async (req, res) => {
       id: row.session_id,
       participantName: row.participant_name,
       studentId: row.student_id || null,
+      ownerId: row.owner_external_id || null,
       startTime: new Date(row.start_time).toISOString(),
       durationMinutes: Number(row.duration_minutes),
       discipline: resolveStudentDiscipline({
@@ -889,12 +1003,14 @@ app.get("/api/v1/sessions/prior", async (req, res) => {
       location: row.location || null,
       minutes: row.minutes || null,
       deliberations: row.deliberations || null,
+      sharedDocuments: parseSharedDocuments(row.shared_documents),
       meetingStatus: row.meeting_status || null,
     }));
     const eventSessions = eventRows.map((row) => ({
       id: `status-${row.id}`,
       participantName: row.participant_name || participantName || "Student",
       studentId: row.student_id || null,
+      ownerId: row.owner_external_id || ownerId || null,
       startTime: new Date(row.meeting_start_time).toISOString(),
       durationMinutes: 15,
       discipline: null,
@@ -902,6 +1018,7 @@ app.get("/api/v1/sessions/prior", async (req, res) => {
       location: null,
       minutes: null,
       deliberations: null,
+      sharedDocuments: [],
       meetingStatus: row.status || null,
     }));
     sessions.push(...eventSessions);
@@ -992,6 +1109,108 @@ app.post("/api/v1/meetings/status", async (req, res) => {
     return res
       .status(500)
       .json({ error: "Failed to update meeting status", details: String(error) });
+  }
+});
+
+app.post("/api/v1/meetings/minutes", async (req, res) => {
+  try {
+    const {
+      meetingId,
+      startTime,
+      participantName,
+      studentId,
+      ownerId,
+      durationMinutes,
+      discipline,
+      topic,
+      location,
+      minutes,
+      deliberations,
+      sharedDocuments,
+      meetingStatus,
+    } = req.body ?? {};
+
+    if (!meetingId || !startTime) {
+      return res.status(400).json({
+        error: "Missing required fields: meetingId, startTime",
+      });
+    }
+
+    const start = new Date(startTime);
+    if (Number.isNaN(start.getTime())) {
+      return res.status(400).json({ error: "Invalid startTime" });
+    }
+
+    const normalizedParticipantName = String(participantName || "").trim();
+    const normalizedStudentId = String(studentId || "").trim();
+    if (!normalizedParticipantName && !normalizedStudentId) {
+      return res.status(400).json({
+        error: "participantName or studentId is required",
+      });
+    }
+
+    const normalizedDuration = Number(durationMinutes);
+    const safeDuration =
+      Number.isFinite(normalizedDuration) && normalizedDuration >= 5 && normalizedDuration <= 480
+        ? Math.trunc(normalizedDuration)
+        : 30;
+    const sessionId = makeMeetingEventKey(String(meetingId), start.toISOString());
+    const escapedSessionId = sessionId.replace(/"/g, '\\"');
+
+    let existing = null;
+    try {
+      existing = await withAdminAuth(() =>
+        pb.collection("sessions").getFirstListItem(`session_id="${escapedSessionId}"`),
+      );
+    } catch (_) {
+      existing = null;
+    }
+
+    const payload = {
+      session_id: sessionId,
+      owner_external_id:
+        String(ownerId || "").trim() || String(existing?.owner_external_id || "").trim(),
+      participant_name:
+        normalizedParticipantName || String(existing?.participant_name || "Student"),
+      student_id: normalizedStudentId || String(existing?.student_id || ""),
+      start_time: start.toISOString(),
+      duration_minutes: safeDuration,
+      discipline:
+        String(discipline || "").trim() || String(existing?.discipline || "").trim(),
+      topic: String(topic || "").trim() || String(existing?.topic || "").trim(),
+      location: String(location || "").trim() || String(existing?.location || "").trim(),
+      minutes: String(minutes || "").trim(),
+      deliberations: String(deliberations || "").trim(),
+      shared_documents:
+        parseSharedDocuments(sharedDocuments).length > 0
+          ? stringifySharedDocuments(sharedDocuments)
+          : String(existing?.shared_documents || "[]"),
+      meeting_status:
+        String(meetingStatus || "").trim() || String(existing?.meeting_status || "").trim(),
+    };
+
+    const saved = existing
+      ? await withAdminAuth(() => pb.collection("sessions").update(existing.id, payload))
+      : await withAdminAuth(() => pb.collection("sessions").create(payload));
+
+    return res.status(existing ? 200 : 201).json({
+      session: {
+        id: saved.id,
+        sessionId: saved.session_id,
+        startTime: saved.start_time,
+        participantName: saved.participant_name,
+        studentId: saved.student_id || null,
+        ownerId: saved.owner_external_id || null,
+        minutes: saved.minutes || null,
+        deliberations: saved.deliberations || null,
+        sharedDocuments: parseSharedDocuments(saved.shared_documents),
+        meetingStatus: saved.meeting_status || null,
+      },
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ error: "Failed to save meeting minutes", details: String(error) });
   }
 });
 

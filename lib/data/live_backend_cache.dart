@@ -47,8 +47,9 @@ class LiveBackendCache {
 
   static String _sessionKey(Meeting booking) {
     final sid = booking.studentId?.trim();
-    if (sid != null && sid.isNotEmpty) return 'sid:$sid';
-    return 'name:${booking.participantName.trim().toLowerCase()}';
+    final owner = booking.ownerId?.trim() ?? '';
+    if (sid != null && sid.isNotEmpty) return 'owner:$owner|sid:$sid';
+    return 'owner:$owner|name:${booking.participantName.trim().toLowerCase()}';
   }
 
   Future<void> syncOwners() async {
@@ -111,6 +112,7 @@ class LiveBackendCache {
     final list = await _api.fetchPriorSessions(
       studentId: booking.studentId,
       participantName: booking.participantName,
+      ownerId: booking.ownerId,
     );
     _priorSessionsByBookingKey[key] = list;
   }
@@ -123,6 +125,7 @@ class LiveBackendCache {
     String? participantUserId,
     String? participantEmail,
     String? note,
+    List<SharedDocument> sharedDocuments = const [],
   }) async {
     if (!enabled) return;
     await _api.bookSlot(
@@ -133,6 +136,7 @@ class LiveBackendCache {
       participantUserId: participantUserId,
       participantEmail: participantEmail,
       note: note,
+      sharedDocuments: sharedDocuments,
     );
   }
 
@@ -211,5 +215,52 @@ class LiveBackendCache {
                       : m,
             )
             .toList();
+  }
+
+  Future<void> saveMeetingMinutes({
+    required Meeting meeting,
+    required String minutes,
+    required String deliberations,
+  }) async {
+    if (!enabled) return;
+    await _api.saveMeetingMinutes(
+      meeting: meeting,
+      minutes: minutes,
+      deliberations: deliberations,
+    );
+
+    final week = _weekKey(meeting.startTime);
+    final list = _meetingsByWeek[week];
+    if (list != null) {
+      _meetingsByWeek[week] =
+          list
+              .map(
+                (m) =>
+                    m.id == meeting.id && m.startTime == meeting.startTime
+                        ? m.copyWith(minutes: minutes, deliberations: deliberations)
+                        : m,
+              )
+              .toList();
+    }
+
+    final priorKey = _sessionKey(meeting);
+    final priorList = List<Meeting>.from(_priorSessionsByBookingKey[priorKey] ?? const []);
+    final idx = priorList.indexWhere(
+      (m) => m.id == meeting.id && m.startTime == meeting.startTime,
+    );
+    final updatedMeeting = meeting.copyWith(
+      minutes: minutes,
+      deliberations: deliberations,
+    );
+    if (idx >= 0) {
+      priorList[idx] = priorList[idx].copyWith(
+        minutes: minutes,
+        deliberations: deliberations,
+      );
+    } else {
+      priorList.add(updatedMeeting);
+    }
+    priorList.sort((a, b) => b.startTime.compareTo(a.startTime));
+    _priorSessionsByBookingKey[priorKey] = priorList;
   }
 }
