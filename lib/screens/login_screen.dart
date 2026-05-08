@@ -214,9 +214,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Check credentials for the backend on the report',
+                      'Please check the Login Credentials for nackend on the Report. Thank you!',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                          ),
                     ),
                   ],
                 ),
