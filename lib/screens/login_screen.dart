@@ -17,6 +17,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final SyncUpApiClient _api = SyncUpApiClient();
   static const _backendAdminUrl = 'http://161.97.70.30:18090/_/';
+  static const _syncupApkUrl =
+      'https://drive.google.com/file/d/1W_MV6PXZSJKJbtvnNRe1HKbLFAmb7BJH/view?usp=sharing';
   static const _professorUsername = 'p';
   static const _professorPassword = '1';
   static const _studentUsername = 's';
@@ -78,6 +80,19 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Could not open backend link'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openSyncupApk() async {
+    final uri = Uri.parse(_syncupApkUrl);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open APK link'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -184,6 +199,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     FilledButton(
                       onPressed: _submitting ? null : _continue,
                       child: Text(_submitting ? 'Signing in...' : 'Continue'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _submitting ? null : _openSyncupApk,
+                      icon: const Icon(Icons.android, size: 18),
+                      label: const Text('Syncup Apk'),
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
