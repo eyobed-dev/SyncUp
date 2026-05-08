@@ -364,6 +364,25 @@ class MeetingListCard extends StatelessWidget {
     }
   }
 
+  static List<SharedDocument> _parseSharedDocumentsInput(String rawInput) {
+    return rawInput
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .map((url) {
+          final uri = Uri.tryParse(url);
+          final fileName =
+              uri != null && uri.pathSegments.isNotEmpty
+                  ? uri.pathSegments.last
+                  : '';
+          return SharedDocument(
+            title: fileName,
+            url: url,
+          );
+        })
+        .toList();
+  }
+
   static Future<void> showMeetingDetails(
     BuildContext context,
     Meeting m,
@@ -430,6 +449,9 @@ class MeetingListCard extends StatelessWidget {
     final deliberationsController = TextEditingController(
       text: initialDeliberations,
     );
+    final sharedDocsController = TextEditingController(
+      text: m.sharedDocuments.map((d) => d.url).join('\n'),
+    );
 
     await showDialog<void>(
       context: context,
@@ -446,11 +468,13 @@ class MeetingListCard extends StatelessWidget {
               setLocalState(() => isSending = true);
               final minutes = minutesController.text.trim();
               final delib = deliberationsController.text.trim();
+              final docs = _parseSharedDocumentsInput(sharedDocsController.text);
               try {
                 await LiveBackendCache.instance.saveMeetingMinutes(
                   meeting: m,
                   minutes: minutes,
                   deliberations: delib,
+                  sharedDocuments: docs,
                 );
                 CurrentMeetingMinutesStore.put(
                   m,
@@ -678,7 +702,22 @@ class MeetingListCard extends StatelessWidget {
                                         style: minutesStyleHeading,
                                       ),
                                       const SizedBox(height: 6),
-                                      if (m.sharedDocuments.isEmpty)
+                                      TextField(
+                                        controller: sharedDocsController,
+                                        enabled: !isSending,
+                                        onChanged: (_) => setLocalState(() {}),
+                                        decoration: const InputDecoration(
+                                          labelText: 'Shared document URLs',
+                                          hintText: 'One URL per line',
+                                          border: OutlineInputBorder(),
+                                          alignLabelWithHint: true,
+                                        ),
+                                        minLines: 2,
+                                        maxLines: 4,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      if (_parseSharedDocumentsInput(sharedDocsController.text)
+                                          .isEmpty)
                                         Text(
                                           'No documents shared by the student.',
                                           style: theme.textTheme.bodySmall?.copyWith(
@@ -689,7 +728,9 @@ class MeetingListCard extends StatelessWidget {
                                         Column(
                                           crossAxisAlignment: CrossAxisAlignment.stretch,
                                           children:
-                                              m.sharedDocuments.map((doc) {
+                                              _parseSharedDocumentsInput(
+                                                sharedDocsController.text,
+                                              ).map((doc) {
                                                 final label =
                                                     doc.title.trim().isNotEmpty
                                                         ? doc.title.trim()
@@ -1252,6 +1293,7 @@ class MeetingListCard extends StatelessWidget {
 
     minutesController.dispose();
     deliberationsController.dispose();
+    sharedDocsController.dispose();
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/app_user_session.dart';
 import '../services/syncup_api_client.dart';
@@ -15,6 +16,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final SyncUpApiClient _api = SyncUpApiClient();
+  static const _backendAdminUrl = 'http://161.97.70.30:18090/_/';
   static const _professorUsername = 'p';
   static const _professorPassword = '1';
   static const _studentUsername = 's';
@@ -66,6 +68,19 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() => _submitting = false);
       }
+    }
+  }
+
+  Future<void> _openBackendAdmin() async {
+    final uri = Uri.parse(_backendAdminUrl);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open backend link'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -169,6 +184,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     FilledButton(
                       onPressed: _submitting ? null : _continue,
                       child: Text(_submitting ? 'Signing in...' : 'Continue'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _submitting ? null : _openBackendAdmin,
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: const Text('Open Backend'),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Check credentials for the backend on the report',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),

@@ -221,12 +221,15 @@ class LiveBackendCache {
     required Meeting meeting,
     required String minutes,
     required String deliberations,
+    List<SharedDocument>? sharedDocuments,
   }) async {
     if (!enabled) return;
+    final docsToSave = sharedDocuments ?? meeting.sharedDocuments;
     await _api.saveMeetingMinutes(
       meeting: meeting,
       minutes: minutes,
       deliberations: deliberations,
+      sharedDocuments: docsToSave,
     );
 
     final week = _weekKey(meeting.startTime);
@@ -237,7 +240,11 @@ class LiveBackendCache {
               .map(
                 (m) =>
                     m.id == meeting.id && m.startTime == meeting.startTime
-                        ? m.copyWith(minutes: minutes, deliberations: deliberations)
+                        ? m.copyWith(
+                            minutes: minutes,
+                            deliberations: deliberations,
+                            sharedDocuments: docsToSave,
+                          )
                         : m,
               )
               .toList();
@@ -251,11 +258,13 @@ class LiveBackendCache {
     final updatedMeeting = meeting.copyWith(
       minutes: minutes,
       deliberations: deliberations,
+      sharedDocuments: docsToSave,
     );
     if (idx >= 0) {
       priorList[idx] = priorList[idx].copyWith(
         minutes: minutes,
         deliberations: deliberations,
+        sharedDocuments: docsToSave,
       );
     } else {
       priorList.add(updatedMeeting);

@@ -344,7 +344,9 @@ class SyncUpApiClient {
     required Meeting meeting,
     required String minutes,
     required String deliberations,
+    List<SharedDocument>? sharedDocuments,
   }) async {
+    final docsToSave = sharedDocuments ?? meeting.sharedDocuments;
     final payload = {
       'meetingId': meeting.id,
       'ownerId': meeting.ownerId ?? '',
@@ -359,7 +361,7 @@ class SyncUpApiClient {
       'minutes': minutes,
       'deliberations': deliberations,
       'sharedDocuments':
-          meeting.sharedDocuments
+          docsToSave
               .map((d) => {'title': d.title, 'url': d.url})
               .toList(),
     };

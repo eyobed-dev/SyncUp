@@ -617,6 +617,27 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                     final end = booking.startTime.add(
                                       Duration(minutes: booking.durationMinutes),
                                     );
+                                    final bookingDate = DateTime(
+                                      booking.startTime.year,
+                                      booking.startTime.month,
+                                      booking.startTime.day,
+                                    );
+                                    final today = DateTime.now();
+                                    final todayDate = DateTime(
+                                      today.year,
+                                      today.month,
+                                      today.day,
+                                    );
+                                    final prevBookingDate = i > 0
+                                        ? DateTime(
+                                            _myBookings[i - 1].startTime.year,
+                                            _myBookings[i - 1].startTime.month,
+                                            _myBookings[i - 1].startTime.day,
+                                          )
+                                        : null;
+                                    final showDateHeader =
+                                        i == 0 || prevBookingDate != bookingDate;
+                                    final isTodayGroup = bookingDate == todayDate;
                                     
                                     String fmtTime(DateTime dt) =>
                                       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -624,121 +645,164 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                     final title = (booking.topic ?? '').trim().isNotEmpty
                                         ? booking.topic!.trim()
                                         : 'Booked session';
+                                    final dateTitle =
+                                        '${dayShortNamesSunFirst[booking.startTime.weekday % 7]} '
+                                        '${booking.startTime.day}/${booking.startTime.month}/${booking.startTime.year}';
                                         
                                     final subtitleParts = <String>[
                                       if ((booking.ownerName ?? '').trim().isNotEmpty)
                                         booking.ownerName!.trim(),
-                                      '${dayShortNamesSunFirst[booking.startTime.weekday % 7]}',
                                       if ((booking.location ?? '').trim().isNotEmpty)
                                         booking.location!.trim(),
                                       '${booking.durationMinutes} min',
                                     ];
 
-                                    return Dismissible(
-                                      key: ValueKey(booking.id),
-                                      direction: DismissDirection.endToStart,
-                                      confirmDismiss: (direction) async {
-                                        return await _cancelSingleBooking(booking);
-                                      },
-                                      background: Container(
-                                        alignment: Alignment.centerRight,
-                                        padding: const EdgeInsets.only(right: 24),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFDC2626),
-                                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                                        ),
-                                        child: Icon(Icons.delete_outline, color: context.colors.surface, size: 28),
-                                      ),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: context.colors.surface,
-                                          borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.03),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                          border: Border.all(color: context.colors.border.withValues(alpha: 0.5)),
-                                        ),
-                                        child: Stack(
-                                          children: [
-                                            ListTile(
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                              leading: Container(
-                                                padding: const EdgeInsets.all(10),
-                                                decoration: BoxDecoration(
-                                                  color: context.colors.primaryLight.withValues(alpha: 0.3),
-                                                  shape: BoxShape.circle,
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        if (showDateHeader) ...[
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(6, 2, 6, 6),
+                                            child: Row(
+                                              children: [
+                                                Text(
+                                                  dateTitle,
+                                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                                        color: context.colors.textPrimary,
+                                                        fontWeight: FontWeight.w700,
+                                                      ),
                                                 ),
-                                                child: Icon(Icons.event_available, color: context.colors.primary, size: 20),
-                                              ),
-                                              title: Text(
-                                                '${fmtTime(booking.startTime)} - ${fmtTime(end)}',
-                                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                  color: context.colors.textPrimary,
-                                                ),
-                                              ),
-                                              subtitle: Padding(
-                                                padding: const EdgeInsets.only(top: 4.0),
-                                                child: Text(
-                                                  '$title\n${subtitleParts.join(' · ')}',
-                                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                    color: context.colors.textSecondary,
-                                                    height: 1.4,
+                                                if (isTodayGroup) ...[
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: context.colors.primaryLight.withValues(alpha: 0.45),
+                                                      borderRadius: BorderRadius.circular(999),
+                                                    ),
+                                                    child: Text(
+                                                      'Today',
+                                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                                            color: context.colors.primary,
+                                                            fontWeight: FontWeight.w700,
+                                                          ),
+                                                    ),
                                                   ),
-                                                ),
-                                              ),
-                                              isThreeLine: true,
-                                              trailing: compact
-                                                  ? IconButton(
-                                                      icon: Icon(
-                                                        Icons.history_outlined,
-                                                        color: context.colors.primary,
-                                                      ),
-                                                      tooltip: 'Previous minutes',
-                                                      onPressed: () =>
-                                                          _showPriorMinutesForBooking(booking),
-                                                    )
-                                                  : null,
+                                                ],
+                                              ],
                                             ),
-                                            if (!compact)
-                                              Positioned(
-                                                top: 4,
-                                                right: 4,
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    IconButton(
-                                                      visualDensity: VisualDensity.compact,
-                                                      icon: Icon(
-                                                        Icons.history_outlined,
-                                                        size: 18,
-                                                        color: context.colors.primary,
-                                                      ),
-                                                      tooltip: 'Previous minutes',
-                                                      onPressed: () =>
-                                                          _showPriorMinutesForBooking(booking),
-                                                    ),
-                                                    IconButton(
-                                                      visualDensity: VisualDensity.compact,
-                                                      icon: Icon(
-                                                        Icons.close,
-                                                        size: 18,
-                                                        color: context.colors.textSecondary
-                                                            .withValues(alpha: 0.5),
-                                                      ),
-                                                      tooltip: 'Cancel Booking',
-                                                      onPressed: () => _cancelSingleBooking(booking),
-                                                    ),
-                                                  ],
+                                          ),
+                                        ],
+                                        Dismissible(
+                                          key: ValueKey(booking.id),
+                                          direction: DismissDirection.endToStart,
+                                          confirmDismiss: (direction) async {
+                                            return await _cancelSingleBooking(booking);
+                                          },
+                                          background: Container(
+                                            alignment: Alignment.centerRight,
+                                            padding: const EdgeInsets.only(right: 24),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFDC2626),
+                                              borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+                                            ),
+                                            child: Icon(Icons.delete_outline, color: context.colors.surface, size: 28),
+                                          ),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: context.colors.surface,
+                                              borderRadius: BorderRadius.circular(SyncUpTheme.radiusMd),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.03),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 2),
                                                 ),
-                                              ),
-                                          ],
+                                              ],
+                                              border: Border.all(color: context.colors.border.withValues(alpha: 0.5)),
+                                            ),
+                                            child: Stack(
+                                              children: [
+                                                ListTile(
+                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                  leading: Container(
+                                                    padding: const EdgeInsets.all(10),
+                                                    decoration: BoxDecoration(
+                                                      color: context.colors.primaryLight.withValues(alpha: 0.3),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Icon(Icons.event_available, color: context.colors.primary, size: 20),
+                                                  ),
+                                                  title: Text(
+                                                    '${fmtTime(booking.startTime)} - ${fmtTime(end)}',
+                                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                      fontWeight: FontWeight.w800,
+                                                      color: context.colors.textPrimary,
+                                                    ),
+                                                  ),
+                                                  subtitle: Padding(
+                                                    padding: const EdgeInsets.only(top: 4.0),
+                                                    child: Text(
+                                                      '$title\n${subtitleParts.join(' · ')}',
+                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                        color: context.colors.textSecondary,
+                                                        height: 1.4,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  isThreeLine: true,
+                                                  trailing: compact
+                                                      ? IconButton(
+                                                          icon: Icon(
+                                                            Icons.history_outlined,
+                                                            color: context.colors.primary,
+                                                          ),
+                                                          tooltip: 'Previous minutes',
+                                                          onPressed: () =>
+                                                              _showPriorMinutesForBooking(booking),
+                                                        )
+                                                      : null,
+                                                ),
+                                                if (!compact)
+                                                  Positioned(
+                                                    top: 4,
+                                                    right: 4,
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        IconButton(
+                                                          visualDensity: VisualDensity.compact,
+                                                          icon: Icon(
+                                                            Icons.history_outlined,
+                                                            size: 18,
+                                                            color: context.colors.primary,
+                                                          ),
+                                                          tooltip: 'Previous minutes',
+                                                          onPressed: () =>
+                                                              _showPriorMinutesForBooking(booking),
+                                                        ),
+                                                        IconButton(
+                                                          visualDensity: VisualDensity.compact,
+                                                          icon: Icon(
+                                                            Icons.close,
+                                                            size: 18,
+                                                            color: context.colors.textSecondary
+                                                                .withValues(alpha: 0.5),
+                                                          ),
+                                                          tooltip: 'Cancel Booking',
+                                                          onPressed: () => _cancelSingleBooking(booking),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     );
                                   },
                                 ),
