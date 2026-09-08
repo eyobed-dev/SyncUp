@@ -7,6 +7,7 @@ import '../theme/sync_up_theme.dart';
 import '../utils/responsive.dart';
 import '../utils/week_calendar.dart';
 import 'package:sync_up/theme/sync_up_colors.dart';
+import '../map/screens/campus_map_screen.dart';
 
 /// Tetris-style view: Y-axis = configurable slots (8:00–22:00), X-axis = days.
 /// Meeting blocks stack vertically by time; height = duration.
@@ -964,6 +965,38 @@ class _MeetingDetailModal extends StatelessWidget {
                                 ),
                           ),
                         ),
+                        if (!meeting.location!.toLowerCase().contains('online'))
+                          InkWell(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => CampusMapScreen(
+                                    initialRoomId: meeting.location,
+                                    autoNavigate: true,
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.map_outlined, size: 13, color: context.colors.primary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Map',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: context.colors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],

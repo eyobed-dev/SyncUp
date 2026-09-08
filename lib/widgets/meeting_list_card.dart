@@ -5,6 +5,7 @@ import '../data/current_meeting_minutes.dart';
 import '../data/live_backend_cache.dart';
 import '../data/sample_data.dart';
 import '../models/meeting.dart';
+import '../map/screens/campus_map_screen.dart';
 import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Single row in the merged “previous meetings” list.
@@ -1155,12 +1156,64 @@ class MeetingListCard extends StatelessWidget {
                                                           const SizedBox(
                                                             height: 4,
                                                           ),
-                                                          Text(
-                                                            entry
-                                                                .meeting!
-                                                                .location!
-                                                                .trim(),
-                                                            style: bodyStyle,
+                                                          Builder(
+                                                            builder: (context) {
+                                                              final loc = entry.meeting!.location!.trim();
+                                                              final isPhysical = !loc.toLowerCase().contains('online');
+                                                              return Wrap(
+                                                                crossAxisAlignment: WrapCrossAlignment.center,
+                                                                spacing: 8,
+                                                                children: [
+                                                                  Text(
+                                                                    loc,
+                                                                    style: bodyStyle,
+                                                                  ),
+                                                                  if (isPhysical)
+                                                                    InkWell(
+                                                                      onTap: () {
+                                                                        Navigator.of(context).push(
+                                                                          MaterialPageRoute(
+                                                                            builder: (_) => CampusMapScreen(
+                                                                              initialRoomId: loc,
+                                                                              autoNavigate: true,
+                                                                            ),
+                                                                          ),
+                                                                        );
+                                                                      },
+                                                                      borderRadius: BorderRadius.circular(6),
+                                                                      child: Container(
+                                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                                        decoration: BoxDecoration(
+                                                                          color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                                                                          borderRadius: BorderRadius.circular(6),
+                                                                          border: Border.all(
+                                                                            color: const Color(0xFF0D9488).withValues(alpha: 0.35),
+                                                                          ),
+                                                                        ),
+                                                                        child: const Row(
+                                                                          mainAxisSize: MainAxisSize.min,
+                                                                          children: [
+                                                                            Icon(
+                                                                              Icons.directions_walk_rounded,
+                                                                              size: 13,
+                                                                              color: Color(0xFF0D9488),
+                                                                            ),
+                                                                            SizedBox(width: 4),
+                                                                            Text(
+                                                                              'Directions',
+                                                                              style: TextStyle(
+                                                                                fontSize: 11,
+                                                                                fontWeight: FontWeight.w700,
+                                                                                color: Color(0xFF0D9488),
+                                                                              ),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                ],
+                                                             );
+                                                            },
                                                           ),
                                                         ],
                                                         if (entry

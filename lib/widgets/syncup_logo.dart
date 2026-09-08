@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/sync_up_theme.dart';
 import 'package:sync_up/theme/sync_up_colors.dart';
 
 /// Shared SyncUp wordmark logo used across the app.

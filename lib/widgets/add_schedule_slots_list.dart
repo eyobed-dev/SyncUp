@@ -49,7 +49,7 @@ class AddScheduleSlotsList extends StatelessWidget {
     return 'Past ${weeksAgo} week${weeksAgo == 1 ? '' : 's'}';
   }
 
-  Color _weekBadgeColor(DateTime weekSunday) {
+  Color _weekBadgeColor(BuildContext context, DateTime weekSunday) {
     final now = DateTime.now();
     final thisWeekSunday = startOfWeekSunday(DateTime(now.year, now.month, now.day));
     final displayedSunday = DateTime(weekSunday.year, weekSunday.month, weekSunday.day);
@@ -67,7 +67,7 @@ class AddScheduleSlotsList extends StatelessWidget {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final weekLabel = '${months[weekSunday.month - 1]} ${weekSunday.day}–${sat.day} ${weekSunday.year}';
-    final badgeColor = _weekBadgeColor(weekSunday);
+    final badgeColor = _weekBadgeColor(context, weekSunday);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -250,7 +250,7 @@ class _DaySlotsList extends StatelessWidget {
                       backgroundColor: accentColor,
                       child: Text(
                         slot.title.isNotEmpty ? slot.title[0].toUpperCase() : '?',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: context.colors.surface,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

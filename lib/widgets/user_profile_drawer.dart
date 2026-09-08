@@ -32,7 +32,7 @@ class UserProfileDrawer extends StatelessWidget {
         ? email!.trim()
         : (normalizedUsername.contains('@')
               ? normalizedUsername
-              : '$normalizedUsername@fit.cvut.cz');
+              : '$normalizedUsername@fit.vut.cz');
     return Drawer(
       child: SafeArea(
         child: Column(

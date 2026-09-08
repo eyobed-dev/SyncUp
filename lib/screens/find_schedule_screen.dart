@@ -13,6 +13,7 @@ import '../widgets/syncup_logo.dart';
 import '../widgets/user_profile_drawer.dart';
 import 'settings_screen.dart';
 import 'package:sync_up/theme/sync_up_colors.dart';
+import '../map/screens/campus_map_screen.dart';
 
 class FindScheduleScreen extends StatefulWidget {
   const FindScheduleScreen({
@@ -484,7 +485,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
             username: widget.profileUsername,
             email: widget.profileUsername.trim().toLowerCase().contains('@')
                 ? widget.profileUsername.trim().toLowerCase()
-                : '${widget.profileUsername.trim().toLowerCase()}@fit.cvut.cz',
+                : '${widget.profileUsername.trim().toLowerCase()}@fit.vut.cz',
             roleLabel: widget.profileRoleLabel,
             userId: widget.profileUserId,
             onSettingsTap: () async {
@@ -649,14 +650,6 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                         '${dayShortNamesSunFirst[booking.startTime.weekday % 7]} '
                                         '${booking.startTime.day}/${booking.startTime.month}/${booking.startTime.year}';
                                         
-                                    final subtitleParts = <String>[
-                                      if ((booking.ownerName ?? '').trim().isNotEmpty)
-                                        booking.ownerName!.trim(),
-                                      if ((booking.location ?? '').trim().isNotEmpty)
-                                        booking.location!.trim(),
-                                      '${booking.durationMinutes} min',
-                                    ];
-
                                     return Column(
                                       crossAxisAlignment: CrossAxisAlignment.stretch,
                                       children: [
@@ -727,7 +720,7 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                             child: Stack(
                                               children: [
                                                 ListTile(
-                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                                   leading: Container(
                                                     padding: const EdgeInsets.all(10),
                                                     decoration: BoxDecoration(
@@ -745,31 +738,131 @@ class _FindScheduleScreenState extends State<FindScheduleScreen> {
                                                   ),
                                                   subtitle: Padding(
                                                     padding: const EdgeInsets.only(top: 4.0),
-                                                    child: Text(
-                                                      '$title\n${subtitleParts.join(' · ')}',
-                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                        color: context.colors.textSecondary,
-                                                        height: 1.4,
-                                                      ),
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          title,
+                                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                            fontWeight: FontWeight.w600,
+                                                            color: context.colors.textPrimary,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(height: 2),
+                                                        Text(
+                                                          [
+                                                            if ((booking.ownerName ?? '').trim().isNotEmpty)
+                                                              booking.ownerName!.trim(),
+                                                            '${booking.durationMinutes} min',
+                                                          ].join(' · '),
+                                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                            color: context.colors.textSecondary,
+                                                          ),
+                                                        ),
+                                                        if ((booking.location ?? '').trim().isNotEmpty) ...[
+                                                           const SizedBox(height: 8),
+                                                           Builder(
+                                                             builder: (context) {
+                                                               final loc = booking.location!.trim();
+                                                               final isPhysical = !loc.toLowerCase().contains('online');
+                                                               return Row(
+                                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                 crossAxisAlignment: CrossAxisAlignment.center,
+                                                                 children: [
+                                                                   Flexible(
+                                                                     child: Row(
+                                                                       mainAxisSize: MainAxisSize.min,
+                                                                       children: [
+                                                                         Icon(
+                                                                           isPhysical ? Icons.location_on : Icons.videocam_outlined,
+                                                                           size: 15,
+                                                                           color: isPhysical ? const Color(0xFF0D9488) : context.colors.textSecondary,
+                                                                         ),
+                                                                         const SizedBox(width: 4),
+                                                                         Flexible(
+                                                                           child: Text(
+                                                                             loc,
+                                                                             overflow: TextOverflow.ellipsis,
+                                                                             style: TextStyle(
+                                                                               fontSize: 12,
+                                                                               fontWeight: FontWeight.w600,
+                                                                               color: isPhysical ? context.colors.textPrimary : context.colors.textSecondary,
+                                                                             ),
+                                                                           ),
+                                                                         ),
+                                                                       ],
+                                                                     ),
+                                                                   ),
+                                                                   if (isPhysical) ...[
+                                                                     const SizedBox(width: 8),
+                                                                     ElevatedButton.icon(
+                                                                       onPressed: () {
+                                                                         Navigator.of(context).push(
+                                                                           MaterialPageRoute(
+                                                                             builder: (_) => CampusMapScreen(
+                                                                               initialRoomId: loc,
+                                                                               autoNavigate: true,
+                                                                             ),
+                                                                           ),
+                                                                         );
+                                                                       },
+                                                                       icon: const Icon(Icons.directions_walk_rounded, size: 14),
+                                                                       label: const Text('Directions'),
+                                                                       style: ElevatedButton.styleFrom(
+                                                                         backgroundColor: const Color(0xFF0D9488),
+                                                                         foregroundColor: Colors.white,
+                                                                         elevation: 0,
+                                                                         visualDensity: VisualDensity.compact,
+                                                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                                                         textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                                                         shape: RoundedRectangleBorder(
+                                                                           borderRadius: BorderRadius.circular(8),
+                                                                         ),
+                                                                       ),
+                                                                     ),
+                                                                   ],
+                                                                 ],
+                                                               );
+                                                             },
+                                                           ),
+                                                         ],
+                                                      ],
                                                     ),
                                                   ),
                                                   isThreeLine: true,
                                                   trailing: compact
-                                                      ? IconButton(
-                                                          icon: Icon(
-                                                            Icons.history_outlined,
-                                                            color: context.colors.primary,
-                                                          ),
-                                                          tooltip: 'Previous minutes',
-                                                          onPressed: () =>
-                                                              _showPriorMinutesForBooking(booking),
+                                                      ? Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            IconButton(
+                                                              visualDensity: VisualDensity.compact,
+                                                              icon: Icon(
+                                                                Icons.history_outlined,
+                                                                color: context.colors.primary,
+                                                              ),
+                                                              tooltip: 'Previous minutes',
+                                                              onPressed: () =>
+                                                                  _showPriorMinutesForBooking(booking),
+                                                            ),
+                                                            IconButton(
+                                                              visualDensity: VisualDensity.compact,
+                                                              icon: Icon(
+                                                                Icons.close,
+                                                                color: context.colors.textSecondary
+                                                                    .withValues(alpha: 0.5),
+                                                              ),
+                                                              tooltip: 'Cancel Booking',
+                                                              onPressed: () =>
+                                                                  _cancelSingleBooking(booking),
+                                                            ),
+                                                          ],
                                                         )
                                                       : null,
                                                 ),
                                                 if (!compact)
                                                   Positioned(
-                                                    top: 4,
-                                                    right: 4,
+                                                    top: 6,
+                                                    right: 6,
                                                     child: Row(
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
@@ -1297,13 +1390,18 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Widget? trailing;
 
-  const _InfoChip({required this.icon, required this.label});
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(icon, size: 18, color: context.colors.textSecondary),
         const SizedBox(width: 10),
@@ -1313,6 +1411,7 @@ class _InfoChip extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.colors.textPrimary),
           ),
         ),
+        if (trailing != null) trailing!,
       ],
     );
   }
@@ -1453,7 +1552,30 @@ class _BookSlotDialogState extends State<_BookSlotDialog> {
                       _InfoChip(icon: Icons.title, label: slot.title),
                       if (locationStr != '—') ...[
                         const SizedBox(height: 12),
-                        _InfoChip(icon: Icons.location_on_outlined, label: locationStr),
+                        _InfoChip(
+                          icon: Icons.location_on_outlined,
+                          label: locationStr,
+                          trailing: !locationStr.toLowerCase().contains('online')
+                              ? TextButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => CampusMapScreen(
+                                          initialRoomId: locationStr,
+                                          autoNavigate: true,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.map_outlined, size: 14),
+                                  label: const Text('Map', style: TextStyle(fontSize: 12)),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  ),
+                                )
+                              : null,
+                        ),
                       ],
                       const SizedBox(height: 20),
                       TextField(

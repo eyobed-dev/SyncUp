@@ -1,0 +1,13 @@
+import json
+
+with open('assets/data/maps_data_merged.json') as f:
+    d = json.load(f)
+rooms = {k:v for r in d for k,v in r.items()}
+
+for k, v in rooms.items():
+    coords = v.get('coords', [])
+    if coords:
+        # Check if any coordinate has y near 501 and x between 460 and 530
+        for x, y in coords:
+            if abs(y - 501) < 5 and 460 < x < 530:
+                print(f"Room {k} shares the North wall of A101 at ({x}, {y})")

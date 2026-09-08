@@ -425,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
         username: widget.username,
         email: widget.username.trim().toLowerCase().contains('@')
             ? widget.username.trim().toLowerCase()
-            : '${widget.username.trim().toLowerCase()}@fit.cvut.cz',
+            : '${widget.username.trim().toLowerCase()}@fit.vut.cz',
         roleLabel: widget.roleLabel,
         userId: widget.userId,
         onSettingsTap: _openSettings,

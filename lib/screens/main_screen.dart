@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_user_session.dart';
 import '../utils/responsive.dart';
+import '../map/screens/campus_map_screen.dart';
 import 'home_screen.dart';
 import 'add_schedule_screen.dart';
 import 'find_schedule_screen.dart';
@@ -45,6 +46,7 @@ class _MainScreenState extends State<MainScreen> {
               userId: widget.user.userId,
               onSignOut: widget.onSignOut,
             ),
+            const CampusMapScreen(),
           ]
         : [
             FindScheduleScreen(
@@ -56,6 +58,7 @@ class _MainScreenState extends State<MainScreen> {
               profileUserId: widget.user.userId,
               onSignOut: widget.onSignOut,
             ),
+            const CampusMapScreen(),
           ];
     final navItems = isOwner
         ? const [
@@ -65,8 +68,24 @@ class _MainScreenState extends State<MainScreen> {
               active: Icons.add_circle,
               label: 'Add Schedule',
             ),
+            (
+              icon: Icons.map_outlined,
+              active: Icons.map,
+              label: 'Campus Map',
+            ),
           ]
-        : const [];
+        : const [
+            (
+              icon: Icons.calendar_today_outlined,
+              active: Icons.calendar_today,
+              label: 'Schedule',
+            ),
+            (
+              icon: Icons.map_outlined,
+              active: Icons.map,
+              label: 'Campus Map',
+            ),
+          ];
 
     if (_currentIndex >= screens.length) {
       _currentIndex = 0;
