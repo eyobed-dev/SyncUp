@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Node.js Express backend proxy and PocketBase integration logic.
+ */
+
 import dotenv from "dotenv";
 import cors from "cors";
 import express from "express";

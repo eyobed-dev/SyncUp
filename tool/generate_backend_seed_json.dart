@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Provides functionality for generate_backend_seed_json.dart.
+ */
+
 // ignore_for_file: avoid_print
 /// Generates assets/data/backend_seed.json (UTF-8) from the former in-code seed.
 /// Run: dart run tool/generate_backend_seed_json.dart

@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Provides functionality for widget_test.dart.
+ */
+
 // This is a basic Flutter widget test.
 //
 // To perform an interaction with a widget in your test, use the WidgetTester

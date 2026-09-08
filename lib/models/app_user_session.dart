@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Defines data models and entities for app_user_session.
+ */
+
 enum AppUserRole { owner, attendee }
 
 class AppUserSession {

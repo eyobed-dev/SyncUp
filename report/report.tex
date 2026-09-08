@@ -1,0 +1,110 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+
+\title{\textbf{SyncUp: Technical Report}}
+\author{SyncUp Team}
+\date{September 2026}
+
+\begin{document}
+
+\maketitle
+
+\section*{Project Name and Team}
+\textbf{SyncUp}
+
+\begin{itemize}
+    \item Adar Otieno, \texttt{xotiena00@vutbr.cz}, FIT VUT
+    \item Eyobed Awel Nuri, \texttt{xnuriey00@vutbr.cz}, FIT VUT
+    \item Pengwei Jiang, \texttt{xjiangp00@vutbr.cz}, FIT VUT
+    \item Mengran Zhao, \texttt{xzhaome00@vutbr.cz}, FIT VUT
+\end{itemize}
+
+\section*{Results}
+SyncUp is a university appointment scheduling and indoor campus navigation application. The primary achievement of this project is the further development and integration of a student-professor scheduling system with an indoor map which were projects solved by the students as a part of their individual courses. The solution consists of two main components:
+
+\subsection*{1. Scheduling System}
+The scheduling module provides an interface designed to facilitate the booking process between students and professors. It is built to accommodate university schedules, where availability varies and recurring patterns are common.
+
+\subsubsection*{For Students}
+The scheduling system offers a searchable directory of professors. Upon selecting a professor, the application presents their real-time availability in a weekly grid view. This interface allows students to identify open time slots that align with their own schedules. Students can select open slots, specify the topic of discussion, and book consultations.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{"assets/stud home.png"}
+    \caption{Student Home Screen showcasing upcoming appointments.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{"assets/stud book.png"}
+    \caption{Student Interface for Booking an Appointment with a Professor.}
+\end{figure}
+
+\subsubsection*{For Professors}
+Professors can view their availability and appointments through a management dashboard. They can define recurring availability (e.g., every Tuesday and Thursday from 10:00 to 12:00) using a time-range picker, and block off specific times or dates using exceptions (such as holidays or conferences). The interface provides a weekly overview of incoming student requests and upcoming appointments as well.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{"assets/prof home.png"}
+    \caption{Professor Home Screen showing an overview of requests and upcoming slots.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{"assets/prof create slots.png"}
+    \caption{Professor Interface for creating recurring availability slots.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{"assets/prof calendar view.png"}
+    \caption{Professor Calendar View detailing scheduled appointments.}
+\end{figure}
+
+All interactions are synchronized directly with the PocketBase backend. This ensures that all bookings are updated in real-time, preventing double-booking conflicts and providing feedback to both parties.
+
+\subsection*{2. Indoor Campus Mapping}
+The indoor mapping component, which uses FIT's campus data for demonstration purposes, provides users with indoor routing throughout the university campus. This system is utilized by students or visitors for locating specific laboratories or professor offices.
+
+\subsubsection*{Interactive Campus Layout}
+The application presents an interactive digital layout of the university campus. Users can pan and zoom across the map to explore different areas, or use the search functionality to locate specific rooms, laboratories, and offices. Tapping on any room reveals detailed information about that location.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{"assets/campus map.png"}
+    \caption{Interactive FITmaps Interface displaying campus layout and search capabilities.}
+\end{figure}
+
+\subsubsection*{Multi-Floor Navigation}
+The mapping component provides step-by-step indoor navigation between any two points on campus. The routing instructions account for floor transitions that guide users through the appropriate staircases and elevators. 
+
+Additionally, the map integrates directly with the scheduling system. From an appointment detail view, a user can tap a navigation button to plot a route from their current campus location directly to the professor's office.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{"assets/campus routing multi floor.png"}
+    \caption{Multi-floor routing instructions guiding a user via staircases and corridors.}
+\end{figure}
+
+\section*{Technical Details}
+The architecture of SyncUp is divided into a mobile/web frontend and a lightweight backend designed to achieve a functional prototype:
+\begin{itemize}
+    \item \textbf{Frontend (Flutter):} Built using Flutter for cross-platform compatibility purposes. We have implemented the improvment of the scheduling system we developed originally and for the indoor map, we have used information scraped from the official FIT VUT website. It has a custom rendering engine for indoor building geometries generated from parsed SVG data. The pathfinding module uses Dijkstra's algorithm operating on a graph of campus nodes. It handles transitions across different floors via stairs and elevators.
+    \item \textbf{Backend (Node.js \& PocketBase):}The data layer utilizes PocketBase as an embedded SQLite database to handle the scheduling logic and authentication provider.
+\end{itemize}
+
+\section*{Experiment}
+Individual subprojects in the project have been tested and evaluated favorably as a part of acedemic workload. we have manually tested and verified the correctness of the functionality of the combined solution.
+
+\section*{Further Development}
+Future iterations of SyncUp aim to introduce real-time user positioning via BLE (Bluetooth Low Energy) beacons. Additionally, there is a roadmap to expand the map dataset beyond the primary FIT campus to encompass the entire university grounds. Furthermore, generalization of the implemented application to be used by other faculties or universities is also a potential direction for future development.
+
+\section*{Practical Application/Deployment}
+SyncUp is inspired by the needs of students at the FIT VUT. The application can be used as a progressive web app or packaged as native Android or iOS applications. another option is the integration with already existing information systems and mobile applications of the universities.
+
+\end{document}

@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Helper functions and utility methods.
+ */
+
 // Sunday-first week (US-style): columns 0–6 are Sun–Sat.
 
 /// Date-only start of the week (Sunday) that contains [any].

@@ -1,5 +1,18 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Primary application view for the login_screen.
+ */
+
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../map/screens/campus_map_screen.dart';
 
 import '../models/app_user_session.dart';
 import '../services/syncup_api_client.dart';
@@ -16,9 +29,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final SyncUpApiClient _api = SyncUpApiClient();
-  static const _backendAdminUrl = 'http://161.97.70.30:18090/_/';
-  static const _syncupApkUrl =
-      'https://drive.google.com/file/d/1W_MV6PXZSJKJbtvnNRe1HKbLFAmb7BJH/view?usp=sharing';
   static const _professorUsername = 'p';
   static const _professorPassword = '1';
   static const _studentUsername = 's';
@@ -35,13 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _fillCredentials({required String username, required String password}) {
-    setState(() {
-      _usernameController.text = username;
-      _passwordController.text = password;
-      _error = null;
-    });
-  }
+
 
   Future<void> _continue() async {
     final username = _usernameController.text.trim();
@@ -73,31 +77,17 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _openBackendAdmin() async {
-    final uri = Uri.parse(_backendAdminUrl);
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not open backend link'),
-          behavior: SnackBarBehavior.floating,
+  void _openGuestMap() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CampusMapScreen(
+          autoNavigate: false,
         ),
-      );
-    }
+      ),
+    );
   }
 
-  Future<void> _openSyncupApk() async {
-    final uri = Uri.parse(_syncupApkUrl);
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not open APK link'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -127,53 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontWeight: FontWeight.w700,
                           ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Demo accounts',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Professor: $_professorUsername / $_professorPassword',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Student: $_studentUsername / $_studentPassword',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton(
-                          onPressed: _submitting
-                              ? null
-                              : () => _fillCredentials(
-                                    username: _professorUsername,
-                                    password: _professorPassword,
-                                  ),
-                          child: const Text('Use Professor'),
-                        ),
-                        OutlinedButton(
-                          onPressed: _submitting
-                              ? null
-                              : () => _fillCredentials(
-                                    username: _studentUsername,
-                                    password: _studentPassword,
-                                  ),
-                          child: const Text('Use Student'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     TextField(
                       controller: _usernameController,
                       decoration: const InputDecoration(
@@ -202,25 +146,37 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: _submitting ? null : _continue,
                       child: Text(_submitting ? 'Signing in...' : 'Continue'),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     OutlinedButton.icon(
-                      onPressed: _submitting ? null : _openSyncupApk,
-                      icon: const Icon(Icons.android, size: 18),
-                      label: const Text('Syncup Apk'),
+                      onPressed: _submitting ? null : _openGuestMap,
+                      icon: const Icon(Icons.map, size: 18),
+                      label: const Text('Campus Map'),
                     ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      onPressed: _submitting ? null : _openBackendAdmin,
-                      icon: const Icon(Icons.open_in_new, size: 18),
-                      label: const Text('Open Backend'),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Please check the Login Credentials for nackend on the Report. Thank you!',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Demo accounts',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Professor: $_professorUsername / $_professorPassword\nStudent: $_studentUsername / $_studentPassword',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  fontSize: 11,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

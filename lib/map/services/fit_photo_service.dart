@@ -1,4 +1,15 @@
-import 'dart:convert';
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Provides business logic and API integrations for fit_photo_service.
+ */
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
@@ -20,8 +31,7 @@ class FitPhotoService {
       Uri url = Uri.parse(originalUrl);
 
       if (kIsWeb) {
-        // Use the /get endpoint which returns JSON to avoid transparent proxy issues
-        final proxyUrl = 'https://api.allorigins.win/get?url=${Uri.encodeComponent(originalUrl)}';
+        final proxyUrl = 'https://corsproxy.io/?url=${Uri.encodeComponent(originalUrl)}';
         url = Uri.parse(proxyUrl);
       }
 
@@ -38,14 +48,6 @@ class FitPhotoService {
       }
 
       String htmlContent = response.body;
-      if (kIsWeb) {
-        try {
-          final jsonResp = jsonDecode(response.body);
-          htmlContent = jsonResp['contents'] ?? '';
-        } catch (e) {
-          // If it fails to parse JSON, maybe it was already raw HTML
-        }
-      }
 
       final document = html_parser.parse(htmlContent);
       final photoUrls = <String>[];

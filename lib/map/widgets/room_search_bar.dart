@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Reusable UI component for the room_search_bar interface.
+ */
+
 import 'package:flutter/material.dart';
 import '../../theme/sync_up_colors.dart';
 import '../models/fit_room.dart';
@@ -10,6 +22,7 @@ class RoomSearchBar extends StatefulWidget {
   final TextEditingController? controller;
   final Widget? prefixIcon;
   final bool showSuggestionsInline;
+  final String? initialValue;
 
   const RoomSearchBar({
     super.key,
@@ -19,6 +32,7 @@ class RoomSearchBar extends StatefulWidget {
     this.controller,
     this.prefixIcon,
     this.showSuggestionsInline = true,
+    this.initialValue,
   });
 
   @override
@@ -34,7 +48,7 @@ class _RoomSearchBarState extends State<RoomSearchBar> {
   @override
   void initState() {
     super.initState();
-    _controller = widget.controller ?? TextEditingController();
+    _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
     _controller.addListener(_onTextChanged);
   }
 

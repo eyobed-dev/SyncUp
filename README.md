@@ -1,65 +1,78 @@
 # SyncUp
 
-A Flutter app for connecting teachers and students, professionals, experts, and colleagues across academic and professional fields. Schedule and view meetings in slots view or per-day calendar.
+SyncUp is a Flutter application designed to connect university students, professors, and staff by bridging the gap between **meeting scheduling** and **indoor campus navigation**. 
 
-## Structure
 
+## Features
+
+- **Interactive Campus Map:** A custom SVG-based indoor map renderer that smoothly interpolates and scales across different building floors.
+- **Indoor Routing & Navigation:** Calculates optimal walking directions across corridors, stairs, and elevators using Dijkstra's algorithm.
+- **Meeting Scheduling:** Tetris-style weekly slots view and a per-day calendar view for booking consultations and managing contacts.
+- **Backend Sync:** A lightweight, embedded PocketBase database and a Node.js proxy for automated data seeding and authentication.
+
+---
+
+## Project Structure
+
+```text
+SyncUp/
+├── lib/
+│   ├── main.dart                 # App entry, routing, and theme
+│   ├── map/                      # Campus Map & Navigation Core
+│   │   ├── screens/              # Map view and interaction
+│   │   ├── services/             # Graph pathfinder, data loading
+│   │   ├── widgets/              # Map painter, floor selector, search
+│   │   └── models/               # Graph nodes, rooms, map paths
+│   ├── models/                   # Scheduling data models (meetings, users)
+│   ├── data/                     # Data providers and local caches
+│   ├── screens/                  # Main tabs: Home | Map | Schedule
+│   └── widgets/                  # Reusable UI (Slots view, calendar, etc.)
+│
+└── backend/
+    └── pocketbase-api/           # Backend
+        ├── src/                  # Express.js API proxy
+        ├── scripts/              # DB Bootstrap & data seed scripts
+        └── package.json
 ```
-lib/
-├── main.dart                 # App entry, SyncUpApp
-├── models/
-│   └── meeting.dart          # Meeting model (participant, time, duration)
-├── data/
-│   └── sample_data.dart      # Demo meetings for the current week
-├── screens/
-│   ├── main_screen.dart      # Bottom nav: Home | +Add | List
-│   ├── home_screen.dart      # Tabs: Slots | Calendar + week navigation
-│   ├── add_schedule_screen.dart  # Add Schedule screen
-│   └── find_schedule_screen.dart      # Find Schedule – search professors, coaches, mentors
-└── widgets/
-    ├── slots_view.dart       # Tetris-style week grid
-    └── calendar_view.dart    # Per-day week view
-```
 
-## Implementation Summary
+---
 
-### Bottom Navigation
-- **Home**: Main view with Slots and Calendar tabs
-- **+Add**: Placeholder for scheduling new meetings
-- **List**: Placeholder for contacts and meetings list
+## Getting Started
 
-### Slots View (Tetris-style)
-- **Y-axis**: 15-minute slots from 08:00 to 18:00 (40 rows)
-- **X-axis**: 7 days (Mon–Sun)
-- **Meeting blocks**: Positioned by start time; height = duration (e.g. 30 min = 2 rows)
-- Each block shows: avatar (initial), participant name, subject (if duration ≥ 30 min)
-- Blocks stack vertically by time; overlapping meetings on the same day appear in sequence
-- Scrollable vertically and horizontally
-
-### Calendar View
-- Horizontal day selector for the week (Mon–Sun with date)
-- Per-day list of meetings sorted by time
-- Empty state when no meetings
-
-### Week Navigation
-- Previous/next week buttons in the app bar
-- Displays current week range (e.g. `25/2 - 3/3`)
-
-## Run
-
+### 1. Start the Backend
+The app relies on a local PocketBase instance with pre-seeded users and schedules.
 ```bash
+cd backend/pocketbase-api
+npm install
+npm run dev
+```
+*(This automatically bootstraps the database schema and seeds the mock data on port 8080).*
+
+### 2. Run the App
+In a new terminal window, run the Flutter application:
+```bash
+# Web
+flutter run -d chrome
+
+# Android / iOS / Desktop
 flutter run
 ```
 
-## Self-hosted backend (PocketBase)
 
-A lightweight self-hosted backend scaffold is available at:
 
-- `backend/pocketbase-api/README.md`
+---
 
-It includes:
+## Implementation Details
 
-- PocketBase setup
-- API server
-- collection bootstrap script
-- seed importer from `assets/data/backend_seed.json`
+### Map Rendering
+The indoor map is parsed directly from custom `campus_features.json` data, extracted from legacy SVGs. The `BuildingMapPainter` draws the geometry, applies dynamic color themes, and handles pinch-to-zoom interactive states.
+
+### Navigation Logic
+A graph-based approach maps physical nodes (corridors, intersections, rooms). Transitions between floors add vertical weight penalties to simulate real-world stair/elevator travel times.
+
+### Scheduling UI
+- **Slots View:** 15-minute slot blocks from 08:00 to 18:00. Meetings overlap naturally and adapt vertically based on duration.
+- **Calendar View:** Per-day linear list of events sorted chronologically.
+
+---
+*Authors: Team SyncUp @ FIT VUT*

@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Legacy source code retained for reference or migration.
+ */
+
 // LOGIN SCREEN COMMENTED OUT - NAVIGATING DIRECTLY TO HOME SCREEN
 /*
 import 'package:flutter/material.dart';

@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Provides functionality for 1783649726_updated_bookings.js.
+ */
+
 /// <reference path="../pb_data/types.d.ts" />
 migrate((app) => {
   const collection = app.findCollectionByNameOrId("pbc_986407980")

@@ -1,3 +1,15 @@
+/*
+ * Authors:
+ *   Adar Otieno (xotiena00@vutbr.cz) - FIT VUT
+ *   Eyobed Awel Nuri (xnuriey00@vutbr.cz) - FIT VUT
+ *   Pengwei Jiang (xjiangp00@vutbr.cz) - FIT VUT
+ *   Mengran Zhao (xzhaome00@vutbr.cz) - FIT VUT
+ *
+ * License: GPL
+ *
+ * Purpose: Primary application view for the campus_map_screen.
+ */
+
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../theme/sync_up_colors.dart';
@@ -120,14 +132,13 @@ class _CampusMapScreenState extends State<CampusMapScreen>
       });
     }
 
-    // Process initial start room if provided
-    if (widget.initialStartRoomId != null) {
-      final start = FitMapDataService.instance.findRoomByLooseString(widget.initialStartRoomId);
-      if (start != null) {
-        _startRoom = start;
-        if (_destinationRoom != null) {
-          _calculateRoute();
-        }
+    // Process initial start room or default to A101
+    final startRoomQuery = widget.initialStartRoomId ?? 'A101';
+    final start = FitMapDataService.instance.findRoomByLooseString(startRoomQuery);
+    if (start != null) {
+      _startRoom = start;
+      if (_destinationRoom != null) {
+        _calculateRoute();
       }
     }
   }
@@ -231,8 +242,9 @@ class _CampusMapScreenState extends State<CampusMapScreen>
       _selectedRoom = null;
     });
 
-    // Default start room if none set: Corridor A109 or Entrance on Ground Floor
-    _startRoom ??= FitMapDataService.instance.findRoomByLooseString('A109') ??
+    // Default start room if none set: Corridor A101 or Entrance on Ground Floor
+    _startRoom ??= FitMapDataService.instance.findRoomByLooseString('A101') ??
+        FitMapDataService.instance.findRoomByLooseString('A109') ??
         FitMapDataService.instance.findRoomByLooseString('A001') ??
         FitMapDataService.instance.allRooms.firstOrNull;
 
@@ -279,7 +291,6 @@ class _CampusMapScreenState extends State<CampusMapScreen>
 
   void _clearRoute() {
     setState(() {
-      _startRoom = null;
       _destinationRoom = null;
       _currentPathResult = null;
       _navigationInstructions = [];
@@ -472,6 +483,29 @@ class _CampusMapScreenState extends State<CampusMapScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (Navigator.canPop(context)) ...[
+                  Container(
+                    height: 48,
+                    width: 48,
+                    margin: const EdgeInsets.only(right: 10),
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: colors.textSecondary),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ],
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -480,13 +514,14 @@ class _CampusMapScreenState extends State<CampusMapScreen>
                       RoomSearchBar(
                         hintText: 'Starting point (e.g. A109) or Current Location',
                         prefixIcon: Icon(Icons.location_on, color: colors.primary, size: 20),
+                        initialValue: widget.initialStartRoomId ?? 'A101',
                         onRoomSelected: (room) {
                           _setStartRoom(room);
                         },
                         onClear: () {
                           setState(() {
                             _startRoom = null;
-                            if (_destinationRoom == null) _clearRoute();
+                            _clearRoute();
                           });
                         },
                       ),
@@ -494,6 +529,7 @@ class _CampusMapScreenState extends State<CampusMapScreen>
                       RoomSearchBar(
                         hintText: 'Search room, lab, or office...',
                         prefixIcon: Icon(Icons.search_rounded, color: colors.textSecondary, size: 20),
+                        initialValue: widget.initialRoomId,
                         onRoomSelected: (room) => _selectRoom(room, autoCenter: true),
                         onClear: () {
                           setState(() => _selectedRoom = null);
