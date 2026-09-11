@@ -1,0 +1,173 @@
+{"kind":"deck","id":"pr/hxul0a","name":"Deck"}
+{"kind":"layout","layoutId":"cbc07100-8fce-48ca-befc-78bfe6035866","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"bf8b7e9a-c3e4-4c4e-a1d0-ee24cdd6fa80","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/6ypn44","slide":1,"title":"SYNCUP","textShapes":4}
+{"kind":"shape","id":"sh/36x8f21c","slide":1,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/4769872x","slide":1,"bbox":[730,-80,620,860]}
+{"kind":"shape","id":"sh/p8fqhcji","slide":1,"bbox":[870,60,340,580]}
+{"kind":"textbox","id":"sh/rax8j21o","slide":1,"text":"SYNCUP","textPreview":"SYNCUP","textChars":6,"textLines":1,"bbox":[76,76,300,28]}
+{"kind":"textbox","id":"sh/cbq9c729","slide":1,"text":"Meet here.\nFind it.","textPreview":"Meet here. | Find it.","textChars":19,"textLines":2,"bbox":[76,150,590,155]}
+{"kind":"textbox","id":"sh/dczqlcju","slide":1,"text":"University appointment scheduling and indoor campus navigation","textPreview":"University appointment scheduling and indoor campus navigation","textChars":62,"textLines":1,"bbox":[80,340,500,72]}
+{"kind":"shape","id":"sh/6d47ydkz","slide":1,"bbox":[80,455,200,0]}
+{"kind":"textbox","id":"sh/7ed87i14","slide":1,"text":"Adar Otieno · Eyobed Awel Nuri · Pengwei Jiang · Mengran Zhao\nFIT VUT · September 2026","textPreview":"Adar Otieno · Eyobed Awel Nuri · Pengwei Jiang · Mengran Zhao | FIT VUT · September 2026","textChars":86,"textLines":2,"bbox":[80,500,600,58]}
+{"kind":"image","id":"im/vmxgj618","slide":1,"name":"","geometry":"roundRect","alt":"campus routing multi floor.png","bbox":[900,95,280,510]}
+{"kind":"notes","id":"nt/6ypn44","slide":1,"text":"Source: SyncUp technical report, September 2026.\nOpening slide."}
+{"kind":"slide","id":"sl/qve1je","slide":2,"title":"THE PROBLEM","textShapes":13}
+{"kind":"textbox","id":"sh/m1sbqhgr","slide":2,"text":"THE PROBLEM","textPreview":"THE PROBLEM","textChars":11,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/943a1wz2","slide":2,"text":"One appointment involves two separate journeys","textPreview":"One appointment involves two separate journeys","textChars":46,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/83atsryx","slide":2,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/vqls36h8","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"shape","id":"sh/a5cbu1gn","slide":2,"bbox":[72,195,1136,1]}
+{"kind":"textbox","id":"sh/xs3u5wze","slide":2,"text":"BOOK","textPreview":"BOOK","textChars":4,"textLines":1,"bbox":[72,238,285,30]}
+{"kind":"textbox","id":"sh/wrutwryt","slide":2,"text":"Finding a free consultation slot often relies on email exchanges.","textPreview":"Finding a free consultation slot often relies on email exchanges.","textChars":65,"textLines":1,"bbox":[72,285,300,120]}
+{"kind":"shape","id":"sh/julc76xk","slide":2,"bbox":[72,438,270,0]}
+{"kind":"textbox","id":"sh/itcby1gz","slide":2,"text":"Schedule the meeting","textPreview":"Schedule the meeting","textChars":20,"textLines":1,"bbox":[72,462,290,28]}
+{"kind":"textbox","id":"sh/kjapsbe5","slide":2,"text":"LOCATE","textPreview":"LOCATE","textChars":6,"textLines":1,"bbox":[456,238,285,30]}
+{"kind":"textbox","id":"sh/lk3qlgfq","slide":2,"text":"New students and visitors can struggle to find an office or lab.","textPreview":"New students and visitors can struggle to find an office or lab.","textChars":64,"textLines":1,"bbox":[456,285,300,120]}
+{"kind":"shape","id":"sh/yhs7q1wz","slide":2,"bbox":[456,438,270,0]}
+{"kind":"textbox","id":"sh/ji18j6xk","slide":2,"text":"Reach the destination","textPreview":"Reach the destination","textChars":21,"textLines":1,"bbox":[456,462,290,28]}
+{"kind":"textbox","id":"sh/8nupwbeh","slide":2,"text":"CONNECT","textPreview":"CONNECT","textChars":7,"textLines":1,"bbox":[840,238,285,30]}
+{"kind":"textbox","id":"sh/to3qpgfm","slide":2,"text":"Calendar tools and indoor maps do not share the meeting context.","textPreview":"Calendar tools and indoor maps do not share the meeting context.","textChars":64,"textLines":1,"bbox":[840,285,300,120]}
+{"kind":"shape","id":"sh/6lc7ulwb","slide":2,"bbox":[840,438,270,0]}
+{"kind":"textbox","id":"sh/7ml8nqxw","slide":2,"text":"Keep the context","textPreview":"Keep the context","textChars":16,"textLines":1,"bbox":[840,462,290,28]}
+{"kind":"textbox","id":"sh/gbu90ved","slide":2,"text":"SyncUp brings booking and campus navigation into one student-facing flow.","textPreview":"SyncUp brings booking and campus navigation into one student-facing flow.","textChars":73,"textLines":1,"bbox":[72,574,930,42]}
+{"kind":"notes","id":"nt/qve1je","slide":2,"text":"Source: SyncUp technical report, September 2026.\nProblem framing based on report sections Results and Practical Application."}
+{"kind":"slide","id":"sl/gteby5","slide":3,"title":"THE SOLUTION","textShapes":13}
+{"kind":"textbox","id":"sh/ob29g7a5","slide":3,"text":"THE SOLUTION","textPreview":"THE SOLUTION","textChars":12,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/nat8n2tk","slide":3,"text":"A single flow from availability to arrival","textPreview":"A single flow from availability to arrival","textChars":42,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/m90rexsz","slide":3,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/18rqlsbe","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"shape","id":"sh/07ipcna9","slide":3,"bbox":[72,188,360,410]}
+{"kind":"shape","id":"sh/z698j2to","slide":3,"bbox":[460,188,360,410]}
+{"kind":"shape","id":"sh/e507axs3","slide":3,"bbox":[848,188,360,410]}
+{"kind":"textbox","id":"sh/l4vqxwry","slide":3,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[100,218,48,46]}
+{"kind":"textbox","id":"sh/k3m9orad","slide":3,"text":"Choose a time","textPreview":"Choose a time","textChars":13,"textLines":1,"bbox":[100,286,290,36]}
+{"kind":"textbox","id":"sh/6pg3at4j","slide":3,"text":"Students browse staff availability and submit a consultation request.","textPreview":"Students browse staff availability and submit a consultation request.","textChars":69,"textLines":1,"bbox":[100,340,280,90]}
+{"kind":"textbox","id":"sh/7qp43y54","slide":3,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[488,218,48,46]}
+{"kind":"textbox","id":"sh/8rilc3mp","slide":3,"text":"Meeting details","textPreview":"Meeting details","textChars":15,"textLines":1,"bbox":[488,286,290,36]}
+{"kind":"textbox","id":"sh/tsrm58na","slide":3,"text":"The booking keeps the appointment’s location available at the right moment.","textPreview":"The booking keeps the appointment’s location available at the right moment.","textChars":75,"textLines":1,"bbox":[488,340,280,90]}
+{"kind":"textbox","id":"sh/ylg36t4n","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[876,218,48,46]}
+{"kind":"textbox","id":"sh/jmp4ze58","slide":3,"text":"Open the route","textPreview":"Open the route","textChars":14,"textLines":1,"bbox":[876,286,290,36]}
+{"kind":"textbox","id":"sh/knyl8jmt","slide":3,"text":"The map can focus on the destination and show an indoor path across floors.","textPreview":"The map can focus on the destination and show an indoor path across floors.","textChars":75,"textLines":1,"bbox":[876,340,280,90]}
+{"kind":"shape","id":"sh/lo7m1one","slide":3,"bbox":[432,390,28,0]}
+{"kind":"shape","id":"sh/ih0nid4r","slide":3,"bbox":[820,390,28,0]}
+{"kind":"textbox","id":"sh/3it4bi5c","slide":3,"text":"Flutter application · PocketBase scheduling data · FIT indoor map data","textPreview":"Flutter application · PocketBase scheduling data · FIT indoor map data","textChars":70,"textLines":1,"bbox":[72,635,900,24]}
+{"kind":"notes","id":"nt/gteby5","slide":3,"text":"Source: SyncUp technical report, September 2026.\nSolution overview based on report Results and Technical Details."}
+{"kind":"slide","id":"sl/i50yob","slide":4,"title":"SCHEDULING","textShapes":7}
+{"kind":"textbox","id":"sh/6hkz6t8v","slide":4,"text":"SCHEDULING","textPreview":"SCHEDULING","textChars":10,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/t4vy1o7m","slide":4,"text":"Student booking","textPreview":"Student booking","textChars":15,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/sj2h8jq1","slide":4,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/jetgbepk","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"shape","id":"sh/4f2h4jq5","slide":4,"bbox":[1012,185,196,410]}
+{"kind":"textbox","id":"sh/3adg7ypo","slide":4,"text":"Find\na professor","textPreview":"Find | a professor","textChars":16,"textLines":2,"bbox":[1040,224,140,78]}
+{"kind":"shape","id":"sh/294zed83","slide":4,"bbox":[1040,330,130,0]}
+{"kind":"textbox","id":"sh/87ipsr21","slide":4,"text":"View availability by week","textPreview":"View availability by week","textChars":25,"textLines":1,"bbox":[1040,360,135,68]}
+{"kind":"textbox","id":"sh/98rqlw3m","slide":4,"text":"Pick an open slot and add a topic","textPreview":"Pick an open slot and add a topic","textChars":33,"textLines":1,"bbox":[1040,468,135,78]}
+{"kind":"textbox","id":"sh/ml07qhkb","slide":4,"text":"The app replaces guesswork with visible times.","textPreview":"The app replaces guesswork with visible times.","textChars":46,"textLines":1,"bbox":[72,626,720,30]}
+{"kind":"image","id":"im/jytkj6pk","slide":4,"name":"","geometry":"roundRect","alt":"stud home.png","bbox":[72,185,430,410]}
+{"kind":"image","id":"im/kz21sb65","slide":4,"name":"","geometry":"roundRect","alt":"stud book.png","bbox":[548,185,430,410]}
+{"kind":"notes","id":"nt/i50yob","slide":4,"text":"Source: SyncUp technical report, September 2026.\nScreens: report/assets/stud home.png and stud book.png. Features: report Results, Scheduling System, For Students."}
+{"kind":"slide","id":"sl/ar73hs","slide":5,"title":"SCHEDULING","textShapes":7}
+{"kind":"textbox","id":"sh/mx4b2hof","slide":5,"text":"SCHEDULING","textPreview":"SCHEDULING","textChars":10,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/90fadwn6","slide":5,"text":"Availability management","textPreview":"Availability management","textChars":23,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/8z6t4r6l","slide":5,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/zuds7m54","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"textbox","id":"sh/0vmt0r69","slide":5,"text":"For staff","textPreview":"For staff","textChars":9,"textLines":1,"bbox":[986,192,178,28]}
+{"kind":"textbox","id":"sh/bqts325s","slide":5,"text":"Recurring availability fits a university timetable","textPreview":"Recurring availability fits a university timetable","textChars":50,"textLines":1,"bbox":[986,238,215,112]}
+{"kind":"textbox","id":"sh/q5kruxo7","slide":5,"text":"Define a time range.\nReview appointments.\nBlock exceptions such as holidays or conferences.","textPreview":"Define a time range. | Review appointments. | Block exceptions such as holidays or conferences.","textChars":91,"textLines":3,"bbox":[986,392,210,135]}
+{"kind":"textbox","id":"sh/8vqtwn2t","slide":5,"text":"Weekly views keep incoming requests visible.","textPreview":"Weekly views keep incoming requests visible.","textChars":44,"textLines":1,"bbox":[986,562,210,46]}
+{"kind":"image","id":"im/vm58by5o","slide":5,"name":"","geometry":"roundRect","alt":"prof home.png","bbox":[72,184,420,414]}
+{"kind":"image","id":"im/wne9k36t","slide":5,"name":"","geometry":"roundRect","alt":"prof create slots.png","bbox":[526,184,420,414]}
+{"kind":"notes","id":"nt/ar73hs","slide":5,"text":"Source: SyncUp technical report, September 2026.\nScreens: report/assets/prof home.png and prof create slots.png. Features: report Results, Scheduling System, For Professors."}
+{"kind":"slide","id":"sl/awq135","slide":6,"title":"FITMAPS","textShapes":6}
+{"kind":"textbox","id":"sh/cbm98bah","slide":6,"text":"FITMAPS","textPreview":"FITMAPS","textChars":7,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/badsz69w","slide":6,"text":"Indoor map and room search","textPreview":"Indoor map and room search","textChars":26,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/a9kr6lsb","slide":6,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/p8baxgrq","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"shape","id":"sh/n6tsv690","slide":6,"bbox":[742,196,410,370]}
+{"kind":"textbox","id":"sh/2lkr21sf","slide":6,"text":"Campus layout","textPreview":"Campus layout","textChars":13,"textLines":1,"bbox":[780,238,300,35]}
+{"kind":"textbox","id":"sh/1kbatwru","slide":6,"text":"The interactive map supports panning, zooming, room selection, and search for labs or offices.","textPreview":"The interactive map supports panning, zooming, room selection, and search for labs or offices.","textChars":94,"textLines":1,"bbox":[780,300,300,105]}
+{"kind":"shape","id":"sh/0j290ra9","slide":6,"bbox":[780,440,278,0]}
+{"kind":"textbox","id":"sh/mx0r6dcn","slide":6,"text":"FIT campus data supports the project demonstration.","textPreview":"FIT campus data supports the project demonstration.","textChars":51,"textLines":1,"bbox":[780,473,296,54]}
+{"kind":"image","id":"im/lwbu1g3i","slide":6,"name":"","geometry":"roundRect","alt":"campus map.png","bbox":[72,182,612,420]}
+{"kind":"notes","id":"nt/awq135","slide":6,"text":"Source: SyncUp technical report, September 2026.\nScreen: report/assets/campus map.png. Features: report Results, Interactive Campus Layout."}
+{"kind":"slide","id":"sl/lemqz2","slide":7,"title":"NAVIGATION","textShapes":7}
+{"kind":"textbox","id":"sh/p8r2xcvm","slide":7,"text":"NAVIGATION","textPreview":"NAVIGATION","textChars":10,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/25g3mxwv","slide":7,"text":"Multi-floor route guidance","textPreview":"Multi-floor route guidance","textChars":26,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/36pkv2dg","slide":7,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/gjylknep","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"shape","id":"sh/1472tsva","slide":7,"bbox":[72,183,400,420]}
+{"kind":"textbox","id":"sh/ehg3idwz","slide":7,"text":"A101","textPreview":"A101","textChars":4,"textLines":1,"bbox":[112,230,210,38]}
+{"kind":"shape","id":"sh/fipkrixk","slide":7,"bbox":[112,293,230,0]}
+{"kind":"textbox","id":"sh/0f2lwre9","slide":7,"text":"Corridor and stair or elevator transition","textPreview":"Corridor and stair or elevator transition","textChars":41,"textLines":1,"bbox":[112,332,254,62]}
+{"kind":"shape","id":"sh/l0bm5wvu","slide":7,"bbox":[174,423,0,70]}
+{"kind":"textbox","id":"sh/l8nel8z6","slide":7,"text":"Room destination","textPreview":"Room destination","textChars":16,"textLines":1,"bbox":[112,524,230,32]}
+{"kind":"textbox","id":"sh/j65wjyhg","slide":7,"text":"Dijkstra finds the lowest-weight path on the mapped campus graph; a floor-change penalty helps avoid unnecessary transitions.","textPreview":"Dijkstra finds the lowest-weight path on the mapped campus graph; a floor-change penalty helps avoid unnecessary transitions.","textChars":125,"textLines":1,"bbox":[72,628,1100,36]}
+{"kind":"image","id":"im/3mhormt0","slide":7,"name":"","geometry":"roundRect","alt":"campus routing multi floor.png","bbox":[520,183,688,420]}
+{"kind":"notes","id":"nt/lemqz2","slide":7,"text":"Source: SyncUp technical report, September 2026.\nScreen: report/assets/campus routing multi floor.png. The graph uses Dijkstra; cross-floor edges receive a heuristic penalty."}
+{"kind":"slide","id":"sl/kazptj","slide":8,"title":"INTEGRATION","textShapes":13}
+{"kind":"textbox","id":"sh/qdcbitgf","slide":8,"text":"INTEGRATION","textPreview":"INTEGRATION","textChars":11,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/dg3udozq","slide":8,"text":"The meeting location can become a route","textPreview":"The meeting location can become a route","textChars":39,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/cfutkjyl","slide":8,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/z25cfyhw","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"shape","id":"sh/y1wbmtgb","slide":8,"bbox":[92,230,300,210]}
+{"kind":"textbox","id":"sh/l4nuh8z2","slide":8,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[120,254,64,30]}
+{"kind":"textbox","id":"sh/03eto3yh","slide":8,"text":"Booking","textPreview":"Booking","textChars":7,"textLines":1,"bbox":[120,302,230,36]}
+{"kind":"textbox","id":"sh/n65cjih8","slide":8,"text":"A confirmed consultation includes its room.","textPreview":"A confirmed consultation includes its room.","textChars":43,"textLines":1,"bbox":[120,356,235,64]}
+{"kind":"shape","id":"sh/m5wbqdgn","slide":8,"bbox":[392,336,82,0]}
+{"kind":"shape","id":"sh/g7qhwb2x","slide":8,"bbox":[474,230,300,210]}
+{"kind":"textbox","id":"sh/h8jypw3i","slide":8,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[502,254,64,30]}
+{"kind":"textbox","id":"sh/u58zu1kr","slide":8,"text":"Navigate","textPreview":"Navigate","textChars":8,"textLines":1,"bbox":[502,302,230,36]}
+{"kind":"textbox","id":"sh/f6hgn6lc","slide":8,"text":"The user opens navigation from meeting context.","textPreview":"The user opens navigation from meeting context.","textChars":47,"textLines":1,"bbox":[502,356,235,64]}
+{"kind":"shape","id":"sh/4bah0b2t","slide":8,"bbox":[774,336,82,0]}
+{"kind":"shape","id":"sh/pcjitg3e","slide":8,"bbox":[856,230,300,210]}
+{"kind":"textbox","id":"sh/29szy1k3","slide":8,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[884,254,64,30]}
+{"kind":"textbox","id":"sh/3a10r6l8","slide":8,"text":"Route","textPreview":"Route","textChars":5,"textLines":1,"bbox":[884,302,230,36]}
+{"kind":"textbox","id":"sh/czah4v25","slide":8,"text":"The map targets the office and shows directions.","textPreview":"The map targets the office and shows directions.","textChars":48,"textLines":1,"bbox":[884,356,235,64]}
+{"kind":"textbox","id":"sh/d03ixg3q","slide":8,"text":"This connection helps users act on a booking without switching to a separate wayfinding tool.","textPreview":"This connection helps users act on a booking without switching to a separate wayfinding tool.","textChars":93,"textLines":1,"bbox":[128,536,1010,43]}
+{"kind":"notes","id":"nt/kazptj","slide":8,"text":"Source: SyncUp technical report, September 2026.\nIntegration described in report Multi-Floor Navigation."}
+{"kind":"slide","id":"sl/cjbmc2","slide":9,"title":"TECHNICAL DETAILS","textShapes":10}
+{"kind":"textbox","id":"sh/xk7q1on6","slide":9,"text":"TECHNICAL DETAILS","textPreview":"TECHNICAL DETAILS","textChars":17,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/ahg769of","slide":9,"text":"Prototype architecture and safeguards","textPreview":"Prototype architecture and safeguards","textChars":37,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/bip8ze50","slide":9,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/k7i9cjmx","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"shape","id":"sh/l8rq5on2","slide":9,"bbox":[72,216,320,280]}
+{"kind":"textbox","id":"sh/ylgra9or","slide":9,"text":"Flutter client","textPreview":"Flutter client","textChars":14,"textLines":1,"bbox":[100,250,260,37]}
+{"kind":"shape","id":"sh/j6p83e5c","slide":9,"bbox":[100,307,120,0]}
+{"kind":"textbox","id":"sh/0bep0z6d","slide":9,"text":"Cross-platform scheduling and map UI\nCustom-painted indoor geometry\nRoom search, floor selection, pan and zoom","textPreview":"Cross-platform scheduling and map UI | Custom-painted indoor geometry | Room search, floor selection, pan and zoom","textChars":110,"textLines":3,"bbox":[100,336,258,120]}
+{"kind":"shape","id":"sh/1cnqtkny","slide":9,"bbox":[392,356,70,0]}
+{"kind":"shape","id":"sh/9gbyh0ji","slide":9,"bbox":[462,216,320,280]}
+{"kind":"textbox","id":"sh/8f2xov2x","slide":9,"text":"Route engine","textPreview":"Route engine","textChars":12,"textLines":1,"bbox":[490,250,260,37]}
+{"kind":"shape","id":"sh/7etgfq1c","slide":9,"bbox":[490,307,120,0]}
+{"kind":"textbox","id":"sh/mdkfmlkr","slide":9,"text":"Dijkstra on 1,004 nodes and 2,116 edges\nWeighted floor changes add a 40 m-equivalent penalty\nMapped stairs and elevators guide transitions","textPreview":"Dijkstra on 1,004 nodes and 2,116 edges | Weighted floor changes add a 40 m-equivalent penalty | Mapped stairs and elevators guide transi...","textChars":138,"textLines":3,"bbox":[490,336,258,120]}
+{"kind":"shape","id":"sh/hkvyl0je","slide":9,"bbox":[782,356,70,0]}
+{"kind":"shape","id":"sh/gjmxsv2t","slide":9,"bbox":[852,216,320,280]}
+{"kind":"textbox","id":"sh/vidgja18","slide":9,"text":"Scheduling service","textPreview":"Scheduling service","textChars":18,"textLines":1,"bbox":[880,250,260,37]}
+{"kind":"shape","id":"sh/uhkfq5k3","slide":9,"bbox":[880,307,120,0]}
+{"kind":"textbox","id":"sh/58vypkjq","slide":9,"text":"Node.js Express API with PocketBase and SQLite\nRecurring templates and date-specific slots\nUnique slot key rejects duplicates with HTTP 409","textPreview":"Node.js Express API with PocketBase and SQLite | Recurring templates and date-specific slots | Unique slot key rejects duplicates with HT...","textChars":139,"textLines":3,"bbox":[880,336,258,120]}
+{"kind":"textbox","id":"sh/47mhwf25","slide":9,"text":"Current scope: static indoor data and heuristic weighting. Live positioning, calendar integration, security/load testing, and campus validation belong to the next pilot.","textPreview":"Current scope: static indoor data and heuristic weighting. Live positioning, calendar integration, security/load testing, and campus vali...","textChars":169,"textLines":1,"bbox":[72,560,1130,53]}
+{"kind":"notes","id":"nt/cjbmc2","slide":9,"text":"Source: SyncUp technical report, September 2026.\nFlutter keeps scheduling and navigation in one client. The map renders bundled indoor geometry; Dijkstra runs on a pre-built campus graph. The booking API derives a stable key for each offered slot. The database rejects a second record for that key and the API returns HTTP 409. This is a prototype safeguard, not a claim of production-scale concurrency testing."}
+{"kind":"slide","id":"sl/13bdi7","slide":10,"title":"NEXT STEPS","textShapes":16}
+{"kind":"textbox","id":"sh/wr69gvq9","slide":10,"text":"NEXT STEPS","textPreview":"NEXT STEPS","textChars":10,"textLines":1,"bbox":[72,42,220,24]}
+{"kind":"textbox","id":"sh/bqxs7qpo","slide":10,"text":"Future development","textPreview":"Future development","textChars":18,"textLines":1,"bbox":[72,72,900,55]}
+{"kind":"shape","id":"sh/ap4rel83","slide":10,"bbox":[72,140,1136,0]}
+{"kind":"textbox","id":"sh/lgfadk7q","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1140,42,68,30]}
+{"kind":"textbox","id":"sh/kf69kfq5","slide":10,"text":"Where the prototype can grow","textPreview":"Where the prototype can grow","textChars":28,"textLines":1,"bbox":[72,195,500,42]}
+{"kind":"shape","id":"sh/jexsbapk","slide":10,"bbox":[72,285,85,62]}
+{"kind":"textbox","id":"sh/ytori58z","slide":10,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[96,300,36,28]}
+{"kind":"textbox","id":"sh/tkzahk7m","slide":10,"text":"BLE positioning","textPreview":"BLE positioning","textChars":15,"textLines":1,"bbox":[190,289,320,30]}
+{"kind":"textbox","id":"sh/8jqtofq1","slide":10,"text":"Use indoor beacons to estimate the user’s live location.","textPreview":"Use indoor beacons to estimate the user’s live location.","textChars":56,"textLines":1,"bbox":[190,327,650,43]}
+{"kind":"shape","id":"sh/6pszulon","slide":10,"bbox":[72,390,85,62]}
+{"kind":"textbox","id":"sh/rql0nq58","slide":10,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[96,405,36,28]}
+{"kind":"textbox","id":"sh/sruhwv6t","slide":10,"text":"Campus coverage","textPreview":"Campus coverage","textChars":15,"textLines":1,"bbox":[190,394,320,30]}
+{"kind":"textbox","id":"sh/ts3ip0ne","slide":10,"text":"Extend the map dataset beyond the primary FIT campus.","textPreview":"Extend the map dataset beyond the primary FIT campus.","textChars":53,"textLines":1,"bbox":[190,432,650,43]}
+{"kind":"shape","id":"sh/etczy5oj","slide":10,"bbox":[72,495,85,62]}
+{"kind":"textbox","id":"sh/ful0ra54","slide":10,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[96,510,36,28]}
+{"kind":"textbox","id":"sh/gvu10f6p","slide":10,"text":"Wider adoption","textPreview":"Wider adoption","textChars":14,"textLines":1,"bbox":[190,499,320,30]}
+{"kind":"textbox","id":"sh/1w3itkna","slide":10,"text":"Adapt the scheduling and map model for other faculties or universities.","textPreview":"Adapt the scheduling and map model for other faculties or universities.","textChars":71,"textLines":1,"bbox":[190,537,650,43]}
+{"kind":"shape","id":"sh/ux8zm1of","slide":10,"bbox":[907,206,300,382]}
+{"kind":"textbox","id":"sh/vyh0f650","slide":10,"text":"SyncUp","textPreview":"SyncUp","textChars":6,"textLines":1,"bbox":[951,265,208,42]}
+{"kind":"textbox","id":"sh/z2xwn2ls","slide":10,"text":"A practical foundation for easier campus meetings.","textPreview":"A practical foundation for easier campus meetings.","textChars":50,"textLines":1,"bbox":[946,343,220,85]}
+{"kind":"shape","id":"sh/y1ofex47","slide":10,"bbox":[976,467,160,0]}
+{"kind":"textbox","id":"sh/l4fepc3y","slide":10,"text":"Thank you","textPreview":"Thank you","textChars":9,"textLines":1,"bbox":[954,510,205,35]}
+{"kind":"notes","id":"nt/13bdi7","slide":10,"text":"Source: SyncUp technical report, September 2026.\nRoadmap based on report Further Development and Practical Application/Deployment."}
