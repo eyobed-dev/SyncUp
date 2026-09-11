@@ -68,6 +68,9 @@ class FitPhotoService {
             fullUrl = 'https://www.fit.vut.cz$fullUrl';
           }
           if (!photoUrls.contains(fullUrl)) {
+            if (kIsWeb) {
+              fullUrl = 'http://127.0.0.1:8080/api/v1/proxy?url=${Uri.encodeComponent(fullUrl)}';
+            }
             photoUrls.add(fullUrl);
           }
         }

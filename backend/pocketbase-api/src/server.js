@@ -1243,8 +1243,8 @@ app.get("/api/v1/proxy", async (req, res) => {
     }
     const contentType = response.headers.get("content-type");
     if (contentType) res.setHeader("Content-Type", contentType);
-    const body = await response.text();
-    return res.send(body);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return res.send(buffer);
   } catch (err) {
     return res.status(500).json({ error: "Proxy request failed", details: String(err) });
   }
@@ -1259,3 +1259,4 @@ app.listen(PORT, () => {
   console.log(`SyncUp API listening on http://localhost:${PORT}`);
 });
 
+r
