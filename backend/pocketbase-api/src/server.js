@@ -1226,6 +1226,30 @@ app.post("/api/v1/meetings/minutes", async (req, res) => {
   }
 });
 
+app.get("/api/v1/proxy", async (req, res) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) {
+    return res.status(400).json({ error: "Missing url parameter" });
+  }
+  try {
+    const response = await fetch(targetUrl, {
+      headers: {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent": "SyncUp-Backend-Proxy/1.0",
+      },
+    });
+    if (!response.ok) {
+      return res.status(response.status).send(`Proxy error: ${response.statusText}`);
+    }
+    const contentType = response.headers.get("content-type");
+    if (contentType) res.setHeader("Content-Type", contentType);
+    const body = await response.text();
+    return res.send(body);
+  } catch (err) {
+    return res.status(500).json({ error: "Proxy request failed", details: String(err) });
+  }
+});
+
 app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });

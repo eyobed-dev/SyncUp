@@ -31,7 +31,7 @@ class FitPhotoService {
       Uri url = Uri.parse(originalUrl);
 
       if (kIsWeb) {
-        final proxyUrl = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(originalUrl)}';
+        final proxyUrl = 'http://127.0.0.1:8080/api/v1/proxy?url=${Uri.encodeComponent(originalUrl)}';
         url = Uri.parse(proxyUrl);
       }
 
