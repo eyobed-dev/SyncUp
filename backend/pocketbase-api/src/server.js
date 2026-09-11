@@ -1258,5 +1258,3 @@ app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`SyncUp API listening on http://localhost:${PORT}`);
 });
-
-r
