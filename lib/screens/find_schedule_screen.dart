@@ -26,6 +26,7 @@ import '../widgets/user_profile_drawer.dart';
 import 'settings_screen.dart';
 import 'package:sync_up/theme/sync_up_colors.dart';
 import '../map/screens/campus_map_screen.dart';
+import '../utils/week_calendar.dart';
 
 class FindScheduleScreen extends StatefulWidget {
   const FindScheduleScreen({
@@ -1045,20 +1046,32 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
   late ValueNotifier<int> _selectedDayIndex;
   bool _isLoading = true;
   final Set<String> _bookedSlotKeys = <String>{};
+  late DateTime _startDate;
+  final int _visibleDays = 30;
 
   @override
   void initState() {
     super.initState();
     _selectedDayIndex = ValueNotifier(0);
+    final now = DateTime.now();
+    _startDate = DateTime(now.year, now.month, now.day);
     _loadAvailability();
   }
 
   Future<void> _loadAvailability() async {
-    await syncAvailabilityForOwner(widget.owner.id, widget.weekSunday);
+    try {
+      for (int i = 0; i < 5; i++) {
+        final d = _startDate.add(Duration(days: i * 7));
+        final ws = startOfWeekSunday(d);
+        await syncAvailabilityForOwner(widget.owner.id, ws);
+      }
+    } catch (e) {
+      debugPrint('Error loading availability: $e');
+    }
     
     // Auto-select logic
-    int bestDay = DateTime.now().weekday % 7; 
-    for (int i = bestDay; i < 7; i++) {
+    int bestDay = 0; 
+    for (int i = 0; i < _visibleDays; i++) {
       if (_getEmptySlotsCountForDay(i) > 0) {
         bestDay = i;
         break;
@@ -1074,8 +1087,9 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
   }
 
   int _getEmptySlotsCountForDay(int dayIdx) {
-    final dayDate = widget.weekSunday.add(Duration(days: dayIdx));
-    return getAvailabilityForOwner(widget.owner.id, widget.weekSunday)
+    final dayDate = _startDate.add(Duration(days: dayIdx));
+    final ws = startOfWeekSunday(dayDate);
+    return getAvailabilityForOwner(widget.owner.id, ws)
         .where((slot) =>
             slot.startTime.year == dayDate.year &&
             slot.startTime.month == dayDate.month &&
@@ -1119,12 +1133,15 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
 
   // Clever UI Typography: Merges Days, Dates, and Slots into one clean row
   Widget _buildCleverCalendar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(7, (dayIdx) {
-          final dayDate = widget.weekSunday.add(Duration(days: dayIdx));
+    return SizedBox(
+      height: 120,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _visibleDays,
+        separatorBuilder: (_, __) => const SizedBox(width: 4),
+        itemBuilder: (context, dayIdx) {
+          final dayDate = _startDate.add(Duration(days: dayIdx));
           final count = _getEmptySlotsCountForDay(dayIdx);
           
           return ValueListenableBuilder<int>(
@@ -1139,7 +1156,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   decoration: BoxDecoration(
                     color: isSelected ? context.colors.primary : Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
@@ -1148,7 +1165,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        dayShortNamesSunFirst[dayIdx].toUpperCase(),
+                        dayShortNamesSunFirst[dayDate.weekday % 7].toUpperCase(),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1180,7 +1197,7 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
               );
             },
           );
-        }),
+        },
       ),
     );
   }
@@ -1246,8 +1263,9 @@ class _ProfessorBookingSheetState extends State<_ProfessorBookingSheet> {
               child: ValueListenableBuilder<int>(
                 valueListenable: _selectedDayIndex,
                 builder: (context, dayIdx, _) {
-                  final dayDate = widget.weekSunday.add(Duration(days: dayIdx));
-                  final slots = getAvailabilityForOwner(widget.owner.id, widget.weekSunday)
+                  final dayDate = _startDate.add(Duration(days: dayIdx));
+                  final ws = startOfWeekSunday(dayDate);
+                  final slots = getAvailabilityForOwner(widget.owner.id, ws)
                       .where((s) =>
                           s.startTime.year == dayDate.year &&
                           s.startTime.month == dayDate.month &&
