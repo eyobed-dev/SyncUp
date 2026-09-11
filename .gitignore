@@ -50,3 +50,17 @@ app.*.map.json
 # Temporary scripts and pre-built deployment artifacts
 /scratch/
 /deploy/
+
+# Compiled web build artifacts accidentally output to web/
+web/canvaskit/
+web/assets/
+web/main.dart.js
+web/flutter_bootstrap.js
+web/flutter_service_worker.js
+web/flutter.js
+web/version.json
+web/.last_build_id
+
+# Deployment folders
+/deploy2/
+
