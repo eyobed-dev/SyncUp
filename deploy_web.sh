@@ -25,7 +25,5 @@ git rm --cached -r build/web > /dev/null
 
 echo "✅ Success! The compiled web build is now pushed to the 'release' branch."
 echo ""
-echo "On your public server, you can simply run:"
 echo "  git clone -b release https://github.com/eyobed-dev/SyncUp.git ."
-echo "  # or if already cloned:"
 echo "  git fetch && git checkout release && git reset --hard origin/release"
