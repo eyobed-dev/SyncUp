@@ -31,7 +31,7 @@ class FitPhotoService {
       Uri url = Uri.parse(originalUrl);
 
       if (kIsWeb) {
-        final proxyUrl = 'https://corsproxy.io/?url=${Uri.encodeComponent(originalUrl)}';
+        final proxyUrl = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(originalUrl)}';
         url = Uri.parse(proxyUrl);
       }
 
@@ -57,7 +57,7 @@ class FitPhotoService {
       for (final img in images) {
         final src = img.attributes['src'];
         if (src != null &&
-            (src.contains('/room/') || src.contains('mistnost') || src.contains('/fit/')) &&
+            (src.contains('/room/') || src.contains('mistnost') || src.contains('/fit/') || src.contains('room-photo') || src.contains('room-schema')) &&
             !src.endsWith('.svg') &&
             !src.contains('logo') &&
             !src.contains('icon')) {

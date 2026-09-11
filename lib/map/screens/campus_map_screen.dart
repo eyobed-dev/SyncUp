@@ -141,6 +141,13 @@ class _CampusMapScreenState extends State<CampusMapScreen>
         _calculateRoute();
       }
     }
+
+    // Ensure the map centers initially if not already centered by _selectRoom
+    if (_selectedRoom == null && _destinationRoom == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _centerOnFloor(_selectedFloor);
+      });
+    }
   }
 
   void _selectRoom(FitRoom room, {bool autoCenter = true}) {
