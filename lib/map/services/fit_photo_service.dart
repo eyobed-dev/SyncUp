@@ -14,6 +14,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
 
+import '../../services/syncup_api_client.dart';
+
 class FitPhotoService {
   FitPhotoService._();
   static final FitPhotoService instance = FitPhotoService._();
@@ -31,7 +33,8 @@ class FitPhotoService {
       Uri url = Uri.parse(originalUrl);
 
       if (kIsWeb) {
-        final proxyUrl = 'http://127.0.0.1:8080/api/v1/proxy?url=${Uri.encodeComponent(originalUrl)}';
+        final backendUrl = SyncUpApiClient.resolveBaseUrl();
+        final proxyUrl = '$backendUrl/api/v1/proxy?url=${Uri.encodeComponent(originalUrl)}';
         url = Uri.parse(proxyUrl);
       }
 
@@ -69,7 +72,8 @@ class FitPhotoService {
           }
           if (!photoUrls.contains(fullUrl)) {
             if (kIsWeb) {
-              fullUrl = 'http://127.0.0.1:8080/api/v1/proxy?url=${Uri.encodeComponent(fullUrl)}';
+              final backendUrl = SyncUpApiClient.resolveBaseUrl();
+              fullUrl = '$backendUrl/api/v1/proxy?url=${Uri.encodeComponent(fullUrl)}';
             }
             photoUrls.add(fullUrl);
           }

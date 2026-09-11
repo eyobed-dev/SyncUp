@@ -21,11 +21,11 @@ import '../models/meeting.dart';
 import '../models/schedule_owner.dart';
 
 class SyncUpApiClient {
-  SyncUpApiClient({String? baseUrl}) : _baseUrl = _resolveBaseUrl(baseUrl);
+  SyncUpApiClient({String? baseUrl}) : _baseUrl = resolveBaseUrl(baseUrl);
 
   final String _baseUrl;
 
-  static String _resolveBaseUrl(String? explicitBaseUrl) {
+  static String resolveBaseUrl([String? explicitBaseUrl]) {
     final explicit = (explicitBaseUrl ?? '').trim();
     if (explicit.isNotEmpty) return explicit;
 
